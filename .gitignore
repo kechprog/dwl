@@ -1,0 +1,9 @@
+dwl
+*.o
+*-protocol.c
+*-protocol.h
+.ccls-cache
+config.h
+.cache/clangd/index
+.github/ISSUE_TEMPLATE
+compile_commands.json
