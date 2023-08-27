@@ -307,9 +307,9 @@ static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
-static void touchdown(struct wl_listener *listener, void *data);
-static void touchup(struct wl_listener *listener, void *data);
-static void touchmotion(struct wl_listener *listener, void *data);
+static void swipebegin(struct wl_listener *listener, void *data);
+static void swipeend(struct wl_listener *listener, void *data);
+static void swipeupdate(struct wl_listener *listener, void *data);
 static void unlocksession(struct wl_listener *listener, void *data);
 static void unmaplayersurfacenotify(struct wl_listener *listener, void *data);
 static void unmapnotify(struct wl_listener *listener, void *data);
@@ -397,9 +397,9 @@ static struct wl_listener request_start_drag = {.notify = requeststartdrag};
 static struct wl_listener start_drag = {.notify = startdrag};
 static struct wl_listener session_lock_create_lock = {.notify = locksession};
 static struct wl_listener session_lock_mgr_destroy = {.notify = destroysessionmgr};
-static struct wl_listener touch_down = {.notify = touchdown};
-static struct wl_listener touch_up = {.notify = touchup};
-static struct wl_listener touch_motion = {.notify = touchmotion};
+static struct wl_listener swipe_begin = {.notify = swipebegin};
+static struct wl_listener swipe_end = {.notify = swipeend};
+static struct wl_listener swipe_update = {.notify = swipeupdate};
 
 #ifdef XWAYLAND
 static void activatex11(struct wl_listener *listener, void *data);
@@ -1060,6 +1060,17 @@ createpointer(struct wlr_pointer *pointer)
 			libinput_device_config_accel_set_profile(libinput_device, accel_profile);
 			libinput_device_config_accel_set_speed(libinput_device, accel_speed);
 		}
+
+		// /*--------------------------------- add gestures ---------------------------------*/
+		// if (libinput_device_has_capability(libinput_device, LIBINPUT_DEVICE_CAP_GESTURE)) {
+		// 	/* swipes */
+		// 	wl_signal_add(&pointer->events.swipe_begin,  &swipe_begin);
+		// 	wl_signal_add(&pointer->events.swipe_update, &swipe_update);
+		// 	wl_signal_add(&pointer->events.swipe_end,    &swipe_end);
+
+		// 	/* pinches */
+		// 	// TODO: implement those
+		// }
 	}
 
 	wlr_cursor_attach_input_device(cursor, &pointer->base);
@@ -1372,7 +1383,6 @@ inputdevice(struct wl_listener *listener, void *data)
 	/* This event is raised by the backend when a new input device becomes
 	 * available. */
 	struct wlr_input_device *device = data;
-	struct wlr_touch *touch;
 	uint32_t caps;
 
 	switch (device->type) {
@@ -1381,12 +1391,6 @@ inputdevice(struct wl_listener *listener, void *data)
 		break;
 	case WLR_INPUT_DEVICE_POINTER:
 		createpointer(wlr_pointer_from_input_device(device));
-		break;
-	case WLR_INPUT_DEVICE_TOUCH:
-		touch = wlr_touch_from_input_device(device);
-		wl_signal_add(&touch->events.motion, &touch_motion);
-		wl_signal_add(&touch->events.up,     &touch_up);
-		wl_signal_add(&touch->events.down,   &touch_down);
 		break;
 	default:
 		/* TODO handle other input device types */
@@ -2281,6 +2285,9 @@ setup(void)
 	wl_signal_add(&cursor->events.button, &cursor_button);
 	wl_signal_add(&cursor->events.axis, &cursor_axis);
 	wl_signal_add(&cursor->events.frame, &cursor_frame);
+	wl_signal_add(&cursor->events.swipe_end, &swipe_end);
+	wl_signal_add(&cursor->events.swipe_begin, &swipe_begin);
+	wl_signal_add(&cursor->events.swipe_update, &swipe_update);
 
 	/*
 	 * Configures a seat, which is a single "seat" at which a user sits and
@@ -2448,21 +2455,21 @@ toggleview(const Arg *arg)
 }
 
 void
-touchdown(struct wl_listener *listener, void *data)
+swipebegin(struct wl_listener *listener, void *data)
 {
-	wlr_log(WLR_DEBUG, "touchdown");
+	printf("started swiping\n");
 }
 
 void 
-touchup(struct wl_listener *listener, void *data)
+swipeend(struct wl_listener *listener, void *data)
 {
-	wlr_log(WLR_DEBUG, "touchup");
+	printf("done swiping\n");	
 }
 
 void
-touchmotion(struct wl_listener *listener, void *data) 
+swipeupdate(struct wl_listener *listener, void *data) 
 {
-	wlr_log(WLR_DEBUG, "touchmotion");
+	printf("updating the swipe\n");
 }
 
 void

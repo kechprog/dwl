@@ -7,3 +7,4 @@ config.h
 .cache/clangd/index
 .github/ISSUE_TEMPLATE
 compile_commands.json
+.vscode
