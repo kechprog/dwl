@@ -1,7 +1,6 @@
-/*
- * See LICENSE file for copyright and license details.
- */
 #include <getopt.h>
+#include <assert.h>
+#include <math.h>
 #include <libinput.h>
 #include <limits.h>
 #include <linux/input-event-codes.h>
@@ -71,6 +70,7 @@
 #define TAGMASK                 ((1u << tagcount) - 1)
 #define LISTEN(E, L, H)         wl_signal_add((E), ((L)->notify = (H), (L)))
 #define IDLE_NOTIFY_ACTIVITY    wlr_idle_notify_activity(idle, seat), wlr_idle_notifier_v1_notify_activity(idle_notifier, seat)
+#define PI 3.14159265358979323846
 
 /* enums */
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
@@ -80,6 +80,8 @@ enum { LyrBg, LyrBottom, LyrTile, LyrFloat, LyrFS, LyrTop, LyrOverlay, LyrBlock,
 enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 	NetWMWindowTypeUtility, NetLast }; /* EWMH atoms */
 #endif
+enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
+	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
 
 typedef union {
 	int i;
@@ -220,6 +222,13 @@ typedef struct {
 	struct wl_listener unlock;
 	struct wl_listener destroy;
 } SessionLock;
+
+typedef struct {
+	uint32_t fingercount;	
+	int dir;
+	void (*callback)(const Arg *);
+	const Arg arg;
+} Swipe;
 
 /* function declarations */
 static void applybounds(Client *c, struct wlr_box *bbox);
@@ -370,6 +379,9 @@ static struct wlr_output_layout *output_layout;
 static struct wlr_box sgeom;
 static struct wl_list mons;
 static Monitor *selmon;
+
+static double swipe_dx=0, swipe_dy=0;
+static uint32_t swipe_fingercount=0;
 
 /* global event handlers */
 static struct wl_listener cursor_axis = {.notify = axisnotify};
@@ -1025,7 +1037,7 @@ void
 createpointer(struct wlr_pointer *pointer)
 {
 	if (wlr_input_device_is_libinput(&pointer->base)) {
-		struct libinput_device *libinput_device = (struct libinput_device*)
+		struct libinput_device *libinput_device =
 			wlr_libinput_get_device_handle(&pointer->base);
 
 		if (libinput_device_config_tap_get_finger_count(libinput_device)) {
@@ -1061,16 +1073,18 @@ createpointer(struct wlr_pointer *pointer)
 			libinput_device_config_accel_set_speed(libinput_device, accel_speed);
 		}
 
-		// /*--------------------------------- add gestures ---------------------------------*/
-		// if (libinput_device_has_capability(libinput_device, LIBINPUT_DEVICE_CAP_GESTURE)) {
-		// 	/* swipes */
+		/*--------------------------------- add gestures ---------------------------------*/
+		// if (libinput_device_has_capability(libinput_device, LIBINPUT_DEVICE_CAP_GESTURE) != 0) {
+		// 	printf("gesture supported\n");
+		//
+		//  	/* swipes */
 		// 	wl_signal_add(&pointer->events.swipe_begin,  &swipe_begin);
 		// 	wl_signal_add(&pointer->events.swipe_update, &swipe_update);
 		// 	wl_signal_add(&pointer->events.swipe_end,    &swipe_end);
-
+		//
 		// 	/* pinches */
 		// 	// TODO: implement those
-		// }
+		// }	
 	}
 
 	wlr_cursor_attach_input_device(cursor, &pointer->base);
@@ -1384,14 +1398,20 @@ inputdevice(struct wl_listener *listener, void *data)
 	 * available. */
 	struct wlr_input_device *device = data;
 	uint32_t caps;
+	printf("My name is %s and I'm a ", device->name);
 
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_KEYBOARD:
+		printf("keyboard\n");
 		createkeyboard(wlr_keyboard_from_input_device(device));
 		break;
 	case WLR_INPUT_DEVICE_POINTER:
+		printf("pointer\n");
 		createpointer(wlr_pointer_from_input_device(device));
 		break;
+	// case WLR_INPUT_DEVICE_TOUCH:
+	// 	printf("touch\n");
+	// 	break;
 	default:
 		/* TODO handle other input device types */
 		break;
@@ -2285,9 +2305,9 @@ setup(void)
 	wl_signal_add(&cursor->events.button, &cursor_button);
 	wl_signal_add(&cursor->events.axis, &cursor_axis);
 	wl_signal_add(&cursor->events.frame, &cursor_frame);
-	wl_signal_add(&cursor->events.swipe_end, &swipe_end);
 	wl_signal_add(&cursor->events.swipe_begin, &swipe_begin);
 	wl_signal_add(&cursor->events.swipe_update, &swipe_update);
+	wl_signal_add(&cursor->events.swipe_end, &swipe_end);
 
 	/*
 	 * Configures a seat, which is a single "seat" at which a user sits and
@@ -2457,19 +2477,78 @@ toggleview(const Arg *arg)
 void
 swipebegin(struct wl_listener *listener, void *data)
 {
-	printf("started swiping\n");
+	struct wlr_pointer_swipe_begin_event *ev = data;
+	swipe_fingercount = ev->fingers;
+	swipe_dx = swipe_dy = 0;
+}
+
+
+void
+swipeupdate(struct wl_listener *listener, void *data) 
+{
+	struct wlr_pointer_swipe_update_event *ev = data; 
+	swipe_dx += ev->dx;
+	swipe_dy += ev->dy;
 }
 
 void 
 swipeend(struct wl_listener *listener, void *data)
 {
-	printf("done swiping\n");	
-}
+	struct wlr_pointer_swipe_end_event *ev = data;
+	if (ev->cancelled)
+		return;
 
-void
-swipeupdate(struct wl_listener *listener, void *data) 
-{
-	printf("updating the swipe\n");
+	float vec_len = sqrt(swipe_dx * swipe_dx + swipe_dy * swipe_dy);
+	swipe_dx /= vec_len;
+	swipe_dy /= vec_len;
+
+	int swipe_dir = -1;
+	float swipe_angle = acos(swipe_dx);
+	if (swipe_angle > PI/2)
+		swipe_angle = PI - swipe_angle;
+
+	if (swipe_angle < corner_angle - corner_wigle_angle) { /* meaning that we count this as left/right */
+		assert(swipe_dx != 0);
+		if (swipe_dx > 0) { /* swipe right */
+			swipe_dir = SwipeRight;
+		} else {
+			swipe_dir = SwipeLeft;
+		}
+	} else if (swipe_angle > corner_angle + corner_wigle_angle) { /* swipe up/down */
+		assert(swipe_dy != 0);
+		if (swipe_dy > 0) { /* swipe up */
+			swipe_dir = SwipeUp;
+		} else {
+			swipe_dir = SwipeDown;
+		}
+	} else { /* swiping to the corner */
+		if (swipe_dx > 0 && swipe_dy > 0)     /* quadrant 1 */
+			swipe_dir = SwipeUpRight;
+		else if(swipe_dx < 0 && swipe_dy > 0) /* quadrant 2 */
+			swipe_dir = SwipeUpLeft;
+		else if(swipe_dx < 0 && swipe_dy < 0) /* quadrant 3 */
+			swipe_dir = SwipeDownLeft;
+		else                                  /* quadrant 4 */
+			swipe_dir = SwipeDownRight;
+	}
+
+	if (swipe_dir == -1)
+		die("something went totally wrong in swipeend");
+
+	FILE *fp = fopen("/home/ed/test.swipe", "a");
+	fprintf(fp, "fngcnt: %d | direction: %d | dx: %fd | dy: %fd\n", swipe_fingercount, swipe_dir, swipe_dx, swipe_dy);
+
+	for (int i = 0; i<LENGTH(swipegestures); i++) {
+		Swipe s = swipegestures[i];
+		if (s.dir == swipe_dir && s.fingercount == swipe_fingercount) {
+			fprintf(fp, "did something\n");
+			s.callback(&s.arg);
+		}
+	}
+
+	fclose(fp);
+	swipe_fingercount = 0;
+	swipe_dx = swipe_dy = 0;
 }
 
 void
@@ -2829,6 +2908,7 @@ xwaylandready(struct wl_listener *listener, void *data)
 int
 main(int argc, char *argv[])
 {
+	printf("I can print here!!!\n");
 	char *startup_cmd = NULL;
 	int c;
 

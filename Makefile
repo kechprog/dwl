@@ -11,7 +11,7 @@ DWLDEVCFLAGS = -g -pedantic -Wall -Wextra -Wdeclaration-after-statement -Wno-unu
 # CFLAGS / LDFLAGS
 PKGS      = wlroots wayland-server xkbcommon libinput $(XLIBS)
 DWLCFLAGS = `$(PKG_CONFIG) --cflags $(PKGS)` $(DWLCPPFLAGS) $(DWLDEVCFLAGS) $(CFLAGS)
-LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` $(LIBS)
+LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` $(LIBS) -lm
 
 all: dwl
 dwl: dwl.o util.o
@@ -32,8 +32,6 @@ wlr-layer-shell-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/wlr-layer-shell-unstable-v1.xml $@
 
-config.h:
-	cp config.def.h $@
 clean:
 	rm -f dwl *.o *-protocol.h
 

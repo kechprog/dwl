@@ -156,3 +156,10 @@ static const Button buttons[] = {
 	{ MODKEY, BTN_MIDDLE, togglefloating, {0} },
 	{ MODKEY, BTN_RIGHT,  moveresize,     {.ui = CurResize} },
 };
+
+static const float corner_angle = PI/4;        /* 45 degrees */
+static const float corner_wigle_angle = PI/18; /* 10 degrees */
+static const Swipe swipegestures[] = {
+	/*| fingercount | direction  | */
+	{      3,         SwipeRight,  view, {.ui = 1 << 0} } 
+};
