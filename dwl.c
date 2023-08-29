@@ -326,6 +326,8 @@ static void updatemons(struct wl_listener *listener, void *data);
 static void updatetitle(struct wl_listener *listener, void *data);
 static void urgent(struct wl_listener *listener, void *data);
 static void view(const Arg *arg);
+static void viewnext(const Arg *arg);
+static void viewprev(const Arg *arg);
 static void virtualkeyboard(struct wl_listener *listener, void *data);
 static Monitor *xytomon(double x, double y);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
@@ -382,6 +384,7 @@ static Monitor *selmon;
 
 static double swipe_dx=0, swipe_dy=0;
 static uint32_t swipe_fingercount=0;
+
 
 /* global event handlers */
 static struct wl_listener cursor_axis = {.notify = axisnotify};
@@ -2722,6 +2725,34 @@ view(const Arg *arg)
 	focusclient(focustop(selmon), 1);
 	arrange(selmon);
 	printstatus();
+}
+
+void
+viewprev(const Arg *arg) {
+  if (selmon->tagset[selmon->seltags] == 0)
+    return;
+
+  unsigned int newtagset = (selmon->tagset[selmon->seltags] << 1);
+  newtagset &= TAGMASK;
+
+  if (newtagset) {
+    Arg a = {.ui = newtagset};
+    view(&a);
+  }
+}
+
+void
+viewnext(const Arg *arg) {
+  if (selmon->tagset[selmon->seltags] == 0)
+    return;
+
+  unsigned int newtagset = (selmon->tagset[selmon->seltags] >> 1);
+  newtagset &= TAGMASK;
+
+  if (newtagset) {
+    Arg a = {.ui = newtagset};
+    view(&a);
+  }
 }
 
 void

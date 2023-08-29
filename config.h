@@ -160,6 +160,9 @@ static const Button buttons[] = {
 static const float corner_angle = PI/4;        /* 45 degrees */
 static const float corner_wigle_angle = PI/18; /* 10 degrees */
 static const Swipe swipegestures[] = {
-	/*| fingercount | direction  | */
-	{      3,         SwipeRight,  view, {.ui = 1 << 0} } 
+	/*| fingercount | direction | funcion |   argument   | */
+	{      3        , SwipeRight, viewnext,      {0}     , },
+	{      4        , SwipeRight, viewnext,      {0}     , },
+	{      3        , SwipeLeft , viewprev,      {0}     , },
+	{      4        , SwipeLeft , viewprev,      {0}     , }, 
 };
