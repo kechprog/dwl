@@ -2505,16 +2505,20 @@ swipeupdate(struct wl_listener *listener, void *data)
 void 
 swipeend(struct wl_listener *listener, void *data)
 {
+	float vec_len = 0;
+	int swipe_dir = -1;
+	float swipe_angle;
+	FILE * fp;
+
 	struct wlr_pointer_swipe_end_event *ev = data;
 	if (ev->cancelled)
 		return;
 
-	float vec_len = sqrt(swipe_dx * swipe_dx + swipe_dy * swipe_dy);
+	vec_len = sqrt(swipe_dx * swipe_dx + swipe_dy * swipe_dy);
 	swipe_dx /= vec_len;
 	swipe_dy /= vec_len;
 
-	int swipe_dir = -1;
-	float swipe_angle = acos(swipe_dx);
+	swipe_angle = acos(swipe_dx);
 	if (swipe_angle > PI/2)
 		swipe_angle = PI - swipe_angle;
 
@@ -2546,7 +2550,7 @@ swipeend(struct wl_listener *listener, void *data)
 	if (swipe_dir == -1)
 		die("something went totally wrong in swipeend");
 
-	FILE *fp = fopen("/home/ed/test.swipe", "a");
+	fp = fopen("/home/ed/test.swipe", "a");
 	fprintf(fp, "fngcnt: %d | direction: %d | dx: %fd | dy: %fd\n", swipe_fingercount, swipe_dir, swipe_dx, swipe_dy);
 
 	for (int i = 0; i<LENGTH(swipegestures); i++) {
@@ -2737,30 +2741,34 @@ view(const Arg *arg)
 
 void
 viewprev(const Arg *arg) {
-  if (selmon->tagset[selmon->seltags] == 0)
-    return;
+	unsigned int  newtagset;
 
-  unsigned int newtagset = (selmon->tagset[selmon->seltags] << 1);
-  newtagset &= TAGMASK;
+	if (selmon->tagset[selmon->seltags] == 0)
+		return;
 
-  if (newtagset) {
-    Arg a = {.ui = newtagset};
-    view(&a);
-  }
+	newtagset = (selmon->tagset[selmon->seltags] << 1);
+	newtagset &= TAGMASK;
+
+	if (newtagset) {
+		Arg a = {.ui = newtagset};
+		view(&a);
+	}
 }
 
 void
 viewnext(const Arg *arg) {
-  if (selmon->tagset[selmon->seltags] == 0)
-    return;
+	unsigned int  newtagset;
 
-  unsigned int newtagset = (selmon->tagset[selmon->seltags] >> 1);
-  newtagset &= TAGMASK;
+	if (selmon->tagset[selmon->seltags] == 0)
+		return;
 
-  if (newtagset) {
-    Arg a = {.ui = newtagset};
-    view(&a);
-  }
+	newtagset = (selmon->tagset[selmon->seltags] >> 1);
+	newtagset &= TAGMASK;
+
+	if (newtagset) {
+		Arg a = {.ui = newtagset};
+		view(&a);
+	}
 }
 
 void
@@ -2947,9 +2955,9 @@ xwaylandready(struct wl_listener *listener, void *data)
 int
 main(int argc, char *argv[])
 {
-	printf("I can print here!!!\n");
 	char *startup_cmd = NULL;
 	int c;
+	printf("I can print here!!!\n");
 
 	while ((c = getopt(argc, argv, "s:hv")) != -1) {
 		if (c == 's')
