@@ -7,3 +7,5 @@ dwl
 .github/ISSUE_TEMPLATE
 compile_commands.json
 .vscode
+bar/.builds
+bar/.cache/clangd/index

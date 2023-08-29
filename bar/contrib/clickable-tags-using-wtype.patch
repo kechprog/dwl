@@ -1,0 +1,91 @@
+From: Ben Collerson <benc@benc.cc>
+Date: Sat, 1 Apr 2023 09:16:19 +1000
+Subject: [PATCH somebar] clickable tags using wtype
+
+---
+ src/bar.cpp        |  3 ++-
+ src/common.hpp     |  2 ++
+ src/config.def.hpp |  5 +++++
+ src/main.cpp       | 15 +++++++++++++++
+ 4 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/src/bar.cpp b/src/bar.cpp
+index af92f49..8b68759 100644
+--- a/src/bar.cpp
++++ b/src/bar.cpp
+@@ -182,9 +182,10 @@ void Bar::click(Monitor* mon, int x, int, int btn)
+ 	} else if (x > _layoutCmp.x) {
+ 		control = ClkLayoutSymbol;
+ 	} else for (int tag = _tags.size()-1; tag >= 0; tag--) {
++		// you may need logic to skip tags if they are hidden elsewhere.
+ 		if (x > _tags[tag].component.x) {
+ 			control = ClkTagBar;
+-			arg.ui = 1<<tag;
++			arg.ui = tag;
+ 			argp = &arg;
+ 			break;
+ 		}
+diff --git a/src/common.hpp b/src/common.hpp
+index c905358..a386029 100644
+--- a/src/common.hpp
++++ b/src/common.hpp
+@@ -39,6 +39,8 @@ extern wl_compositor* compositor;
+ extern wl_shm* shm;
+ extern zwlr_layer_shell_v1* wlrLayerShell;
+ 
++void view(Monitor& m, const Arg& arg);
++void tag(Monitor& m, const Arg& arg);
+ void spawn(Monitor&, const Arg& arg);
+ void setCloexec(int fd);
+ [[noreturn]] void die(const char* why);
+diff --git a/src/config.def.hpp b/src/config.def.hpp
+index 40a8c95..de193ea 100644
+--- a/src/config.def.hpp
++++ b/src/config.def.hpp
+@@ -4,6 +4,9 @@
+ #pragma once
+ #include "common.hpp"
+ 
++#define WTYPE "/usr/bin/wtype"
++#define MODKEY "alt"
++
+ constexpr bool topbar = true;
+ 
+ constexpr int paddingX = 10;
+@@ -23,5 +26,7 @@ static std::vector<std::string> tagNames = {
+ };
+ 
+ constexpr Button buttons[] = {
++	{ ClkTagBar,       BTN_LEFT,   view,       {0} },
++	{ ClkTagBar,       BTN_RIGHT,  tag,        {0} },
+ 	{ ClkStatusText,   BTN_RIGHT,  spawn,      {.v = termcmd} },
+ };
+diff --git a/src/main.cpp b/src/main.cpp
+index 6274959..3c35b20 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -85,6 +85,21 @@ static int statusFifoFd {-1};
+ static int statusFifoWriter {-1};
+ static bool quitting {false};
+ 
++// update keybindings to match your dwl
++void view(Monitor& m, const Arg& arg)
++{
++	char tag[2];
++	snprintf(tag, 2, "%i", arg.ui + 1);
++	if(fork() == 0)
++		execl(WTYPE, "wtype", "-M", MODKEY, tag, (char*)NULL);
++}
++void tag(Monitor& m, const Arg& arg)
++{
++	char tag[2];
++	snprintf(tag, 2, "%i", arg.ui + 1);
++	if(fork() == 0)
++		execl(WTYPE, "wtype", "-M", MODKEY, "-M", "shift", tag, (char*)NULL);
++}
+ void spawn(Monitor&, const Arg& arg)
+ {
+ 	if (fork() == 0) {
+-- 
+2.40.1
+
