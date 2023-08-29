@@ -2417,13 +2417,21 @@ tile(Monitor *m)
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
 		if (i < m->nmaster) {
-			resize(c, (struct wlr_box){.x = m->w.x, .y = m->w.y + my, .width = mw,
-				.height = (m->w.height - my) / (MIN(n, m->nmaster) - i)}, 0);
+			resize(c, (struct wlr_box){
+				.x = m->w.x + gappx, 
+				.y = m->w.y + my + gappx, 
+				.width = mw - 2*gappx,
+				.height = (m->w.height - my - 2*gappx) / (MIN(n, m->nmaster) - i)
+			},0);
 			my += c->geom.height;
 		} else {
-			resize(c, (struct wlr_box){.x = m->w.x + mw, .y = m->w.y + ty,
-				.width = m->w.width - mw, .height = (m->w.height - ty) / (n - i)}, 0);
-			ty += c->geom.height;
+			resize(c, (struct wlr_box){
+				.x = m->w.x + mw,
+				.y = m->w.y + ty + gappx,
+				.width = m->w.width - mw - gappx, 
+				.height = (m->w.height - ty - 2*gappx) / (n - i)
+			},0);
+			ty += c->geom.height + gappx;
 		}
 		i++;
 	}
