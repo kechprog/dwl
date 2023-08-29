@@ -8,9 +8,10 @@ static const float focuscolor[]            = {1.0, 0.0, 0.0, 1.0};
 /* To conform the xdg-protocol, set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1, 0.1, 0.1, 1.0};
 
+static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+
 /* tagging - tagcount must be no greater than 31 */
-#define TAGCOUNT (9)
-static const int tagcount = TAGCOUNT;
+static const int tagcount = sizeof(tags) / sizeof(tags[0]);
 
 static const Rule rules[] = {
 	/* app_id     title       tags mask     isfloating   monitor */
