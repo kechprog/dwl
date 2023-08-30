@@ -58,6 +58,7 @@ class Bar {
 	void beginBg();
 	void renderComponent(BarComponent& component);
 	BarComponent createComponent(const std::string& initial = {});
+
 public:
 	Bar();
 	const wl_surface* surface() const;

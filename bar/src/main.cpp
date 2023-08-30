@@ -1,9 +1,9 @@
-// somebar - dwl bar
 // See LICENSE file for copyright and license details.
-
 #include <algorithm>
 #include <cstdio>
+#include <iostream>
 #include <list>
+#include <mutex>
 #include <optional>
 #include <thread>
 #include <utility>
@@ -71,9 +71,6 @@ static Monitor* monitorFromSurface(const wl_surface* surface);
 static void setupMonitor(uint32_t name, wl_output* output);
 static void updatemon(Monitor &mon);
 static void onReady();
-// static void setupStatusFifo();
-static void onStatus();
-static void updateVisibility(const std::string& name, bool(*updater)(bool));
 static void onGlobalAdd(void*, wl_registry* registry, uint32_t name, const char* interface, uint32_t version);
 static void onGlobalRemove(void*, wl_registry* registry, uint32_t name);
 static void requireGlobal(const void* p, const char* name);
@@ -81,11 +78,11 @@ static void waylandFlush();
 static void cleanup();
 
 /* globals */
-wl_display* display;
-wl_compositor* compositor;
-wl_shm* shm;
-zwlr_layer_shell_v1* wlrLayerShell;
-znet_tapesoftware_dwl_wm_v1* dwlWm;
+wl_display *display;
+wl_compositor *compositor;
+wl_shm *shm;
+zwlr_layer_shell_v1 *wlrLayerShell;
+znet_tapesoftware_dwl_wm_v1 *dwlWm;
 std::vector<std::string> tagNames;
 std::vector<std::string> layoutNames;
 
@@ -95,6 +92,7 @@ static zxdg_output_manager_v1* xdgOutputManager;
 static wl_surface* cursorSurface;
 static wl_cursor_image* cursorImage;
 static bool ready;
+static std::mutex monitorsMutex;
 static std::list<Monitor> monitors;
 static std::vector<std::pair<uint32_t, wl_output*>> uninitializedOutputs;
 static std::list<Seat> seats;
@@ -104,7 +102,6 @@ static std::string statusFifoName;
 static std::vector<pollfd> pollfds;
 static std::array<int, 2> signalSelfPipe;
 static int displayFd {-1};
-static int statusFifoFd {-1};
 static int statusFifoWriter {-1};
 static bool quitting {false};
 static std::atomic<bool> thread_should_run(true);
@@ -118,7 +115,7 @@ static LineBuffer<512> statusBuffer;
 
 /* handalers */
 static const struct xdg_wm_base_listener xdgWmBaseListener = {
-	[](void*, xdg_wm_base* sender, uint32_t serial) {
+	.ping = [](void*, xdg_wm_base* sender, uint32_t serial) { /* almost ping google.com */
 		xdg_wm_base_pong(sender, serial);
 	}
 };
@@ -211,6 +208,7 @@ static const struct wl_seat_listener seatListener = {
 	.name = [](void*, wl_seat*, const char* name) { }
 };
 
+/* only on startup */
 static const struct znet_tapesoftware_dwl_wm_v1_listener dwlWmListener = {
 
 	.tag = [](void*, znet_tapesoftware_dwl_wm_v1*, const char* name) {
@@ -222,6 +220,7 @@ static const struct znet_tapesoftware_dwl_wm_v1_listener dwlWmListener = {
 	},
 };
 
+/* state update of dwl */
 static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorListener {
 
 	.selected = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t selected) {
@@ -260,7 +259,7 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 		mon->bar.setTitle(title);
 	},
 
-	.frame = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*) {
+	.frame = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*) { /* issued after all events to redraw */
 		auto mon = static_cast<Monitor*>(mv);
 		mon->hasData = true;
 		updatemon(*mon);
@@ -308,14 +307,18 @@ void spawn(Monitor&, const Arg& arg)
 
 Monitor* monitorFromSurface(const wl_surface* surface)
 {
+	monitorsMutex.lock();
 	auto mon = std::find_if(begin(monitors), end(monitors), [surface](const Monitor& mon) {
 		return mon.bar.surface() == surface;
 	});
-	return mon != end(monitors) ? &*mon : nullptr;
+	Monitor *ret = mon != end(monitors) ? &*mon : nullptr;
+	monitorsMutex.unlock();
+	return ret; 
 }
 
 
 void setupMonitor(uint32_t name, wl_output* output) {
+	monitorsMutex.lock();
 	auto& monitor = monitors.emplace_back(Monitor {
 		name, 
 		{}, 
@@ -328,6 +331,7 @@ void setupMonitor(uint32_t name, wl_output* output) {
 	zxdg_output_v1_add_listener(xdgOutput, &xdgOutputListener, &monitor);
 	monitor.dwlMonitor.reset(znet_tapesoftware_dwl_wm_v1_get_monitor(dwlWm, monitor.wlOutput.get()));
 	znet_tapesoftware_dwl_wm_monitor_v1_add_listener(monitor.dwlMonitor.get(), &dwlWmMonitorListener, &monitor);
+	monitorsMutex.unlock();
 }
 
 void updatemon(Monitor& mon)
@@ -354,97 +358,11 @@ void onReady()
 	requireGlobal(wlrLayerShell,    "zwlr_layer_shell_v1");
 	requireGlobal(xdgOutputManager, "zxdg_output_manager_v1");
 	requireGlobal(dwlWm,            "znet_tapesoftware_dwl_wm_v1");
-	// setupStatusFifo();
 	wl_display_roundtrip(display); // roundtrip so we receive all dwl tags etc.
 
 	ready = true;
 	for (auto output : uninitializedOutputs) {
 		setupMonitor(output.first, output.second);
-	}
-}
-
-// bool createFifo(std::string path)
-// {
-// 	auto result = mkfifo(path.c_str(), 0666);
-// 	if (result == 0) {
-// 		auto fd = open(path.c_str(), O_CLOEXEC | O_NONBLOCK | O_RDONLY);
-// 		if (fd < 0) {
-// 			diesys("open status fifo reader");
-// 		}
-// 		statusFifoName = path;
-// 		statusFifoFd = fd;
-//
-// 		fd = open(path.c_str(), O_CLOEXEC | O_WRONLY);
-// 		if (fd < 0) {
-// 			diesys("open status fifo writer");
-// 		}
-// 		statusFifoWriter = fd;
-//
-// 		pollfds.push_back({
-// 			.fd = statusFifoFd,
-// 			.events = POLLIN,
-// 		});
-// 		return true;
-// 	} else if (errno != EEXIST) {
-// 		diesys("mkfifo");
-// 	}
-//
-// 	return false;
-// }
-//
-// void setupStatusFifo()
-// {
-// 	if (!statusFifoName.empty()) {
-// 		createFifo(statusFifoName);
-// 		return;
-// 	}
-//
-// 	for (auto i=0; i<100; i++) {
-// 		auto path = std::string{getenv("XDG_RUNTIME_DIR")} + "/somebar-" + std::to_string(i);
-// 		if (createFifo(path)) {
-// 			return;
-// 		}
-// 	}
-// }
-
-void onStatus()
-{
-	statusBuffer.readLines(
-	[](void* p, size_t size) {
-		return read(statusFifoFd, p, size);
-	},
-	[](const char* buffer, size_t n) {
-		auto str = std::string {buffer, n};
-		if (str.rfind(prefixStatus, 0) == 0) {
-			lastStatus = str.substr(prefixStatus.size());
-			for (auto &monitor : monitors) {
-				monitor.bar.setStatus(lastStatus);
-				monitor.bar.invalidate();
-			}
-		} else if (str.rfind(prefixShow, 0) == 0) {
-			updateVisibility(str.substr(prefixShow.size()), [](bool) { return true; });
-		} else if (str.rfind(prefixHide, 0) == 0) {
-			updateVisibility(str.substr(prefixHide.size()), [](bool) { return false; });
-		} else if (str.rfind(prefixToggle, 0) == 0) {
-			updateVisibility(str.substr(prefixToggle.size()), [](bool vis) { return !vis; });
-		}
-	});
-}
-
-void updateVisibility(const std::string& name, bool(*updater)(bool))
-{
-	auto isCurrent = name == argSelected;
-	auto isAll = name == argAll;
-	for (auto& mon : monitors) {
-		if (isAll ||
-			isCurrent && &mon == selmon ||
-			mon.xdgName == name) {
-			auto newVisibility = updater(mon.desiredVisibility);
-			if (newVisibility != mon.desiredVisibility) {
-				mon.desiredVisibility = newVisibility;
-				updatemon(mon);
-			}
-		}
 	}
 }
 
@@ -485,8 +403,10 @@ void onGlobalAdd(void*, wl_registry* registry, uint32_t name, const char* interf
 
 void onGlobalRemove(void*, wl_registry* registry, uint32_t name)
 {
+	monitorsMutex.lock();
 	monitors.remove_if([name](const Monitor &mon) { return mon.registryName == name; });
 	seats.remove_if([name](const Seat &seat) { return seat.name == name; });
+	monitorsMutex.unlock();
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -589,9 +509,14 @@ int main(int argc, char* argv[])
 
 	auto time_handle = std::thread([&](){
 		while (thread_should_run) {
+			monitorsMutex.lock();
 			for (auto& m : monitors) {
+				std::cout << "updating time\n";
 				m.bar.updateTime();
+				m.hasData = true;
+				updatemon(m);
 			}
+			monitorsMutex.unlock();
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 	});
@@ -616,8 +541,6 @@ int main(int argc, char* argv[])
 						ev.events = POLLIN;
 						waylandFlush();
 					}
-				} else if (ev.fd == statusFifoFd && (ev.revents & POLLIN)) {
-					onStatus();
 				} else if (ev.fd == signalSelfPipe[0] && (ev.revents & POLLIN)) {
 					quitting = true;
 				}
