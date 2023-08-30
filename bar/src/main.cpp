@@ -1,10 +1,12 @@
 // See LICENSE file for copyright and license details.
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <list>
 #include <mutex>
 #include <optional>
+#include <sys/poll.h>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -92,7 +94,6 @@ static zxdg_output_manager_v1* xdgOutputManager;
 static wl_surface* cursorSurface;
 static wl_cursor_image* cursorImage;
 static bool ready;
-static std::mutex monitorsMutex;
 static std::list<Monitor> monitors;
 static std::vector<std::pair<uint32_t, wl_output*>> uninitializedOutputs;
 static std::list<Seat> seats;
@@ -101,10 +102,11 @@ static std::string lastStatus;
 static std::string statusFifoName;
 static std::vector<pollfd> pollfds;
 static std::array<int, 2> signalSelfPipe;
+static std::array<int, 2> timePipe;
 static int displayFd {-1};
 static int statusFifoWriter {-1};
 static bool quitting {false};
-static std::atomic<bool> thread_should_run(true);
+static std::atomic<bool> threads_should_run(true);
 const std::string prefixStatus = "status ";
 const std::string prefixShow   = "show ";
 const std::string prefixHide   = "hide ";
@@ -307,18 +309,15 @@ void spawn(Monitor&, const Arg& arg)
 
 Monitor* monitorFromSurface(const wl_surface* surface)
 {
-	monitorsMutex.lock();
 	auto mon = std::find_if(begin(monitors), end(monitors), [surface](const Monitor& mon) {
 		return mon.bar.surface() == surface;
 	});
 	Monitor *ret = mon != end(monitors) ? &*mon : nullptr;
-	monitorsMutex.unlock();
 	return ret; 
 }
 
 
 void setupMonitor(uint32_t name, wl_output* output) {
-	monitorsMutex.lock();
 	auto& monitor = monitors.emplace_back(Monitor {
 		name, 
 		{}, 
@@ -331,7 +330,6 @@ void setupMonitor(uint32_t name, wl_output* output) {
 	zxdg_output_v1_add_listener(xdgOutput, &xdgOutputListener, &monitor);
 	monitor.dwlMonitor.reset(znet_tapesoftware_dwl_wm_v1_get_monitor(dwlWm, monitor.wlOutput.get()));
 	znet_tapesoftware_dwl_wm_monitor_v1_add_listener(monitor.dwlMonitor.get(), &dwlWmMonitorListener, &monitor);
-	monitorsMutex.unlock();
 }
 
 void updatemon(Monitor& mon)
@@ -403,10 +401,8 @@ void onGlobalAdd(void*, wl_registry* registry, uint32_t name, const char* interf
 
 void onGlobalRemove(void*, wl_registry* registry, uint32_t name)
 {
-	monitorsMutex.lock();
 	monitors.remove_if([name](const Monitor &mon) { return mon.registryName == name; });
 	seats.remove_if([name](const Seat &seat) { return seat.name == name; });
-	monitorsMutex.unlock();
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -459,10 +455,17 @@ int main(int argc, char* argv[])
 	}
 	
 	if (pipe(signalSelfPipe.data()) < 0) {
-		diesys("pipe");
+		diesys("self pipe");
 	}
+
+	if (pipe(timePipe.data()) < 0) {
+		diesys("time pipe");
+	}
+
 	setCloexec(signalSelfPipe[0]);
 	setCloexec(signalSelfPipe[1]);
+	setCloexec(timePipe[0]);
+	setCloexec(timePipe[1]);
 
 	struct sigaction sighandler = {};
 	sighandler.sa_handler = [](int) {
@@ -488,6 +491,11 @@ int main(int argc, char* argv[])
 		.events = POLLIN,
 	});
 
+	pollfds.push_back({
+		.fd = timePipe[0],
+		.events = POLLIN,
+	});
+
 	display = wl_display_connect(nullptr);
 	if (!display) {
 		die("Failed to connect to Wayland display");
@@ -495,9 +503,9 @@ int main(int argc, char* argv[])
 	displayFd = wl_display_get_fd(display);
 
 	auto registry = wl_display_get_registry(display);
-	wl_registry_add_listener(registry, &registry_listener, nullptr);
+	wl_registry_add_listener(registry, &registry_listener, nullptr); /* callback to add callbacks, and they say they have callback hell in js */
 	wl_display_roundtrip(display);
-	onReady();
+	onReady(); /* check we got everything we need */
 
 	pollfds.push_back({
 		.fd = displayFd,
@@ -507,17 +515,11 @@ int main(int argc, char* argv[])
 		diesys("fcntl F_SETFL");
 	}
 
+	/* threads for polling custom events */
 	auto time_handle = std::thread([&](){
-		while (thread_should_run) {
-			monitorsMutex.lock();
-			for (auto& m : monitors) {
-				std::cout << "updating time\n";
-				m.bar.updateTime();
-				m.hasData = true;
-				updatemon(m);
-			}
-			monitorsMutex.unlock();
-			std::this_thread::sleep_for(std::chrono::seconds(1));
+		while (threads_should_run) {
+			write(timePipe[1], "0", 1);
+			std::this_thread::sleep_for(std::chrono::seconds(20));
 		}
 	});
 
@@ -543,11 +545,18 @@ int main(int argc, char* argv[])
 					}
 				} else if (ev.fd == signalSelfPipe[0] && (ev.revents & POLLIN)) {
 					quitting = true;
+				} else if (ev.fd == timePipe[0] && (ev.revents & POLLIN)) {
+					for (auto& m : monitors){
+						char tmpbuf[1];
+						read(timePipe[0], tmpbuf, 1); /* to clear the thing */
+						m.bar.updateTime();
+						m.bar.invalidate();
+					}
 				}
 			}
 		}
 	}
-	thread_should_run = false;
+	threads_should_run = false;
 	time_handle.join();
 	cleanup();
 }
