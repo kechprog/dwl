@@ -31,14 +31,14 @@ struct Tag {
 struct Monitor;
 class Bar {
 	static const zwlr_layer_surface_v1_listener _layerSurfaceListener;
-	static const wl_callback_listener _frameListener;
+	static const wl_callback_listener           _frameListener;
 
-	wl_unique_ptr<wl_surface> _surface;
+	wl_unique_ptr<wl_surface>            _surface;
 	wl_unique_ptr<zwlr_layer_surface_v1> _layerSurface;
-	wl_unique_ptr<PangoContext> _pangoContext;
-	std::optional<ShmBuffer> _bufs;
+	wl_unique_ptr<PangoContext>          _pangoContext;
+	std::optional<ShmBuffer>             _bufs;
 	std::vector<Tag> _tags;
-	BarComponent _layoutCmp, _titleCmp, _statusCmp;
+	BarComponent _layoutCmp, _titleCmp, _statusCmp, _timeCmp;
 	bool _selected;
 	bool _invalid {false};
 
@@ -64,11 +64,13 @@ public:
 	bool visible() const;
 	void show(wl_output* output);
 	void hide();
-	void setTag(int tag, int state, int numClients, int focusedClient);
+	/* state updating */
+	void setTag     (int tag, int state, int numClients, int focusedClient);
 	void setSelected(bool selected);
-	void setLayout(const std::string& layout);
-	void setTitle(const std::string& title);
-	void setStatus(const std::string& status);
+	void setLayout  (const std::string& layout);
+	void setTitle   (const std::string& title );
+	void setStatus  (const std::string& status);
+	void updateTime ();
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);
 };

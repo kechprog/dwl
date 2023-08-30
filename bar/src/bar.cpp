@@ -1,8 +1,10 @@
 // somebar - dwl barbar
 // See LICENSE file for copyright and license details.
 
+#include <iomanip>
 #include <wayland-client-protocol.h>
 #include <pango/pangocairo.h>
+#include <chrono>
 #include "bar.hpp"
 #include "cairo.h"
 #include "config.hpp"
@@ -90,8 +92,10 @@ Bar::Bar()
 	for (const auto& tagName : tagNames) {
 		_tags.push_back({ TagState::None, 0, 0, createComponent(tagName) });
 	}
+	_timeCmp   = createComponent(); /* creates zero initialized component */
+	updateTime();
 	_layoutCmp = createComponent();
-	_titleCmp = createComponent();
+	_titleCmp  = createComponent();
 	_statusCmp = createComponent();
 }
 
@@ -146,17 +150,32 @@ void Bar::setSelected(bool selected)
 {
 	_selected = selected;
 }
+
 void Bar::setLayout(const std::string& layout)
 {
 	_layoutCmp.setText(layout);
 }
+
 void Bar::setTitle(const std::string& title)
 {
 	_titleCmp.setText(title);
 }
+
 void Bar::setStatus(const std::string& status)
 {
 	_statusCmp.setText(status);
+}
+
+void Bar::updateTime() 
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+    std::tm localtime = *std::localtime(&now_c);
+    std::ostringstream ss;
+
+    ss << std::put_time(&localtime, "%H:%M:%S");
+    _timeCmp.setText(ss.str());
 }
 
 void Bar::invalidate()
@@ -228,6 +247,7 @@ void Bar::render()
 	setColorScheme(_selected ? colorActive : colorInactive);
 	renderComponent(_layoutCmp);
 	renderComponent(_titleCmp);
+	renderComponent(_timeCmp);
 	renderStatus();
 
 	_painter = nullptr;
