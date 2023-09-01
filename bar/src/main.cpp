@@ -1,5 +1,8 @@
 // See LICENSE file for copyright and license details.
 #include <algorithm>
+#include <sstream>
+#include <fstream>
+#include <iostream>
 #include <chrono>
 #include <cstdio>
 #include <iostream>
@@ -21,6 +24,7 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <atomic>
+#include "src/config.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -104,6 +108,7 @@ static std::vector<pollfd> pollfds;
 static std::array<int, 2> signalSelfPipe;
 static std::array<int, 2> timePipe;
 static int displayFd {-1};
+static int batChargeCurFd {-1};
 static int statusFifoWriter {-1};
 static bool quitting {false};
 static std::atomic<bool> threads_should_run(true);
@@ -491,11 +496,6 @@ int main(int argc, char* argv[])
 		.events = POLLIN,
 	});
 
-	pollfds.push_back({
-		.fd = timePipe[0],
-		.events = POLLIN,
-	});
-
 	display = wl_display_connect(nullptr);
 	if (!display) {
 		die("Failed to connect to Wayland display");
@@ -511,15 +511,36 @@ int main(int argc, char* argv[])
 		.fd = displayFd,
 		.events = POLLIN,
 	});
+
 	if (fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK) < 0) {
 		diesys("fcntl F_SETFL");
 	}
 
-	/* threads for polling custom events */
+	/* battery percent */
+	FILE* batChargeCurFile = fopen(batChargeNow, "r");
+	std::ifstream file(batChargeNow);
+	batChargeCurFd = fileno(batChargeCurFile);
+	std::string content((std::istreambuf_iterator<char>(file)),
+							 std::istreambuf_iterator<char>());
+	int curCharge = std::stoi(content);
+	for (auto &m : monitors) {
+		m.bar.setBat(curCharge*100 / batChargeFull , true);
+	}
+
+	pollfds.push_back({
+		.fd = batChargeCurFd,
+		.events = POLLIN,
+	});
+
+	/*           time                */
+	pollfds.push_back({
+		.fd = timePipe[0],
+		.events = POLLIN,
+	});
 	auto time_handle = std::thread([&](){
 		while (threads_should_run) {
 			write(timePipe[1], "0", 1);
-			std::this_thread::sleep_for(std::chrono::seconds(20));
+			std::this_thread::sleep_for(std::chrono::seconds(2));
 		}
 	});
 
@@ -550,6 +571,15 @@ int main(int argc, char* argv[])
 						char tmpbuf[1];
 						read(timePipe[0], tmpbuf, 1); /* to clear the thing */
 						m.bar.updateTime();
+						m.bar.invalidate();
+					}
+				} else if (ev.fd == batChargeCurFd && (ev.revents & POLL_IN)) {
+					std::ifstream file(batChargeNow);
+					std::string content((std::istreambuf_iterator<char>(file)),
+											 std::istreambuf_iterator<char>());
+					int curCharge = std::stoi(content);
+					for (auto &m : monitors) {
+						m.bar.setBat(curCharge*100 / batChargeFull , true);
 						m.bar.invalidate();
 					}
 				}

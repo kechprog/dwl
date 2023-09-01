@@ -12,9 +12,11 @@ constexpr int paddingY = 3;
 // See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html
 constexpr const char* font = "Sans 12";
 
-constexpr ColorScheme colorInactive = {Color(0xbb, 0xbb, 0xbb), Color(0x22, 0x22, 0x22)};
-constexpr ColorScheme colorActive = {Color(0xee, 0xee, 0xee), Color(0x00, 0x55, 0x77)};
-constexpr const char* termcmd[] = {"foot", nullptr};
+constexpr ColorScheme  colorInactive = {Color(0xbb, 0xbb, 0xbb), Color(0x22, 0x22, 0x22)};
+constexpr ColorScheme  colorActive   = {Color(0xee, 0xee, 0xee), Color(0x00, 0x55, 0x77)};
+constexpr const char*  termcmd[]     = {"foot", nullptr};
+constexpr const char*  batChargeNow  = "/sys/class/power_supply/BAT1/charge_now";
+constexpr const size_t batChargeFull = 4596000;
 
 constexpr Button buttons[] = {
 	{ ClkTagBar,       BTN_LEFT,   view,       {0} },

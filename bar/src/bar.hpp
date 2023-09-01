@@ -38,7 +38,7 @@ class Bar {
 	wl_unique_ptr<PangoContext>          _pangoContext;
 	std::optional<ShmBuffer>             _bufs;
 	std::vector<Tag> _tags;
-	BarComponent _layoutCmp, _titleCmp, _statusCmp, _timeCmp;
+	BarComponent _layoutCmp, _titleCmp, _statusCmp, _timeCmp, _batCmp;
 	bool _selected;
 	bool _invalid {false};
 
@@ -71,6 +71,7 @@ public:
 	void setLayout  (const std::string& layout);
 	void setTitle   (const std::string& title );
 	void setStatus  (const std::string& status);
+	void setBat     (int perc, bool isCharging);
 	void updateTime ();
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);

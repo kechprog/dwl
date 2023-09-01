@@ -2,6 +2,7 @@
 // See LICENSE file for copyright and license details.
 
 #include <iomanip>
+#include <sstream>
 #include <wayland-client-protocol.h>
 #include <pango/pangocairo.h>
 #include <chrono>
@@ -97,6 +98,7 @@ Bar::Bar()
 	_layoutCmp = createComponent();
 	_titleCmp  = createComponent();
 	_statusCmp = createComponent();
+	_batCmp    = createComponent("BAT");
 }
 
 const wl_surface* Bar::surface() const
@@ -178,6 +180,13 @@ void Bar::updateTime()
     _timeCmp.setText(ss.str());
 }
 
+void Bar::setBat(int perc, bool isCharging)
+{
+	std::stringstream ss;
+	ss << "BAT " << perc << "%"; // TODO: add icons
+	_batCmp.setText(ss.str());
+}
+
 void Bar::invalidate()
 {
 	if (_invalid || !visible()) {
@@ -248,6 +257,7 @@ void Bar::render()
 	renderComponent(_layoutCmp);
 	renderComponent(_titleCmp);
 	renderComponent(_timeCmp);
+	renderComponent(_batCmp);
 	renderStatus();
 
 	_painter = nullptr;
