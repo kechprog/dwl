@@ -22,6 +22,7 @@
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
+#include <wlr/types/wlr_pointer_gestures_v1.h>
 #include <wlr/types/wlr_idle.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
@@ -323,6 +324,9 @@ static void outputmgrtest(struct wl_listener *listener, void *data);
 static void pointerfocus(Client *c, struct wlr_surface *surface,
 		double sx, double sy, uint32_t time);
 static void printstatus(void);
+static void pinchbegin(struct wl_listener *listener, void *data);
+static void pinchupdate(struct wl_listener *listener, void *data);
+static void pinchend(struct wl_listener *listener, void *data);
 static void quit(const Arg *arg);
 static void rendermon(struct wl_listener *listener, void *data);
 static void requeststartdrag(struct wl_listener *listener, void *data);

@@ -1,5 +1,6 @@
 #include "dwl.h"
 #include <string.h>
+#include <wayland-server-core.h>
 #include <wayland-util.h>
 #include <wlr/util/log.h>
 
@@ -39,6 +40,8 @@ static struct wlr_xcursor_manager *cursor_mgr;
 static struct wlr_session_lock_manager_v1 *session_lock_mgr;
 static struct wlr_scene_rect *locked_bg;
 static struct wlr_session_lock_v1 *cur_lock;
+
+static struct wlr_pointer_gestures_v1 *gestures;
 
 static struct wlr_seat *seat;
 static struct wl_list keyboards;
@@ -82,9 +85,13 @@ static struct wl_listener start_drag = {.notify = startdrag};
 static struct wl_listener session_lock_create_lock = {.notify = locksession};
 static struct wl_listener session_lock_mgr_destroy = {.notify = destroysessionmgr};
 
-static struct wl_listener swipe_begin = {.notify = swipebegin};
-static struct wl_listener swipe_end = {.notify = swipeend};
+static struct wl_listener swipe_begin  = {.notify = swipebegin};
+static struct wl_listener swipe_end    = {.notify = swipeend};
 static struct wl_listener swipe_update = {.notify = swipeupdate};
+
+static struct wl_listener pinch_begin  = {.notify = pinchbegin};
+static struct wl_listener pinch_update = {.notify = pinchupdate};
+static struct wl_listener pinch_end    = {.notify = pinchend};
 
 static Touch touchlower = {
 	.touch_cancel = {.notify = touch_cancel },
@@ -98,7 +105,7 @@ static Touch touchlower = {
 	.hieght = 515,
 };
 
-static Touch touchupper = {
+static Touch touchupper  = {
 	.touch_cancel = {.notify = touch_cancel },
 	.touch_motion = {.notify = touch_motion },
 	.touch_frame  = {.notify = touch_frame   }, 
@@ -621,6 +628,7 @@ createmon(struct wl_listener *listener, void *data)
 	const MonitorRule *r;
 	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
+	printf("output: %s\n", wlr_output->name);
 	wl_list_init(&m->dwl_wm_monitor_link);
 	m->wlr_output = wlr_output;
 
@@ -1641,6 +1649,47 @@ printstatus(void)
 }
 
 void
+pinchbegin(struct wl_listener *listener, void *data)
+{
+	struct wlr_pointer_pinch_begin_event *ev = data;
+	printf("Forwarding pinch begin!\n");
+	wlr_pointer_gestures_v1_send_pinch_begin(
+		gestures,
+		seat,
+		ev->time_msec,
+		ev->fingers
+	);
+}
+
+void
+pinchupdate(struct wl_listener *listener, void *data)
+{
+	struct wlr_pointer_pinch_update_event *ev = data;
+	printf("Forwarding pinch update!\n");
+	wlr_pointer_gestures_v1_send_pinch_update(
+		gestures, 
+		seat, ev->time_msec, 
+		ev->dx, 
+		ev->dy,
+		ev->scale,
+		ev->rotation
+	);
+}
+
+void
+pinchend(struct wl_listener *listener, void *data)
+{
+	struct wlr_pointer_pinch_end_event *ev = data;
+	printf("Forwarding pinch end!\n");
+	wlr_pointer_gestures_v1_send_pinch_end(
+		gestures, 
+		seat, 
+		ev->time_msec, 
+		ev->cancelled
+	);
+}
+
+void
 quit(const Arg *arg)
 {
 	wl_display_terminate(dpy);
@@ -1998,6 +2047,10 @@ setup(void)
 	cursor = wlr_cursor_create();
 	wlr_cursor_attach_output_layout(cursor, output_layout);
 
+	gestures = wlr_pointer_gestures_v1_create(dpy);
+	if (!gestures)
+		die("Can't create gestures struct!\n");
+
 	/* Creates an xcursor manager, another wlroots utility which loads up
 	 * Xcursor themes to source cursor images from and makes sure that cursor
 	 * images are available at all scale factors on the screen (necessary for
@@ -2017,16 +2070,21 @@ setup(void)
 	 *
 	 * And more comments are sprinkled throughout the notify functions above.
 	 */
-	wl_signal_add(&cursor->events.motion, &cursor_motion);
+	wl_signal_add(&cursor->events.motion,          &cursor_motion);
 	wl_signal_add(&cursor->events.motion_absolute, &cursor_motion_absolute);
-	wl_signal_add(&cursor->events.button, &cursor_button);
-	wl_signal_add(&cursor->events.axis, &cursor_axis);
-	wl_signal_add(&cursor->events.frame, &cursor_frame);
+	wl_signal_add(&cursor->events.button,          &cursor_button);
+	wl_signal_add(&cursor->events.axis,            &cursor_axis);
+	wl_signal_add(&cursor->events.frame,           &cursor_frame);
 
 	/* gestures */
-	wl_signal_add(&cursor->events.swipe_begin, &swipe_begin);
+	wl_signal_add(&cursor->events.swipe_begin,  &swipe_begin);
 	wl_signal_add(&cursor->events.swipe_update, &swipe_update);
-	wl_signal_add(&cursor->events.swipe_end, &swipe_end);
+	wl_signal_add(&cursor->events.swipe_end,    &swipe_end);
+
+	/* pinch */
+	wl_signal_add(&cursor->events.pinch_begin,  &pinch_begin);
+	wl_signal_add(&cursor->events.pinch_update, &pinch_update);
+	wl_signal_add(&cursor->events.pinch_end,    &pinch_end);
 
 	/*
 	 * Configures a seat, which is a single "seat" at which a user sits and
@@ -2246,16 +2304,18 @@ touch_up(struct wl_listener *listener, void *data)
 void 
 touch_down(struct wl_listener *listener, void *data)
 {
-	Touch *this = wl_container_of(listener, this, touch_down);
+	// Touch *this = wl_container_of(listener, this, touch_down);
 	struct wlr_touch_down_event *ev = data;
 	struct wlr_surface *surface;
-	double dx, dy;
-
-	int px = this->width  * ev->x;	
-	int py = this->hieght * ev->y;
-
-	wlr_cursor_move(cursor, NULL, dx, dy); /* docs say its okay */
-	motionnotify(ev->time_msec);
+	//
+	// double tx = this->width * ev->x;	
+	// double ty = this == &touchupper ? this->hieght * ev->y 
+	//                                 : (this->hieght * ev->y + touchupper.hieght);
+	// double dx  = tx - cursor->x;
+	// double dy  = ty - cursor->y;
+	//
+	// wlr_cursor_move(cursor, NULL, dx, dy); /* docs say its okay */
+	// motionnotify(ev->time_msec);
 
 	/* forward event */
 	xytonode(ev->x, ev->y, &surface, NULL, NULL, NULL, NULL);

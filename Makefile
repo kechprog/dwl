@@ -31,7 +31,6 @@ xdg-shell-protocol.h:
 wlr-layer-shell-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/wlr-layer-shell-unstable-v1.xml $@
-
 net-tapesoftware-dwl-wm-unstable-v1-protocol.h: protocols/net-tapesoftware-dwl-wm-unstable-v1.xml
 	$(WAYLAND_SCANNER) server-header \
 		protocols/net-tapesoftware-dwl-wm-unstable-v1.xml $@
@@ -39,6 +38,13 @@ net-tapesoftware-dwl-wm-unstable-v1-protocol.c: protocols/net-tapesoftware-dwl-w
 	$(WAYLAND_SCANNER) private-code \
 		protocols/net-tapesoftware-dwl-wm-unstable-v1.xml $@
 net-tapesoftware-dwl-wm-unstable-v1-protocol.o: net-tapesoftware-dwl-wm-unstable-v1-protocol.h
+pointer-gestures-unstable-v1-protocol.h: protocols/pointer-gestures-unstable-v1.xml
+	$(WAYLAND_SCANNER) server-header \
+		protocols/pointer-gestures-unstable-v1.xml $@
+pointer-gestures-unstable-v1-protocol.c: protocols/pointer-gestures-unstable-v1.xml
+	$(WAYLAND_SCANNER) private-code \
+		protocols/pointer-gestures-unstable-v1.xml $@
+pointer-gestures-unstable-v1-protocol.o: pointer-gestures-unstable-v1-protocol.h
 
 clean:
 	rm -f dwl *.o *-protocol.h

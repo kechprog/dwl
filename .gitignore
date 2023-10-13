@@ -9,3 +9,4 @@ compile_commands.json
 .vscode
 bar/.builds
 bar/.cache/clangd/index
+o.txt
