@@ -1,7 +1,3 @@
-/* asus zenbook duo specific */
-const char *touchLowerName = "ELAN9009:00 04F3:2C1B";
-const char *touchUpperName = "ELAN9008:00 04F3:2D55";
-
 /* appearance */
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
@@ -35,11 +31,9 @@ static const Layout layouts[] = {
 
 /* monitors */
 static const MonitorRule monrules[] = {
-	/* name       mfact nmaster scale layout       rotate/reflect                x    y */
-	/* example of a HiDPI laptop monitor:
-    */
-	{ "eDP-1",    0.6,  1,       1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,  0,    0  },
-	{ "DP-3",     0.5,  1,       1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,  0,  1080 }
+	/*  name  ,   mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y   , touchName(NULL - no)*/
+	{ "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0   , "ELAN9008:00 04F3:2D55"},
+	{ "DP-3"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080 , "ELAN9009:00 04F3:2C1B"}
 };
 
 /* keyboard */

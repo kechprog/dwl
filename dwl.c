@@ -5,6 +5,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
+#include <wayland-server-protocol.h>
 #include <wayland-util.h>
 #include <wlr/util/log.h>
 
@@ -61,6 +62,8 @@ static Monitor *selmon;
 static double swipe_dx=0, swipe_dy=0;
 static uint32_t swipe_fingercount=0;
 
+static struct wl_list touches;
+
 
 /* global event handlers */
 static struct wl_listener cursor_axis = {.notify = axisnotify};
@@ -96,30 +99,6 @@ static struct wl_listener swipe_update = {.notify = swipeupdate};
 static struct wl_listener pinch_begin  = {.notify = pinchbegin};
 static struct wl_listener pinch_update = {.notify = pinchupdate};
 static struct wl_listener pinch_end    = {.notify = pinchend};
-
-static Touch touchlower = {
-	.touch_cancel = {.notify = touch_cancel  },
-	.touch_motion = {.notify = touch_motion  },
-	.touch_frame  = {.notify = touch_frame   }, 
-	.touch_down   = {.notify = touch_down    },
-	.touch_up     = {.notify = touch_up      },
-	
-	.on = true,
-	.width = 1920,
-	.hieght = 515,
-};
-
-static Touch touchupper  = {
-	.touch_cancel = {.notify = touch_cancel },
-	.touch_motion = {.notify = touch_motion },
-	.touch_frame  = {.notify = touch_frame   }, 
-	.touch_down   = {.notify = touch_down    },
-	.touch_up     = {.notify = touch_up      },
-
-	.on = true,
-	.width = 1920,
-	.hieght = 1080,
-};
 
 #ifdef XWAYLAND
 static void activatex11(struct wl_listener *listener, void *data);
@@ -643,6 +622,7 @@ createmon(struct wl_listener *listener, void *data)
 	/* This event is raised by the backend when a new output (aka a display or
 	 * monitor) becomes available. */
 	struct wlr_output *wlr_output = data;
+	Touch *t = NULL;
 	const MonitorRule *r;
 	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
@@ -655,7 +635,9 @@ createmon(struct wl_listener *listener, void *data)
 	/* Initialize monitor state using configured rules */
 	for (i = 0; i < LENGTH(m->layers); i++)
 		wl_list_init(&m->layers[i]);
+
 	m->tagset[0] = m->tagset[1] = 1;
+
 	for (r = monrules; r < END(monrules); r++) {
 		if (!r->name || strstr(wlr_output->name, r->name)) {
 			m->mfact = r->mfact;
@@ -666,6 +648,19 @@ createmon(struct wl_listener *listener, void *data)
 			wlr_output_set_transform(wlr_output, r->rr);
 			m->m.x = r->x;
 			m->m.y = r->y;
+			
+			/* find related touch device */
+			m->touch_name = r->touch_name;
+			if (!m->touch_name || wl_list_empty(&touches))
+				break;
+
+			wl_list_for_each(t, &touches, link) {
+				if (strcmp(m->touch_name, t->touch_name) != 0)	
+					continue;
+				t->m = m;
+				break;
+			}
+
 			break;
 		}
 	}
@@ -808,30 +803,42 @@ createpointer(struct wlr_pointer *pointer)
 
 void
 createtouch(struct wlr_touch *touch) {
-	Touch *screen = NULL;
 	const char *name = touch->base.name;
+	Monitor *m = NULL;
+	Touch   *t = ecalloc(1, sizeof(Touch));
 
-	if (strcmp(name, touchLowerName) == 0) {
-		printf("Creating Lower\n");
-		screen = &touchlower;
-		touchlower.touch = touch;
-	} else if (strcmp(name, touchUpperName) == 0) {
-		printf("Creating Upper\n");
-		screen = &touchupper;
-		touchupper.touch = touch;
-	}
+	wl_list_init(&t->link);
 
-	if (!screen) {
-		printf("Unsopported touch: %s\n", name);
-		return;
-	}
-	 
-	wl_signal_add(&touch->events.cancel, &screen->touch_cancel);
-	wl_signal_add(&touch->events.frame, &screen->touch_frame);
-	wl_signal_add(&touch->events.motion, &screen->touch_motion);
-	wl_signal_add(&touch->events.up, &screen->touch_up);
-	wl_signal_add(&touch->events.down, &screen->touch_down);
+	t->touch = touch;
+	t->touch_name = ecalloc(strlen(name), sizeof(char));
+	strcpy(t->touch_name, name);
+	t->touch_on = true;
+
+	/* events */
+	t->touch_down.notify   = touch_down;
+	t->touch_up.notify     = touch_up;
+	t->touch_motion.notify = touch_motion;
+	t->touch_frame.notify  = touch_frame;
+	t->touch_cancel.notify = touch_cancel;
+
+	wl_signal_add(&touch->events.cancel, &t->touch_cancel);
+	wl_signal_add(&touch->events.frame,  &t->touch_frame);
+	wl_signal_add(&touch->events.motion, &t->touch_motion);
+	wl_signal_add(&touch->events.up,     &t->touch_up);
+	wl_signal_add(&touch->events.down,   &t->touch_down);
 	wlr_cursor_attach_input_device(cursor, &touch->base);
+
+	wl_list_insert(&touches, &t->link);
+
+	if (wl_list_empty(&mons))
+		return;
+
+	wl_list_for_each(m, &mons, link) {
+		if(strcmp(t->touch_name, m->touch_name) == 0) {
+			t->m = m;
+			break;
+		}
+	}	
 }
 
 void
@@ -1142,24 +1149,19 @@ inputdevice(struct wl_listener *listener, void *data)
 	 * available. */
 	struct wlr_input_device *device = data;
 	uint32_t caps;
-	// printf("My name is %s and I'm a ", device->name);
 
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_KEYBOARD:
-		// printf("keyboard\n");
 		createkeyboard(wlr_keyboard_from_input_device(device));
 		break;
 	case WLR_INPUT_DEVICE_POINTER:
-		// printf("pointer\n");
 		createpointer(wlr_pointer_from_input_device(device));
 		break;
 	case WLR_INPUT_DEVICE_TOUCH:
-		// printf("touch\n");
 		createtouch(wlr_touch_from_input_device(device));
 		break;
 	default:
-		/* TODO handle other input device types */
-		// printf("NOT SUPPORTED\n");
+		/* TODO: handle other input device types */
 		break;
 	}
 
@@ -1170,6 +1172,8 @@ inputdevice(struct wl_listener *listener, void *data)
 	caps = WL_SEAT_CAPABILITY_POINTER;
 	if (!wl_list_empty(&keyboards))
 		caps |= WL_SEAT_CAPABILITY_KEYBOARD;
+	if (!wl_list_empty(&touches))
+		caps |= WL_SEAT_CAPABILITY_TOUCH;
 	wlr_seat_set_capabilities(seat, caps);
 }
 
@@ -2035,6 +2039,9 @@ setup(void)
 	wl_list_init(&clients);
 	wl_list_init(&fstack);
 
+	/* init touches */
+	wl_list_init(&touches);
+
 	idle = wlr_idle_create(dpy);
 	idle_notifier = wlr_idle_notifier_v1_create(dpy);
 
@@ -2107,6 +2114,13 @@ setup(void)
 	wl_signal_add(&cursor->events.pinch_begin,  &pinch_begin);
 	wl_signal_add(&cursor->events.pinch_update, &pinch_update);
 	wl_signal_add(&cursor->events.pinch_end,    &pinch_end);
+
+	/* touch */
+	// wl_signal_add(&cursor->events.touch_down,   &ltouch_down);
+	// wl_signal_add(&cursor->events.touch_up,     &ltouch_up);
+	// wl_signal_add(&cursor->events.touch_motion, &ltouch_motion);
+	// wl_signal_add(&cursor->events.touch_cancel, &ltouch_cancel);
+	// wl_signal_add(&cursor->events.touch_frame,  &ltouch_frame);
 
 	/*
 	 * Configures a seat, which is a single "seat" at which a user sits and
@@ -2290,33 +2304,34 @@ touch_cancel(struct wl_listener *listener, void *data)
 {
 	struct wlr_touch_cancel_event *event = data;
 	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
-	wlr_seat_touch_send_cancel(seat, p->focus_surface);
+	wlr_seat_touch_notify_cancel(seat, p->surface);
 }
 
 void 
 touch_frame(struct wl_listener *listener, void *data)
 {
-	wlr_seat_touch_send_frame(seat);
+	wlr_seat_touch_notify_frame(seat);
 }
 
 void 
 touch_down(struct wl_listener *listener, void *data)
 {
-
 	Touch *touch = wl_container_of(listener, touch, touch_down);
-	struct wlr_touch_down_event *event = data;
+	struct wlr_touch_down_event *ev = data;
 	struct wlr_surface *surface;
-	double lx, ly, nx, ny;
+	Client *c;
+	double lx, ly, sx, sy;
 
-	wlr_cursor_absolute_to_layout_coords(cursor, &event->touch->base,
-	                                     event->x, event->y, &lx, &ly);
+	touchtolocal(touch, ev->x, ev->y, &lx, &ly);
 
-	xytonode(event->x, event->y, &surface, NULL, NULL, &nx, &ny);
+	xytonode(lx, ly, &surface, &c, NULL, &sx, &sy);
 
-	if (!surface)
+	if (!surface || !c)
 		return;
 
-	wlr_seat_touch_send_down(seat, surface, event->time_msec, event->touch_id, nx, ny);
+	focusclient(c, 0);
+
+	wlr_seat_touch_notify_down(seat, surface, ev->time_msec, ev->touch_id, sx, sy);
 
 	IDLE_NOTIFY_ACTIVITY;
 }
@@ -2325,11 +2340,18 @@ void
 touch_motion(struct wl_listener *listener, void *data)
 {
 	Touch *touch = wl_container_of(listener, touch, touch_motion);
-	struct wlr_touch_motion_event *event = data;
-	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
+	struct wlr_touch_motion_event *ev = data;
+	double lx, ly, sx, sy;
 
-	if(!p) return;
-	wlr_seat_touch_send_motion(seat, event->time_msec, event->touch_id, event->x, event->y);
+	if(!wlr_seat_touch_get_point(seat, ev->touch_id))
+		return;
+
+	touchtolocal(touch, ev->x, ev->y, &lx, &ly);
+
+	xytonode(lx, ly, NULL, NULL, NULL, &sx, &sy);
+
+	wlr_seat_touch_notify_motion
+		(seat, ev->time_msec, ev->touch_id, sx, sy);
 
 	IDLE_NOTIFY_ACTIVITY;
 }
@@ -2337,15 +2359,24 @@ touch_motion(struct wl_listener *listener, void *data)
 void 
 touch_up(struct wl_listener *listener, void *data)
 {
-	Touch *this = wl_container_of(listener, this, touch_up);
 	struct wlr_touch_up_event *event = data;
 
 	if(!wlr_seat_touch_get_point(seat, event->touch_id))
 		return;
 
-	wlr_seat_touch_send_up(seat, event->time_msec, event->touch_id);
+	wlr_seat_touch_notify_up(seat, event->time_msec, event->touch_id);
 
 	IDLE_NOTIFY_ACTIVITY;
+}
+
+
+void touchtolocal(Touch *t, double sx, double sy, double *lx, double *ly) 
+{
+	double glb_x = sx * t->m->w.width  + t->m->w.x,
+	       glb_y = sy * t->m->w.height + t->m->w.y;
+
+	if(lx) *lx = glb_x;
+	if(ly) *ly = glb_y;
 }
 
 void
