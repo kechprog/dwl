@@ -87,6 +87,7 @@ enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 #endif
 enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
 	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
+enum {TouchTouch, TouchPointer, TouchTablet};
 
 typedef union {
 	int i;
@@ -243,21 +244,17 @@ typedef struct {
 } Swipe;
 
 typedef struct {
-	int32_t touch_id;
-} Touches;
-
-typedef struct {
 	struct wl_listener touch_cancel;
 	struct wl_listener touch_motion;
 	struct wl_listener touch_frame;
 	struct wl_listener touch_up;
 	struct wl_listener touch_down;
+	struct wlr_touch *touch;
 
 	const int32_t width;
 	const int32_t hieght;
 	
-	bool on;
-	Touches *touches;	
+	bool on;	
 } Touch;
 
 /* function declarations */
@@ -275,6 +272,7 @@ static void cleanup(void);
 static void cleanupkeyboard(struct wl_listener *listener, void *data);
 static void cleanupmon(struct wl_listener *listener, void *data);
 static void closemon(Monitor *m);
+static void click(int btn);
 static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
 static void commitnotify(struct wl_listener *listener, void *data);
 static void createdecoration(struct wl_listener *listener, void *data);

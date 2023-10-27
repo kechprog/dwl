@@ -1,5 +1,9 @@
 #include "dwl.h"
+#include <pthread.h>
+#include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include <wayland-server-core.h>
 #include <wayland-util.h>
 #include <wlr/util/log.h>
@@ -94,8 +98,8 @@ static struct wl_listener pinch_update = {.notify = pinchupdate};
 static struct wl_listener pinch_end    = {.notify = pinchend};
 
 static Touch touchlower = {
-	.touch_cancel = {.notify = touch_cancel },
-	.touch_motion = {.notify = touch_motion },
+	.touch_cancel = {.notify = touch_cancel  },
+	.touch_motion = {.notify = touch_motion  },
 	.touch_frame  = {.notify = touch_frame   }, 
 	.touch_down   = {.notify = touch_down    },
 	.touch_up     = {.notify = touch_up      },
@@ -461,6 +465,20 @@ closemon(Monitor *m)
 	printstatus();
 }
 
+void 
+click(int btn) {
+	struct timespec ts;
+	uint32_t timems;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    timems = (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+	ts.tv_nsec = 2 * 1000000; // 1 milli second
+	ts.tv_sec = 0;
+
+	wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_PRESSED);
+	nanosleep(&ts, NULL);
+    wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_RELEASED);
+}
+
 void
 commitlayersurfacenotify(struct wl_listener *listener, void *data)
 {
@@ -794,9 +812,13 @@ createtouch(struct wlr_touch *touch) {
 	const char *name = touch->base.name;
 
 	if (strcmp(name, touchLowerName) == 0) {
+		printf("Creating Lower\n");
 		screen = &touchlower;
+		touchlower.touch = touch;
 	} else if (strcmp(name, touchUpperName) == 0) {
+		printf("Creating Upper\n");
 		screen = &touchupper;
+		touchupper.touch = touch;
 	}
 
 	if (!screen) {
@@ -896,7 +918,7 @@ destroylocksurface(struct wl_listener *listener, void *data)
 		focusclient(focustop(selmon), 1);
 	} else {
 		wlr_seat_keyboard_clear_focus(seat);
-	}
+	};
 }
 
 void
@@ -2260,66 +2282,70 @@ toggleview(const Arg *arg)
 	printstatus();
 }
 
+/* Wanna know from where I copied?
+ * - https://github.com/project-repo/cagebreak
+ */
 void 
-touch_cancel(struct wl_listener *listener, void *data)
+touch_cancel(struct wl_listener *listener, void *data) 
 {
-	Touch *this = wl_container_of(listener, this, touch_cancel);
-	struct wlr_surface *surface;
-    Client *client;
-    LayerSurface *layer;
-    double nx, ny;
-
-	printf("touch cancel ev\n");
-	// struct wlr_touch_cancel_event *ev = data;
-    xytonode(cursor->x, cursor->y, &surface, &client, &layer, &nx, &ny);
-	wlr_seat_touch_send_cancel(seat, surface);
-}
-
-void
-touch_motion(struct wl_listener *listener, void *data)
-{
-	struct wlr_touch_motion_event *ev = data;
-	wlr_seat_touch_send_motion(seat, ev->time_msec, ev->touch_id, ev->x, ev->y);
+	struct wlr_touch_cancel_event *event = data;
+	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
+	wlr_seat_touch_send_cancel(seat, p->focus_surface);
 }
 
 void 
 touch_frame(struct wl_listener *listener, void *data)
 {
-		/*\
-		|*| no event data is passed data is probably NULL
-		|*| struct wlr_touch_frame_event *ev = data; 
-	*//*\*//**/
-	/**/   /**/
-	/*********/
 	wlr_seat_touch_send_frame(seat);
-}
-
-void 
-touch_up(struct wl_listener *listener, void *data)
-{
-	struct wlr_touch_up_event *ev = data;
-	wlr_seat_touch_send_up(seat, ev->time_msec, ev->touch_id);
 }
 
 void 
 touch_down(struct wl_listener *listener, void *data)
 {
-	// Touch *this = wl_container_of(listener, this, touch_down);
-	struct wlr_touch_down_event *ev = data;
-	struct wlr_surface *surface;
-	//
-	// double tx = this->width * ev->x;	
-	// double ty = this == &touchupper ? this->hieght * ev->y 
-	//                                 : (this->hieght * ev->y + touchupper.hieght);
-	// double dx  = tx - cursor->x;
-	// double dy  = ty - cursor->y;
-	//
-	// wlr_cursor_move(cursor, NULL, dx, dy); /* docs say its okay */
-	// motionnotify(ev->time_msec);
 
-	/* forward event */
-	xytonode(ev->x, ev->y, &surface, NULL, NULL, NULL, NULL);
-	wlr_seat_touch_send_down(seat, surface, ev->time_msec, ev->touch_id, ev->x, ev->y);
+	Touch *touch = wl_container_of(listener, touch, touch_down);
+	struct wlr_touch_down_event *event = data;
+	struct wlr_surface *surface;
+	double lx, ly, nx, ny;
+
+	wlr_cursor_absolute_to_layout_coords(cursor, &event->touch->base,
+	                                     event->x, event->y, &lx, &ly);
+
+	xytonode(event->x, event->y, &surface, NULL, NULL, &nx, &ny);
+
+	if (!surface)
+		return;
+
+	wlr_seat_touch_send_down(seat, surface, event->time_msec, event->touch_id, nx, ny);
+
+	IDLE_NOTIFY_ACTIVITY;
+}
+
+void
+touch_motion(struct wl_listener *listener, void *data)
+{
+	Touch *touch = wl_container_of(listener, touch, touch_motion);
+	struct wlr_touch_motion_event *event = data;
+	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
+
+	if(!p) return;
+	wlr_seat_touch_send_motion(seat, event->time_msec, event->touch_id, event->x, event->y);
+
+	IDLE_NOTIFY_ACTIVITY;
+}
+
+void 
+touch_up(struct wl_listener *listener, void *data)
+{
+	Touch *this = wl_container_of(listener, this, touch_up);
+	struct wlr_touch_up_event *event = data;
+
+	if(!wlr_seat_touch_get_point(seat, event->touch_id))
+		return;
+
+	wlr_seat_touch_send_up(seat, event->time_msec, event->touch_id);
+
+	IDLE_NOTIFY_ACTIVITY;
 }
 
 void
@@ -2345,7 +2371,6 @@ swipeend(struct wl_listener *listener, void *data)
 	float vec_len = 0;
 	int swipe_dir = -1;
 	float swipe_angle;
-	FILE * fp;
 
 	struct wlr_pointer_swipe_end_event *ev = data;
 	if (ev->cancelled)
@@ -2387,18 +2412,14 @@ swipeend(struct wl_listener *listener, void *data)
 	if (swipe_dir == -1)
 		die("something went totally wrong in swipeend");
 
-	fp = fopen("/home/ed/test.swipe", "a");
-	fprintf(fp, "fngcnt: %d | direction: %d | dx: %fd | dy: %fd\n", swipe_fingercount, swipe_dir, swipe_dx, swipe_dy);
 
 	for (int i = 0; i<LENGTH(swipegestures); i++) {
 		Swipe s = swipegestures[i];
 		if (s.dir == swipe_dir && s.fingercount == swipe_fingercount) {
-			fprintf(fp, "did something\n");
 			s.callback(&s.arg);
 		}
 	}
 
-	fclose(fp);
 	swipe_fingercount = 0;
 	swipe_dx = swipe_dy = 0;
 }
