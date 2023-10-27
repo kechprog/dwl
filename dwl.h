@@ -135,6 +135,9 @@ typedef struct {
 	uint32_t tags;
 	int isfloating, isurgent, isfullscreen;
 	uint32_t resize; /* configure serial of a pending resize */
+
+
+	/* touch related */
 } Client;
 
 typedef struct {
@@ -207,6 +210,8 @@ struct Monitor {
 	double mfact;
 	int nmaster;
 	char ltsymbol[16];
+
+	char *touch_name; /* null if nothing is asociated, see MonitorRule */
 };
 
 typedef struct {
@@ -217,6 +222,7 @@ typedef struct {
 	const Layout *lt;
 	enum wl_output_transform rr;
 	int x, y;
+	char* touch_name;
 } MonitorRule;
 
 typedef struct {
@@ -244,17 +250,17 @@ typedef struct {
 } Swipe;
 
 typedef struct {
+	struct wl_list link;
 	struct wl_listener touch_cancel;
 	struct wl_listener touch_motion;
 	struct wl_listener touch_frame;
 	struct wl_listener touch_up;
 	struct wl_listener touch_down;
-	struct wlr_touch *touch;
+	struct wlr_touch *touch; /* also null if not supported */
 
-	const int32_t width;
-	const int32_t hieght;
-	
-	bool on;	
+	Monitor *m;
+	char *touch_name; /* null if no touch is present */
+	bool touch_on;	
 } Touch;
 
 /* function declarations */
@@ -353,6 +359,7 @@ static void touch_motion(struct wl_listener *listener, void *data);
 static void touch_frame(struct wl_listener *listener, void *data); 
 static void touch_up(struct wl_listener *listener, void *data); 
 static void touch_down(struct wl_listener *listener, void *data); 
+static void touchtolocal(Touch *t, double scrnx, double scrny, double *lx, double *ly);
 
 static void swipebegin(struct wl_listener *listener, void *data);
 static void swipeend(struct wl_listener *listener, void *data);
