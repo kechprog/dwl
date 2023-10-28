@@ -2319,6 +2319,7 @@ touch_down(struct wl_listener *listener, void *data)
 	Touch *touch = wl_container_of(listener, touch, touch_down);
 	struct wlr_touch_down_event *ev = data;
 	struct wlr_surface *surface;
+	Monitor *m = NULL;
 	Client *c;
 	double lx, ly, sx, sy;
 
@@ -2326,10 +2327,20 @@ touch_down(struct wl_listener *listener, void *data)
 
 	xytonode(lx, ly, &surface, &c, NULL, &sx, &sy);
 
-	if (!surface || !c)
-		return;
+	/* move cursor to the touch point */
+	wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 
-	focusclient(c, 0);
+	if (!surface || !c) { /* touched the monitor bg */
+		if (!(m = xytomon(lx, ly)) || wl_list_empty(&mons) || !m->wlr_output->enabled)
+			die("Something is completely wrong, go pray\n");
+
+		selmon = m;
+		focusclient(focustop(selmon), 1);
+
+		return;
+	}
+
+	focusclient(c, 1);
 
 	wlr_seat_touch_notify_down(seat, surface, ev->time_msec, ev->touch_id, sx, sy);
 
