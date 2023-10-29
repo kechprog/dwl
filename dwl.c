@@ -1105,6 +1105,34 @@ focustop(Monitor *m)
 	return NULL;
 }
 
+// TODO: flips only the stacked clients
+// do same for all(I have no idea what to do about floating)
+// they cause seg faults :(
+void flipmons(const Arg *arg)
+{
+	Client *c, *cur = focustop(selmon);
+	Monitor *m;
+
+	wl_list_for_each(c, &clients, link) {
+		/* get next mon */
+		m = wl_container_of(c->mon->link.next == &mons
+		 ? c->mon->link.next->next
+		 : c->mon->link.next,
+		 m, link);
+
+		setmon(c, m, 0);
+	}
+
+	if (!cur)
+		return;
+
+	focusclient(cur, 1);
+	/* mouse follows */
+	wlr_cursor_warp_closest(cursor, NULL,
+		cur->geom.x + cur->geom.width  / 2.0,
+		cur->geom.y + cur->geom.height / 2.0);
+}
+
 void
 fullscreennotify(struct wl_listener *listener, void *data)
 {
@@ -2933,7 +2961,7 @@ dwl_wm_printstatus_to(Monitor *m, const DwlWmMonitor *mon)
 	znet_tapesoftware_dwl_wm_monitor_v1_send_frame(mon->resource);
 }
 
-static void
+void
 dwl_wm_printstatus(Monitor *m)
 {
 	DwlWmMonitor *mon;
@@ -3053,7 +3081,7 @@ static const struct znet_tapesoftware_dwl_wm_v1_interface dwl_wm_implementation 
 	.get_monitor = dwl_wm_handle_get_monitor,
 };
 
-static void
+void
 dwl_wm_bind(struct wl_client *client, void *data,
 	uint32_t version, uint32_t id)
 {

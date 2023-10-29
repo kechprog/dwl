@@ -1,4 +1,7 @@
+#pragma once
+
 #include <getopt.h>
+#include <X11/XF86keysym.h>
 #include <assert.h>
 #include <math.h>
 #include <libinput.h>
@@ -136,8 +139,6 @@ typedef struct {
 	int isfloating, isurgent, isfullscreen;
 	uint32_t resize; /* configure serial of a pending resize */
 
-
-	/* touch related */
 } Client;
 
 typedef struct {
@@ -305,6 +306,7 @@ void focusclient(Client *c, int lift);
 void focusmon(const Arg *arg);
 void focusstack(const Arg *arg);
 Client *focustop(Monitor *m);
+void flipmons(const Arg *arg);
 void fullscreennotify(struct wl_listener *listener, void *data);
 void handlesig(int signo);
 void incnmaster(const Arg *arg);
