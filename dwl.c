@@ -812,7 +812,9 @@ createtouch(struct wlr_touch *touch) {
 	t->touch = touch;
 	t->touch_name = ecalloc(strlen(name), sizeof(char));
 	strcpy(t->touch_name, name);
-	t->touch_on = true;
+	// TODO: make me configurable
+	t->mode = SMTrack;
+	wl_list_init(&t->track_points);
 
 	/* events */
 	t->touch_down.notify   = touch_down;
@@ -2346,33 +2348,53 @@ touch_down(struct wl_listener *listener, void *data)
 {
 	Touch *touch = wl_container_of(listener, touch, touch_down);
 	struct wlr_touch_down_event *ev = data;
-	struct wlr_surface *surface;
-	Monitor *m = NULL;
-	Client *c;
-	double lx, ly, sx, sy;
 
-	touchtolocal(touch, ev->x, ev->y, &lx, &ly);
+ 	switch (touch->mode) {
+		case SMTrack: {
+			TrackPoint *p = ecalloc(1, sizeof(TrackPoint));
+			p->touch_id = 0;
+			touchtolocal(touch, ev->x, ev->y, &p->ilx, &p->ily);
+			wl_list_insert(&touch->track_points, &p->link);
 
-	xytonode(lx, ly, &surface, &c, NULL, &sx, &sy);
+			if (wl_list_length(&touch->track_points) == 1)
+				touch->action = TATap1; /* assume that we want a simple click, will be changed later if needed */
+			else { /* it is either  TATap2, TAScroll2 */
+				touch->action = TATap2;
+			}
+		}
 
-	/* move cursor to the touch point */
-	wlr_cursor_warp_closest(cursor, NULL, lx, ly);
+		case SMTouch: {
+			struct wlr_surface *surface;
+			Monitor *m = NULL;
+			Client *c;
+			double lx, ly, sx, sy;
 
-	if (!surface || !c) { /* touched the monitor bg */
-		if (!(m = xytomon(lx, ly)) || wl_list_empty(&mons) || !m->wlr_output->enabled)
-			die("Something is completely wrong, go pray\n");
+			touchtolocal(touch, ev->x, ev->y, &lx, &ly);
 
-		selmon = m;
-		focusclient(focustop(selmon), 1);
+			xytonode(lx, ly, &surface, &c, NULL, &sx, &sy);
 
-		return;
+			/* move cursor to the touch point */
+			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
+
+			if (!surface || !c) { /* touched the monitor bg */
+				if (!(m = xytomon(lx, ly)) || wl_list_empty(&mons) || !m->wlr_output->enabled)
+					die("Something is completely wrong, go pray\n");
+
+				selmon = m;
+				focusclient(focustop(selmon), 1);
+
+				return;
+			}
+
+			focusclient(c, 1);
+
+			wlr_seat_touch_notify_down(seat, surface, ev->time_msec, ev->touch_id, sx, sy);
+
+			IDLE_NOTIFY_ACTIVITY;
+			break;
+		}
+
 	}
-
-	focusclient(c, 1);
-
-	wlr_seat_touch_notify_down(seat, surface, ev->time_msec, ev->touch_id, sx, sy);
-
-	IDLE_NOTIFY_ACTIVITY;
 }
 
 void

@@ -109,6 +109,9 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 static const char *termcmd[] = { "foot", NULL };
 static const char *menucmd[] = { "wofi", "-show", "drun", NULL };
 
+/* want to know a name of specific key, as they are defined in xf86 keysym ?
+ * - https://github.com/jwrdegoede/wev
+ */
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
 	/* modifier                  key                 function        argument */
