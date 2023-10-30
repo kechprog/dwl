@@ -91,8 +91,8 @@ enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
 	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
 
-enum {SMTouch, SMPen, SMTrack}; /* screen modes */
-enum {TAMove, TATap1, TATap2, TAScroll2 }; /* trackpad actions */
+enum {SMTouch, SMPen, SMTrack, SMNone}; /* screen modes */
+enum {TAMove1, TATap1, TATap2, TAMove2, TADrag }; /* trackpad actions */
 
 
 typedef union {
@@ -257,6 +257,7 @@ typedef struct {
 typedef struct {
 	struct wl_list link;
 	double ilx, ily;
+	double clx, cly;
 	uint32_t touch_id;
 } TrackPoint;
 

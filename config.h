@@ -8,6 +8,7 @@ static const unsigned int borderpx         = 1;  /* border pixel of windows */
 static const unsigned int gappx            = 12;  /* gap in pixels between windows */
 static const float bordercolor[]           = {0.5, 0.5, 0.5, 1.0};
 static const float focuscolor[]            = {1.0, 0.0, 0.0, 1.0};
+static const double clickmargin            = 0.0001; /* means if you tapped and moved finger less than 0.0001 percent of screen from start you clicked */
 
 /* To conform the xdg-protocol, set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1, 0.1, 0.1, 1.0};

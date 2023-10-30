@@ -1,4 +1,5 @@
 #include "dwl.h"
+#include <math.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -1665,6 +1666,9 @@ pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 void
 printstatus(void)
 {
+	// NOTE: REMOVE ME ||
+	//                 \/
+					return;
 	Monitor *m = NULL;
 	Client *c;
 	uint32_t occ, urg, sel;
@@ -2334,12 +2338,22 @@ touch_cancel(struct wl_listener *listener, void *data)
 {
 	struct wlr_touch_cancel_event *event = data;
 	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
+	Touch *touch = wl_container_of(listener, touch, touch_down);
+
+	if (touch->mode != SMTouch)
+		return;
+
 	wlr_seat_touch_notify_cancel(seat, p->surface);
 }
 
 void 
 touch_frame(struct wl_listener *listener, void *data)
 {
+
+	Touch *touch = wl_container_of(listener, touch, touch_down);
+	if (touch->mode != SMTouch)
+		return;
+
 	wlr_seat_touch_notify_frame(seat);
 }
 
@@ -2349,19 +2363,31 @@ touch_down(struct wl_listener *listener, void *data)
 	Touch *touch = wl_container_of(listener, touch, touch_down);
 	struct wlr_touch_down_event *ev = data;
 
+	IDLE_NOTIFY_ACTIVITY;
+
  	switch (touch->mode) {
 		case SMTrack: {
+			/* we do not support emulation with more than 2 fingers */
+			// NOTE: 1 touch only for now
+			if (wl_list_length(&touch->track_points) > 1) 
+				return;
+
 			TrackPoint *p = ecalloc(1, sizeof(TrackPoint));
 			p->touch_id = 0;
-			touchtolocal(touch, ev->x, ev->y, &p->ilx, &p->ily);
+
+			/* relative to top left of screen */
+			p->clx = p->ilx = ev->x;
+			p->cly = p->ily = ev->y;
 			wl_list_insert(&touch->track_points, &p->link);
 
-			if (wl_list_length(&touch->track_points) == 1)
-				touch->action = TATap1; /* assume that we want a simple click, will be changed later if needed */
-			else { /* it is either  TATap2, TAScroll2 */
+			printf("Tap\n");
+			if (wl_list_length(&touch->track_points) == 1) /* assume that we want a simple click, will be changed later if needed */
+				touch->action = TATap1; 
+			else  /* it is either  TATap2, TAScroll2 */
 				touch->action = TATap2;
-			}
-		}
+
+			break;
+		} // track
 
 		case SMTouch: {
 			struct wlr_surface *surface;
@@ -2390,9 +2416,8 @@ touch_down(struct wl_listener *listener, void *data)
 
 			wlr_seat_touch_notify_down(seat, surface, ev->time_msec, ev->touch_id, sx, sy);
 
-			IDLE_NOTIFY_ACTIVITY;
 			break;
-		}
+		} // touch
 
 	}
 }
@@ -2400,34 +2425,99 @@ touch_down(struct wl_listener *listener, void *data)
 void
 touch_motion(struct wl_listener *listener, void *data)
 {
+	IDLE_NOTIFY_ACTIVITY;
+
 	Touch *touch = wl_container_of(listener, touch, touch_motion);
 	struct wlr_touch_motion_event *ev = data;
-	double lx, ly, sx, sy;
 
-	if(!wlr_seat_touch_get_point(seat, ev->touch_id))
-		return;
+	switch (touch->mode) {
+		case SMTrack: {
+			bool found = false;	
+			TrackPoint *p = NULL;
 
-	touchtolocal(touch, ev->x, ev->y, &lx, &ly);
+			wl_list_for_each(p, &touch->track_points, link) {
+				if (p->touch_id == ev->touch_id) {
+					found = true;
+					break;
+				}
+			}
 
-	xytonode(lx, ly, NULL, NULL, NULL, &sx, &sy);
+			if (!found)
+				return;
 
-	wlr_seat_touch_notify_motion
-		(seat, ev->time_msec, ev->touch_id, sx, sy);
+			p->clx = ev->x;
+			p->cly = ev->y;
 
-	IDLE_NOTIFY_ACTIVITY;
+			double dx   = p->clx - p->ilx,
+			       dy   = p->cly - p->ily,
+				   dist = sqrt(pow(dx, 2) + pow(dy, 2));
+
+			if (touch->action == TATap1) {
+				if (dist < clickmargin)
+					return;
+				printf("It's actually a move1\n");
+				touch->action = TAMove1;
+				const double sensativity = 400;
+					
+				// TODO: moving logic should be more sofisticated
+				wlr_cursor_move(cursor, NULL, dx * sensativity, dy * sensativity);
+
+			} // else  TODO: implement me!
+			
+			break;
+		} // track
+
+		case SMTouch: {
+			double lx, ly, sx, sy;
+			if(!wlr_seat_touch_get_point(seat, ev->touch_id))
+				return;
+
+			touchtolocal(touch, ev->x, ev->y, &lx, &ly);
+			xytonode(lx, ly, NULL, NULL, NULL, &sx, &sy);
+
+			wlr_seat_touch_notify_motion
+				(seat, ev->time_msec, ev->touch_id, sx, sy);
+			break;
+		} // touch
+	}
 }
 
 void 
 touch_up(struct wl_listener *listener, void *data)
 {
 	struct wlr_touch_up_event *event = data;
-
-	if(!wlr_seat_touch_get_point(seat, event->touch_id))
-		return;
-
-	wlr_seat_touch_notify_up(seat, event->time_msec, event->touch_id);
-
+	Touch *touch = wl_container_of(listener, touch, touch_motion);
 	IDLE_NOTIFY_ACTIVITY;
+
+	switch (touch->mode) {
+
+		case SMTrack: {
+			switch (touch->action) {
+				case TAMove1:
+				case TAMove2: {
+					TrackPoint *p, *tmp;	
+					wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
+						wl_list_remove(&p->link);
+						free(p);
+					}
+					break;
+				} // Move*
+
+				case TATap1: {
+					// TODO:		
+				}
+			}
+		} // track
+
+		case SMTouch: {
+			if(!wlr_seat_touch_get_point(seat, event->touch_id))
+				return;
+
+			wlr_seat_touch_notify_up(seat, event->time_msec, event->touch_id);
+			break;
+		}
+	}
+
 }
 
 
