@@ -815,6 +815,7 @@ createtouch(struct wlr_touch *touch) {
 	strcpy(t->touch_name, name);
 	// TODO: make me configurable
 	t->mode = SMTrack;
+	t->last_touch = clock();
 	wl_list_init(&t->track_points);
 
 	/* events */
@@ -2339,6 +2340,7 @@ touch_cancel(struct wl_listener *listener, void *data)
 	struct wlr_touch_cancel_event *event = data;
 	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
 	Touch *touch = wl_container_of(listener, touch, touch_down);
+	printf("Got cancel?\n");
 
 	if (touch->mode != SMTouch)
 		return;
@@ -2367,22 +2369,24 @@ touch_down(struct wl_listener *listener, void *data)
 
  	switch (touch->mode) {
 		case SMTrack: {
-			/* we do not support emulation with more than 2 fingers */
-			// NOTE: 1 touch only for now
-			if (wl_list_length(&touch->track_points) > 1) 
+
+			touch->pending_touches++;
+			if (wl_list_length(&touch->track_points) > 2) 
 				return;
 
 			TrackPoint *p = ecalloc(1, sizeof(TrackPoint));
 			p->touch_id = 0;
-
-			/* relative to top left of screen */
-			p->clx = p->ilx = ev->x;
-			p->cly = p->ily = ev->y;
+			p->cx = p->px = p->ix = ev->x;
+			p->cy = p->py = p->iy = ev->y;
 			wl_list_insert(&touch->track_points, &p->link);
 
-			printf("Tap\n");
-			if (wl_list_length(&touch->track_points) == 1) /* assume that we want a simple click, will be changed later if needed */
-				touch->action = TATap1; 
+			if (wl_list_length(&touch->track_points) == 1) { /* assume that we want a simple click, will be changed later if needed */
+				uint64_t time_since_last = (clock() - touch->last_touch) / CLOCKS_PER_SEC / 1000;
+				if (touch->action == TATap1 && time_since_last < doubleclicktimems)
+					touch->action = TADrag;
+				else
+					touch->action = TATap1; 
+			}
 			else  /* it is either  TATap2, TAScroll2 */
 				touch->action = TATap2;
 
@@ -2445,24 +2449,38 @@ touch_motion(struct wl_listener *listener, void *data)
 			if (!found)
 				return;
 
-			p->clx = ev->x;
-			p->cly = ev->y;
+			p->px = p->cx;
+			p->py = p->cy;
+			p->cx = ev->x;
+			p->cy = ev->y;
 
-			double dx   = p->clx - p->ilx,
-			       dy   = p->cly - p->ily,
+			double dx   = p->cx - p->px,
+			       dy   = p->cy - p->py,
 				   dist = sqrt(pow(dx, 2) + pow(dy, 2));
 
-			if (touch->action == TATap1) {
-				if (dist < clickmargin)
-					return;
-				printf("It's actually a move1\n");
-				touch->action = TAMove1;
-				const double sensativity = 400;
-					
-				// TODO: moving logic should be more sofisticated
-				wlr_cursor_move(cursor, NULL, dx * sensativity, dy * sensativity);
+			switch (touch->action) {
+				case TATap1:
+					if(dist > clickmargin) {
+						touch->action = TAMove1;
+					}
+					break;
 
-			} // else  TODO: implement me!
+				case TAMove1: {
+					// printf("Moving1(dx %f, dy: %f)\n",dx * sens_x, dy * sens_y);
+					wlr_cursor_move(cursor, NULL, dx * sens_x, dy * sens_y);
+					break;
+				}
+
+				case TATap2:
+					die("TODO 1\n");
+				case TAMove2:
+					die("TODO 2\n");
+				case TADrag:
+					die("TODO 3\n");
+				case TAPinch:
+					die("TODO 4\n");
+			}
+
 			
 			break;
 		} // track
@@ -2489,23 +2507,49 @@ touch_up(struct wl_listener *listener, void *data)
 	Touch *touch = wl_container_of(listener, touch, touch_motion);
 	IDLE_NOTIFY_ACTIVITY;
 
+	printf("Got up\n");
 	switch (touch->mode) {
-
+		touch->pending_touches--;
 		case SMTrack: {
+
 			switch (touch->action) {
-				case TAMove1:
+				case TAMove1: {
+					printf("move 1 up\n");
+					goto cleanup;
+				}
+
 				case TAMove2: {
-					TrackPoint *p, *tmp;	
-					wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
-						wl_list_remove(&p->link);
-						free(p);
-					}
-					break;
-				} // Move*
+					if (touch->pending_touches != 0)
+						return;
+					goto cleanup;
+				}
+						
 
 				case TATap1: {
-					// TODO:		
+					click(BTN_LEFT);
+					goto cleanup;
 				}
+
+				case TATap2: {
+					if (touch->pending_touches != 0) /* click on last one */
+						return;
+					click(BTN_RIGHT);
+					goto cleanup;
+				}
+
+				default: {
+					printf("Touch up, hit default\n");
+					goto cleanup;
+				}
+			} // action
+
+			cleanup:
+			printf("Clean up?\n");
+			touch->last_touch = clock();				
+			TrackPoint *p, *tmp;	
+			wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
+				wl_list_remove(&p->link);
+				free(p);
 			}
 		} // track
 

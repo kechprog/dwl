@@ -92,7 +92,7 @@ enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
 	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
 
 enum {SMTouch, SMPen, SMTrack, SMNone}; /* screen modes */
-enum {TAMove1, TATap1, TATap2, TAMove2, TADrag }; /* trackpad actions */
+enum {TAMove1, TATap1, TATap2, TAMove2, TADrag, TAPinch}; /* trackpad actions */
 
 
 typedef union {
@@ -256,8 +256,7 @@ typedef struct {
 
 typedef struct {
 	struct wl_list link;
-	double ilx, ily;
-	double clx, cly;
+	double ix, iy, px, py, cx, cy;
 	uint32_t touch_id;
 } TrackPoint;
 
@@ -271,11 +270,13 @@ typedef struct {
 	struct wlr_touch *touch; /* also null if not supported */
 
 	Monitor *m;
-	char *touch_name; /* null if no touch is present */
+	char *touch_name;
 	int mode;
 
 	/* track mode specific */
 	struct wl_list track_points;
+	uint32_t pending_touches;
+	clock_t last_touch;
 	int action;
 } Touch;
 
