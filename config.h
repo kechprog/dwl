@@ -10,10 +10,10 @@ static const float bordercolor[]           = {0.5, 0.5, 0.5, 1.0};
 static const float focuscolor[]            = {1.0, 0.0, 0.0, 1.0};
 
 /* trackpad emulation */
-static const double clickmargin            = 0.0000001; /* means if you tapped and moved finger less than 0.0001 percent of screen from start you clicked */
-static const uint64_t doubleclicktimems    = 100; /* if 2 click happen withing 100ms it is treated as double click, only for touch emulating trackpad */
-static const double sens_x             = 2500; /* idk just test it */
-static const double sens_y             = 120; /* idk just test it */
+static const double clickmargin            = 0.00001; /* means if you tapped and moved finger less than 0.0001 percent of screen from start you clicked */
+static const uint64_t doubleclicktimems    = 3000; /* if 2 click happen withing 100ms it is treated as double click, only for touch emulating trackpad */
+static const double sens_x             = 4700; /* idk just test it */
+static const double sens_y             = 7*512; /* idk just test it */
 
 /* To conform the xdg-protocol, set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1, 0.1, 0.1, 1.0};

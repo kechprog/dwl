@@ -447,15 +447,18 @@ closemon(Monitor *m)
 
 void 
 click(int btn) {
-	struct timespec ts;
-	uint32_t timems;
+    struct timespec ts;
+    uint32_t timems;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     timems = (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-	ts.tv_nsec = 2 * 1000000; // 1 milli second
-	ts.tv_sec = 0;
 
-	wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_PRESSED);
-	nanosleep(&ts, NULL);
+    ts.tv_nsec = 2 * 1000000; // 2 milliseconds
+    ts.tv_sec = 0;
+
+    wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_PRESSED);
+    nanosleep(&ts, NULL);
+    
+    timems += 2; // increment timestamp by 2 milliseconds
     wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_RELEASED);
 }
 
@@ -627,7 +630,6 @@ createmon(struct wl_listener *listener, void *data)
 	const MonitorRule *r;
 	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
-	printf("output: %s\n", wlr_output->name);
 	wl_list_init(&m->dwl_wm_monitor_link);
 	m->wlr_output = wlr_output;
 
@@ -1726,7 +1728,6 @@ void
 pinchupdate(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_pinch_update_event *ev = data;
-	printf("Forwarding pinch update!\n");
 	wlr_pointer_gestures_v1_send_pinch_update(
 		gestures, 
 		seat, ev->time_msec, 
@@ -1741,7 +1742,6 @@ void
 pinchend(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_pinch_end_event *ev = data;
-	printf("Forwarding pinch end!\n");
 	wlr_pointer_gestures_v1_send_pinch_end(
 		gestures, 
 		seat, 
@@ -2339,8 +2339,7 @@ touch_cancel(struct wl_listener *listener, void *data)
 {
 	struct wlr_touch_cancel_event *event = data;
 	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
-	Touch *touch = wl_container_of(listener, touch, touch_down);
-	printf("Got cancel?\n");
+	Touch *touch = wl_container_of(listener, touch, touch_cancel);
 
 	if (touch->mode != SMTouch)
 		return;
@@ -2352,7 +2351,7 @@ void
 touch_frame(struct wl_listener *listener, void *data)
 {
 
-	Touch *touch = wl_container_of(listener, touch, touch_down);
+	Touch *touch = wl_container_of(listener, touch, touch_frame);
 	if (touch->mode != SMTouch)
 		return;
 
@@ -2370,26 +2369,25 @@ touch_down(struct wl_listener *listener, void *data)
  	switch (touch->mode) {
 		case SMTrack: {
 
-			touch->pending_touches++;
-			if (wl_list_length(&touch->track_points) > 2) 
+			if (touch->pending_touches > 2) 
 				return;
 
+			touch->pending_touches++;
 			TrackPoint *p = ecalloc(1, sizeof(TrackPoint));
-			p->touch_id = 0;
+			p->touch_id = ev->touch_id;
 			p->cx = p->px = p->ix = ev->x;
 			p->cy = p->py = p->iy = ev->y;
 			wl_list_insert(&touch->track_points, &p->link);
 
-			if (wl_list_length(&touch->track_points) == 1) { /* assume that we want a simple click, will be changed later if needed */
-				uint64_t time_since_last = (clock() - touch->last_touch) / CLOCKS_PER_SEC / 1000;
-				if (touch->action == TATap1 && time_since_last < doubleclicktimems)
+			if (touch->pending_touches == 1) { /* assume that we want a simple click, will be changed later if needed */
+				uint64_t time_since_last = (clock() - touch->last_touch);
+				if (touch->action == TATap1 && time_since_last < doubleclicktimems) // HACK: it's in clocks
 					touch->action = TADrag;
 				else
 					touch->action = TATap1; 
 			}
 			else  /* it is either  TATap2, TAScroll2 */
 				touch->action = TATap2;
-
 			break;
 		} // track
 
@@ -2466,7 +2464,7 @@ touch_motion(struct wl_listener *listener, void *data)
 					break;
 
 				case TAMove1: {
-					// printf("Moving1(dx %f, dy: %f)\n",dx * sens_x, dy * sens_y);
+					// NOTE: only moves the cursor, evnts are not forwarded
 					wlr_cursor_move(cursor, NULL, dx * sens_x, dy * sens_y);
 					break;
 				}
@@ -2504,62 +2502,55 @@ void
 touch_up(struct wl_listener *listener, void *data)
 {
 	struct wlr_touch_up_event *event = data;
-	Touch *touch = wl_container_of(listener, touch, touch_motion);
+	Touch *touch = wl_container_of(listener, touch, touch_up);
 	IDLE_NOTIFY_ACTIVITY;
 
-	printf("Got up\n");
+
 	switch (touch->mode) {
-		touch->pending_touches--;
+
 		case SMTrack: {
-
+			touch->pending_touches--;
 			switch (touch->action) {
-				case TAMove1: {
-					printf("move 1 up\n");
-					goto cleanup;
-				}
-
-				case TAMove2: {
-					if (touch->pending_touches != 0)
-						return;
-					goto cleanup;
-				}
-						
-
-				case TATap1: {
+				case TATap1:
 					click(BTN_LEFT);
 					goto cleanup;
-				}
 
-				case TATap2: {
-					if (touch->pending_touches != 0) /* click on last one */
+				case TATap2:
+					if (touch->pending_touches != 0)
 						return;
 					click(BTN_RIGHT);
 					goto cleanup;
-				}
 
-				default: {
-					printf("Touch up, hit default\n");
+				case TAMove2:
+				case TAMove1:
 					goto cleanup;
+
+				case TADrag:
+					die("Up, not implemented!, drag\n");
+				case TAPinch:
+					die("Up, not implemented!, pinch\n");
+
+
+				cleanup:
+				touch->pending_touches = 0;
+				touch->last_touch = clock();
+				TrackPoint *p, *tmp;
+				wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
+					wl_list_remove(&p->link);
+					free(p);
 				}
-			} // action
 
-			cleanup:
-			printf("Clean up?\n");
-			touch->last_touch = clock();				
-			TrackPoint *p, *tmp;	
-			wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
-				wl_list_remove(&p->link);
-				free(p);
 			}
-		} // track
+			break;
+		}
+						
 
-		case SMTouch: {
+		case SMTouch:
 			if(!wlr_seat_touch_get_point(seat, event->touch_id))
 				return;
 
 			wlr_seat_touch_notify_up(seat, event->time_msec, event->touch_id);
 			break;
-		}
 	}
 
 }
