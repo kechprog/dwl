@@ -2380,10 +2380,12 @@ touch_down(struct wl_listener *listener, void *data)
 			wl_list_insert(&touch->track_points, &p->link);
 
 			if (touch->pending_touches == 1) { /* assume that we want a simple click, will be changed later if needed */
-				uint64_t time_since_last = (clock() - touch->last_touch);
-				if (touch->action == TATap1 && time_since_last < doubleclicktimems) // HACK: it's in clocks
-					touch->action = TADrag;
-				else
+				// TODO: a proper support
+
+				// uint64_t time_since_last = (clock() - touch->last_touch);
+				// if (touch->action == TATap1 && time_since_last < doubleclicktimems) // HACK: it's in clocks
+				// 	touch->action = TADrag;
+				// else
 					touch->action = TATap1; 
 			}
 			else  /* it is either  TATap2, TAScroll2 */
@@ -2466,6 +2468,7 @@ touch_motion(struct wl_listener *listener, void *data)
 				case TAMove1: {
 					// NOTE: only moves the cursor, evnts are not forwarded
 					wlr_cursor_move(cursor, NULL, dx * sens_x, dy * sens_y);
+					motionnotify(ev->time_msec);
 					break;
 				}
 
@@ -2511,9 +2514,30 @@ touch_up(struct wl_listener *listener, void *data)
 		case SMTrack: {
 			touch->pending_touches--;
 			switch (touch->action) {
-				case TATap1:
-					click(BTN_LEFT);
+				case TATap1: {
+					TrackPoint *p;
+					bool found = false;
+
+					wl_list_for_each(p, &touch->track_points, link) {
+						if (p->touch_id == event->touch_id) {
+							found = true;
+							break;
+						}	
+					}
+					if (!found) return;
+
+					struct wlr_pointer_button_event ev = { 
+						.pointer   =  NULL,	
+						.time_msec = p->time_down,		
+						.button    = BTN_LEFT,
+						.state     = WLR_BUTTON_PRESSED
+					};
+
+					buttonpress(NULL, &ev);
+					ev.time_msec = ev.time_msec;
+					ev.state     = WLR_BUTTON_PRESSED;
 					goto cleanup;
+				}
 
 				case TATap2:
 					if (touch->pending_touches != 0)

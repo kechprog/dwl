@@ -258,6 +258,7 @@ typedef struct {
 	struct wl_list link;
 	double ix, iy, px, py, cx, cy;
 	uint32_t touch_id;
+	uint32_t time_down;
 } TrackPoint;
 
 typedef struct {
