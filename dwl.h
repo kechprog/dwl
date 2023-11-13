@@ -26,6 +26,7 @@
 #include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
 #include <wlr/types/wlr_pointer_gestures_v1.h>
+#include <wlr/types/wlr_tablet_v2.h>
 #include <wlr/types/wlr_idle.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
@@ -91,7 +92,7 @@ enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
 	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
 
-enum {SMTouch, SMPen, SMTrack, SMNone}; /* screen modes */
+enum {SMTouch, SMTrack, SMOff}; /* screen modes */
 enum {TAMove1, TATap1, TATap2, TAMove2, TADrag, TAPinch}; /* trackpad actions */
 
 
@@ -218,7 +219,6 @@ struct Monitor {
 	char *touch_name; /* null if nothing is asociated, see MonitorRule */
 };
 
-// TODO: add flip order
 typedef struct {
 	const char *name;
 	float mfact;
@@ -227,7 +227,7 @@ typedef struct {
 	const Layout *lt;
 	enum wl_output_transform rr;
 	int x, y;
-	char* touch_name;
+	char *touch_name;
 } MonitorRule;
 
 typedef struct {
@@ -268,7 +268,7 @@ typedef struct {
 	struct wl_listener touch_frame;
 	struct wl_listener touch_up;
 	struct wl_listener touch_down;
-	struct wlr_touch *touch; /* also null if not supported */
+	struct wlr_touch *touch; 
 
 	Monitor *m;
 	char *touch_name;
@@ -280,6 +280,24 @@ typedef struct {
 	clock_t last_touch;
 	int action;
 } Touch;
+
+typedef struct {
+	bool on;
+
+	struct wlr_tablet      *tablet;
+	struct wlr_tablet_tool *tool;
+	struct wlr_tablet_v2_tablet_tool *tool_v2;
+	struct wlr_tablet_v2_tablet      *tablet_v2;
+
+	struct wl_listener tablet_tool_axis;
+	struct wl_listener tablet_tool_button;   
+	struct wl_listener tablet_tool_tip;  
+	struct wl_listener tablet_tool_proximity;
+} Tablet;
+
+typedef struct {
+	char *name;
+} TabletRule;
 
 /* function declarations */
 void applybounds(Client *c, struct wlr_box *bbox);
@@ -308,6 +326,7 @@ void createmon(struct wl_listener *listener, void *data);
 void createnotify(struct wl_listener *listener, void *data);
 void createpointer(struct wlr_pointer *pointer);
 void createtouch(struct wlr_touch *touch);
+void createtablet(struct wlr_tablet *tablet_tool);
 void cursorframe(struct wl_listener *listener, void *data);
 void destroydragicon(struct wl_listener *listener, void *data);
 void destroyidleinhibitor(struct wl_listener *listener, void *data);
@@ -368,6 +387,11 @@ void spawn(const Arg *arg);
 void startdrag(struct wl_listener *listener, void *data);
 void tag(const Arg *arg);
 void tagmon(const Arg *arg);
+void tabletaxis(struct wl_listener *listener, void *data);
+void tabletproximity(struct wl_listener *listener, void *data);
+void tabletbutton(struct wl_listener *listener, void *data);
+void tablettip(struct wl_listener *listener, void *data);
+void checkoraddtool(Tablet *tab, struct wlr_tablet_tool *tool);
 void tile(Monitor *m);
 void togglefloating(const Arg *arg);
 void togglefullscreen(const Arg *arg);

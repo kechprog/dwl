@@ -48,6 +48,7 @@ static struct wlr_scene_rect *locked_bg;
 static struct wlr_session_lock_v1 *cur_lock;
 
 static struct wlr_pointer_gestures_v1 *gestures;
+static struct wlr_tablet_manager_v2 *tabletmanager;
 
 static struct wlr_seat *seat;
 static struct wl_list keyboards;
@@ -64,6 +65,7 @@ static double swipe_dx=0, swipe_dy=0;
 static uint32_t swipe_fingercount=0;
 
 static struct wl_list touches;
+static struct wl_list tablets;
 
 
 /* global event handlers */
@@ -816,7 +818,7 @@ createtouch(struct wlr_touch *touch) {
 	t->touch_name = ecalloc(strlen(name), sizeof(char));
 	strcpy(t->touch_name, name);
 	// TODO: make me configurable
-	t->mode = SMTrack;
+	t->mode = SMOff;
 	t->last_touch = clock();
 	wl_list_init(&t->track_points);
 
@@ -827,11 +829,11 @@ createtouch(struct wlr_touch *touch) {
 	t->touch_frame.notify  = touch_frame;
 	t->touch_cancel.notify = touch_cancel;
 
-	wl_signal_add(&touch->events.cancel, &t->touch_cancel);
-	wl_signal_add(&touch->events.frame,  &t->touch_frame);
-	wl_signal_add(&touch->events.motion, &t->touch_motion);
-	wl_signal_add(&touch->events.up,     &t->touch_up);
-	wl_signal_add(&touch->events.down,   &t->touch_down);
+	wl_signal_add(&touch->events.cancel,   &t->touch_cancel);
+	wl_signal_add(&touch->events.frame,    &t->touch_frame);
+	wl_signal_add(&touch->events.motion,   &t->touch_motion);
+	wl_signal_add(&touch->events.up,       &t->touch_up);
+	wl_signal_add(&touch->events.down,     &t->touch_down);
 	wlr_cursor_attach_input_device(cursor, &touch->base);
 
 	wl_list_insert(&touches, &t->link);
@@ -845,6 +847,40 @@ createtouch(struct wlr_touch *touch) {
 			break;
 		}
 	}	
+}
+
+void
+createtablet(struct wlr_tablet *tablet_tool)
+{
+	bool found = false;
+	Tablet *tab = ecalloc(1, sizeof(Tablet));
+	int i;
+	
+	for (i = 0; i < LENGTH(tebletRules); i++) {
+		const TabletRule *r = &tebletRules[i];
+		if (strcmp(r->name, tablet_tool->base.name) != 0) 
+			continue;
+		found = true;
+		break;
+	}
+
+	if (!found)
+		return;
+	printf("Creating tablet\n");
+
+	tab->tablet_tool_button    .notify = tabletbutton;
+	tab->tablet_tool_proximity .notify = tabletproximity;
+	tab->tablet_tool_axis      .notify = tabletaxis;
+	tab->tablet_tool_tip       .notify = tablettip;
+
+	wl_signal_add(&tablet_tool->events.axis,      &tab->tablet_tool_axis);
+	wl_signal_add(&tablet_tool->events.proximity, &tab->tablet_tool_proximity);
+	wl_signal_add(&tablet_tool->events.button,    &tab->tablet_tool_button);
+	wl_signal_add(&tablet_tool->events.tip,       &tab->tablet_tool_tip);
+
+	// tab->tablet_v2 = wlr_tablet_create(tabletmanager, seat, &tab->tablet->base);
+
+	wlr_cursor_attach_input_device(cursor, &tablet_tool->base);
 }
 
 void
@@ -1194,6 +1230,8 @@ inputdevice(struct wl_listener *listener, void *data)
 	case WLR_INPUT_DEVICE_TOUCH:
 		createtouch(wlr_touch_from_input_device(device));
 		break;
+	case WLR_INPUT_DEVICE_TABLET_TOOL:
+		createtablet(wlr_tablet_from_input_device(device));
 	default:
 		/* TODO: handle other input device types */
 		break;
@@ -1202,12 +1240,14 @@ inputdevice(struct wl_listener *listener, void *data)
 	/* We need to let the wlr_seat know what our capabilities are, which is
 	 * communiciated to the client. In dwl we always have a cursor, even if
 	 * there are no pointer devices, so we always include that capability. */
-	/* TODO do we actually require a cursor? */
+	/* TODO: do we actually require a cursor? */
 	caps = WL_SEAT_CAPABILITY_POINTER;
 	if (!wl_list_empty(&keyboards))
 		caps |= WL_SEAT_CAPABILITY_KEYBOARD;
 	if (!wl_list_empty(&touches))
 		caps |= WL_SEAT_CAPABILITY_TOUCH;
+	// if(!wl_list_empty(&tablets))
+	// 	caps |= WL_TABLET_TOOL;
 	wlr_seat_set_capabilities(seat, caps);
 }
 
@@ -2074,8 +2114,9 @@ setup(void)
 	wl_list_init(&clients);
 	wl_list_init(&fstack);
 
-	/* init touches */
 	wl_list_init(&touches);
+
+	wl_list_init(&tablets);
 
 	idle = wlr_idle_create(dpy);
 	idle_notifier = wlr_idle_notifier_v1_create(dpy);
@@ -2112,6 +2153,8 @@ setup(void)
 	wlr_cursor_attach_output_layout(cursor, output_layout);
 
 	gestures = wlr_pointer_gestures_v1_create(dpy);
+	tabletmanager = wlr_tablet_v2_create(dpy);
+
 	if (!gestures)
 		die("Can't create gestures struct!\n");
 
@@ -2150,12 +2193,6 @@ setup(void)
 	wl_signal_add(&cursor->events.pinch_update, &pinch_update);
 	wl_signal_add(&cursor->events.pinch_end,    &pinch_end);
 
-	/* touch */
-	// wl_signal_add(&cursor->events.touch_down,   &ltouch_down);
-	// wl_signal_add(&cursor->events.touch_up,     &ltouch_up);
-	// wl_signal_add(&cursor->events.touch_motion, &ltouch_motion);
-	// wl_signal_add(&cursor->events.touch_cancel, &ltouch_cancel);
-	// wl_signal_add(&cursor->events.touch_frame,  &ltouch_frame);
 
 	/*
 	 * Configures a seat, which is a single "seat" at which a user sits and
@@ -2240,6 +2277,63 @@ tagmon(const Arg *arg)
 	Client *sel = focustop(selmon);
 	if (sel)
 		setmon(sel, dirtomon(arg->i), 0);
+}
+
+void 
+tabletaxis(struct wl_listener *listener, void *data)
+{
+	struct wlr_tablet_tool_axis_event *ev = data;
+	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_axis);
+	checkoraddtool(tab, ev->tool);
+
+	wlr_tablet_v2_tablet_tool_notify_motion(tab->tool_v2, ev->x, ev->y);
+	wlr_tablet_v2_tablet_tool_notify_tilt(tab->tool_v2, ev->tilt_x, ev->tilt_y);
+	wlr_send_tablet_v2_tablet_tool_distance(tab->tool_v2, ev->distance);
+	wlr_send_tablet_v2_tablet_tool_rotation(tab->tool_v2, ev->rotation);
+}
+
+void
+tabletproximity(struct wl_listener *listener, void *data)
+{
+	struct wlr_tablet_tool_proximity_event *ev = data;
+	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_proximity);
+	Client *c = focustop(selmon);
+	checkoraddtool(tab, ev->tool);
+
+	if (ev->state == WLR_TABLET_TOOL_PROXIMITY_IN)
+		wlr_tablet_v2_tablet_tool_notify_proximity_in(tab->tool_v2, tab->tablet_v2, client_surface(c));
+	else /* OUT */
+		wlr_tablet_v2_tablet_tool_notify_proximity_out(tab->tool_v2);
+}
+
+void
+tabletbutton(struct wl_listener *listener, void *data)
+{
+	struct wlr_tablet_tool_button_event *ev = data;
+	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_button);
+	checkoraddtool(tab, ev->tool);
+
+	wlr_tablet_v2_tablet_tool_notify_button(tab->tool_v2, ev->button, ev->state); /* more readeble code > warnings */
+}
+
+void
+tablettip(struct wl_listener *listener, void *data)
+{
+	struct wlr_tablet_tool_tip_event *ev = data;
+	Tablet *tab = wl_container_of(listener, tab, tablet_tool_tip);
+	checkoraddtool(tab, ev->tool);
+
+	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN)
+		wlr_tablet_v2_tablet_tool_notify_down(tab->tool_v2);
+	else /* UP */
+		wlr_tablet_v2_tablet_tool_notify_up(tab->tool_v2);
+}
+
+void
+checkoraddtool(Tablet *tab, struct wlr_tablet_tool *tool)
+{
+	if (!tab->tool)    tab->tool    = tool;
+	if (!tab->tool_v2) tab->tool_v2 = wlr_tablet_tool_create(tabletmanager, seat, tool);
 }
 
 void
@@ -2367,6 +2461,9 @@ touch_down(struct wl_listener *listener, void *data)
 	IDLE_NOTIFY_ACTIVITY;
 
  	switch (touch->mode) {
+		case SMOff:
+			return;
+
 		case SMTrack: {
 
 			if (touch->pending_touches > 2) 
@@ -2435,6 +2532,9 @@ touch_motion(struct wl_listener *listener, void *data)
 	struct wlr_touch_motion_event *ev = data;
 
 	switch (touch->mode) {
+		case SMOff:
+			return;
+
 		case SMTrack: {
 			bool found = false;	
 			TrackPoint *p = NULL;
@@ -2510,6 +2610,8 @@ touch_up(struct wl_listener *listener, void *data)
 
 
 	switch (touch->mode) {
+		case SMOff:
+			return;
 
 		case SMTrack: {
 			touch->pending_touches--;
