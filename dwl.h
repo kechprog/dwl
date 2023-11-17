@@ -284,16 +284,25 @@ typedef struct {
 typedef struct {
 	bool on;
 
-	struct wlr_tablet      *tablet;
-	struct wlr_tablet_tool *tool;
-	struct wlr_tablet_v2_tablet_tool *tool_v2;
-	struct wlr_tablet_v2_tablet      *tablet_v2;
+	struct wlr_tablet			*tablet;
+	struct wlr_tablet_v2_tablet *tablet_v2;
+	struct wl_list tools; /* current tools */
 
 	struct wl_listener tablet_tool_axis;
 	struct wl_listener tablet_tool_button;   
 	struct wl_listener tablet_tool_tip;  
 	struct wl_listener tablet_tool_proximity;
+
 } Tablet;
+
+typedef struct {
+	struct wl_list link;
+
+	double tilt_x, tilt_y;
+	double x, y, px, py;
+	struct wlr_tablet_tool           *tool;
+	struct wlr_tablet_v2_tablet_tool *toolv2;
+} Tool;
 
 typedef struct {
 	char *name;
@@ -327,6 +336,7 @@ void createnotify(struct wl_listener *listener, void *data);
 void createpointer(struct wlr_pointer *pointer);
 void createtouch(struct wlr_touch *touch);
 void createtablet(struct wlr_tablet *tablet_tool);
+Tool* createtool(struct wlr_tablet_tool *tool, struct wlr_tablet_v2_tablet_tool *toolv2);
 void cursorframe(struct wl_listener *listener, void *data);
 void destroydragicon(struct wl_listener *listener, void *data);
 void destroyidleinhibitor(struct wl_listener *listener, void *data);
@@ -391,7 +401,7 @@ void tabletaxis(struct wl_listener *listener, void *data);
 void tabletproximity(struct wl_listener *listener, void *data);
 void tabletbutton(struct wl_listener *listener, void *data);
 void tablettip(struct wl_listener *listener, void *data);
-void checkoraddtool(Tablet *tab, struct wlr_tablet_tool *tool);
+// void checkoraddtool(Tablet *tab, struct wlr_tablet_tool *tool);
 void tile(Monitor *m);
 void togglefloating(const Arg *arg);
 void togglefullscreen(const Arg *arg);

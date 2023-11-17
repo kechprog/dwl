@@ -119,7 +119,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 // #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
-static const char *termcmd[] = { "foot", NULL };
+static const char *termcmd[] = { "kitty", NULL };
 static const char *menucmd[] = { "wofi", "-show", "drun", NULL };
 
 /* want to know a name of specific key, as they are defined in xf86 keysym ?
