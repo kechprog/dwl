@@ -217,6 +217,7 @@ struct Monitor {
 	char ltsymbol[16];
 
 	char *touch_name; /* null if nothing is asociated, see MonitorRule */
+	char *tablet_name;
 };
 
 typedef struct {
@@ -227,7 +228,9 @@ typedef struct {
 	const Layout *lt;
 	enum wl_output_transform rr;
 	int x, y;
+
 	char *touch_name;
+	char *tablet_name;
 } MonitorRule;
 
 typedef struct {
@@ -282,7 +285,9 @@ typedef struct {
 } Touch;
 
 typedef struct {
+	struct wl_list link;
 	bool on;
+	Monitor *m;
 
 	struct wlr_tablet			*tablet;
 	struct wlr_tablet_v2_tablet *tablet_v2;
@@ -300,6 +305,7 @@ typedef struct {
 
 	double tilt_x, tilt_y;
 	double x, y, px, py;
+	bool forward_to_client;
 	struct wlr_tablet_tool           *tool;
 	struct wlr_tablet_v2_tablet_tool *toolv2;
 } Tool;
@@ -412,7 +418,7 @@ void touch_motion(struct wl_listener *listener, void *data);
 void touch_frame(struct wl_listener *listener, void *data); 
 void touch_up(struct wl_listener *listener, void *data); 
 void touch_down(struct wl_listener *listener, void *data); 
-void touchtolocal(Touch *t, double scrnx, double scrny, double *lx, double *ly);
+void pointtolocal(Monitor *m, double scrnx, double scrny, double *lx, double *ly);
 
 void swipebegin(struct wl_listener *listener, void *data);
 void swipeend(struct wl_listener *listener, void *data);

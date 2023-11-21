@@ -628,7 +628,8 @@ createmon(struct wl_listener *listener, void *data)
 	/* This event is raised by the backend when a new output (aka a display or
 	 * monitor) becomes available. */
 	struct wlr_output *wlr_output = data;
-	Touch *t = NULL;
+	Touch *touch = NULL;
+	Tablet *tab = NULL;
 	const MonitorRule *r;
 	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
@@ -656,15 +657,22 @@ createmon(struct wl_listener *listener, void *data)
 			
 			/* find related touch device */
 			m->touch_name = r->touch_name;
-			if (!m->touch_name || wl_list_empty(&touches))
-				break;
+			if (m->touch_name && !wl_list_empty(&touches))
+				wl_list_for_each(touch, &touches, link) {
+					if (strcmp(m->touch_name, touch->touch_name) != 0)	
+						continue;
+					touch->m = m;
+					break;
+				}
 
-			wl_list_for_each(t, &touches, link) {
-				if (strcmp(m->touch_name, t->touch_name) != 0)	
-					continue;
-				t->m = m;
-				break;
-			}
+			m->tablet_name = r->tablet_name;
+			if (m->tablet_name && !wl_list_empty(&tablets))
+				wl_list_for_each(tab, &tablets, link) {
+					if (strcmp(m->tablet_name, tab->tablet->base.name) != 0)	
+						continue;
+					tab->m = m;
+					break;
+				}
 
 			break;
 		}
@@ -852,24 +860,9 @@ createtouch(struct wlr_touch *touch) {
 void
 createtablet(struct wlr_tablet *tablet)
 {
-	return;
-	bool found = false;
 	Tablet *tab = ecalloc(1, sizeof(Tablet));
-	int i;
+	Monitor *m;
 	
-	for (i = 0; i < LENGTH(tebletRules); i++) {
-		const TabletRule *r = &tebletRules[i];
-		if (strcmp(r->name, tablet->base.name) != 0) 
-			continue;
-		found = true;
-		break;
-	}
-
-	if (!found) {
-		free(tab);
-		return;
-	}
-
 	tab->tablet_tool_button    .notify = tabletbutton;
 	tab->tablet_tool_proximity .notify = tabletproximity;
 	tab->tablet_tool_axis      .notify = tabletaxis;
@@ -883,8 +876,18 @@ createtablet(struct wlr_tablet *tablet)
 	tab->tablet = tablet;
 	tab->tablet_v2 = wlr_tablet_create(tabletmanager, seat, &tab->tablet->base);
 	wl_list_init(&tab->tools);
+	wl_list_insert(&tablets, &tab->link);
 
 	wlr_cursor_attach_input_device(cursor, &tablet->base);
+
+	if (wl_list_empty(&mons))
+		return;
+	wl_list_for_each(m, &mons, link) {
+		if (strcmp(tab->tablet->base.name, m->tablet_name) == 0) {
+			tab->m = m;
+			break;
+		}
+	}
 }
 
 Tool*
@@ -2298,8 +2301,6 @@ tagmon(const Arg *arg)
 void 
 tabletaxis(struct wl_listener *listener, void *data)
 {
-	printf("Axis\n");
-
 	struct wlr_tablet_tool_axis_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_axis);
 	Tool *t;
@@ -2312,8 +2313,10 @@ tabletaxis(struct wl_listener *listener, void *data)
 		}
 	}
 
-	if (!tab->tablet_v2->current_client || !found)
+	if (!found)
 		return;
+
+	printf("updated_axes: %ud\n", ev->updated_axes);
 
     if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
         wlr_tablet_v2_tablet_tool_notify_pressure(t->toolv2, ev->pressure);
@@ -2325,20 +2328,20 @@ tabletaxis(struct wl_listener *listener, void *data)
         wlr_tablet_v2_tablet_tool_notify_rotation(t->toolv2, ev->rotation);
 
     if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
-        wlr_tablet_v2_tablet_tool_notify_slider(t->toolv2, ev->slider);
+		wlr_tablet_v2_tablet_tool_notify_slider(t->toolv2, ev->slider);
 
 	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
         wlr_tablet_v2_tablet_tool_notify_wheel(t->toolv2, ev->wheel_delta, 0);
 
-	// if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_X)
-	// 	t->x = ev->x;
-	//
-	// if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_Y)
-	// 	t->y = ev->y;
-	//
-	// if (ev->updated_axes &
-	// 	(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
-	// 	wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, t->x, t->y);
+	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_X)
+		t->x = ev->x;
+
+	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_Y)
+		t->y = ev->y;
+
+	if (ev->updated_axes &
+		(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
+		wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, t->x, t->y);
 
     /* Update tilt, use old values if no new values are provided */
     if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
@@ -2360,21 +2363,30 @@ tabletproximity(struct wl_listener *listener, void *data)
 
 	struct wlr_tablet_tool_proximity_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_proximity);
-	Client *c = focustop(selmon);
+	Client *c = NULL;
 	Tool *t;
 
 
 	if (ev->state == WLR_TABLET_TOOL_PROXIMITY_IN) 
 	{
+		printf("In\n");
 		t = createtool(
 			ev->tool, 
 			wlr_tablet_tool_create(tabletmanager, seat, ev->tool));
 
 		wl_list_insert(&tab->tools, &t->link);
 
-		// TODO: focus proper client if NULL
-		if (!c)
+		xytonode(ev->x, ev->y, NULL, &c, NULL, NULL, NULL);
+
+		if (!c || !wlr_surface_accepts_tablet_v2(tab->tablet_v2, client_surface(c))) {
+			double lx, ly;
+			// HACK: what if there is more than 2 monitors(very specific to my device)
+			Monitor *other = wl_container_of(tab->m->link.next, other, link);
+			pointtolocal(other, ev->x, ev->y, &lx, &ly);
+			printf("putting at: y = %f, x = %f\n", lx, ly);
+			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 			return;
+		}
 
 		wlr_tablet_v2_tablet_tool_notify_proximity_in(
 			t->toolv2, 
@@ -2383,6 +2395,7 @@ tabletproximity(struct wl_listener *listener, void *data)
 	}
 	else if (ev->state == WLR_TABLET_TOOL_PROXIMITY_OUT)/* OUT */ 
 	{
+		printf("Out\n");
 		bool found = false;
 		wl_list_for_each(t, &tab->tools, link) {
 			if (t->tool == ev->tool) {
@@ -2419,7 +2432,7 @@ tabletbutton(struct wl_listener *listener, void *data)
 		}
 	}
 
-	if (!tab->tablet_v2->current_client || !found)
+	if (!found)
 		return;
 
 	wlr_tablet_v2_tablet_tool_notify_button(t->toolv2, ev->button, ev->state); /* more readeble code > warnings */
@@ -2433,6 +2446,7 @@ tablettip(struct wl_listener *listener, void *data)
 	struct wlr_tablet_tool_tip_event *ev = data;
 	Tablet *tab = wl_container_of(listener, tab, tablet_tool_tip);
 	Tool *t;
+	Client *c;
 	bool found = false;
 
 	wl_list_for_each(t, &tab->tools, link) {
@@ -2442,12 +2456,20 @@ tablettip(struct wl_listener *listener, void *data)
 		}
 	}
 
-	if (!tab->tablet_v2->current_client || !found)
+	if (!found)
 		return;
 
-	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN)
-		wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
-	else /* UP */
+	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN) {
+		xytonode(ev->x, ev->y, NULL, &c, NULL, NULL, NULL);
+		if (c && wlr_surface_accepts_tablet_v2(tab->tablet_v2, client_surface(c))) {
+			focusclient(c, 1);
+			wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
+			t->forward_to_client = true;
+		} else {
+			wlr_cursor_warp_closest(cursor, NULL, ev->x, ev->y);
+		}
+	}
+	else 
 		wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
 }
 
@@ -2608,7 +2630,7 @@ touch_down(struct wl_listener *listener, void *data)
 			Client *c;
 			double lx, ly, sx, sy;
 
-			touchtolocal(touch, ev->x, ev->y, &lx, &ly);
+			pointtolocal(touch->m, ev->x, ev->y, &lx, &ly);
 
 			xytonode(lx, ly, &surface, &c, NULL, &sx, &sy);
 
@@ -2703,7 +2725,7 @@ touch_motion(struct wl_listener *listener, void *data)
 			if(!wlr_seat_touch_get_point(seat, ev->touch_id))
 				return;
 
-			touchtolocal(touch, ev->x, ev->y, &lx, &ly);
+			pointtolocal(touch->m, ev->x, ev->y, &lx, &ly);
 			xytonode(lx, ly, NULL, NULL, NULL, &sx, &sy);
 
 			wlr_seat_touch_notify_motion
@@ -2794,10 +2816,10 @@ touch_up(struct wl_listener *listener, void *data)
 }
 
 
-void touchtolocal(Touch *t, double sx, double sy, double *lx, double *ly) 
+void pointtolocal(Monitor *m, double sx, double sy, double *lx, double *ly) 
 {
-	double glb_x = sx * t->m->w.width  + t->m->w.x,
-	       glb_y = sy * t->m->w.height + t->m->w.y;
+	double glb_x = sx * m->w.width  + m->w.x,
+	       glb_y = sy * m->w.height + m->w.y;
 
 	if(lx) *lx = glb_x;
 	if(ly) *ly = glb_y;

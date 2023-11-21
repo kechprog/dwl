@@ -47,9 +47,15 @@ static const Layout layouts[] = {
 
 /* monitors */
 static const MonitorRule monrules[] = {
-	/*  name  ,   mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y   , touchName(NULL - no)*/
-	{ "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0   , "ELAN9008:00 04F3:2D55"},
-	{ "DP-1"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080 , "ELAN9009:00 04F3:2C1B"}
+	/*  name  ,   mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
+	{ "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
+	/*       touch name        tablet name */
+    , "ELAN9008:00 04F3:2D55", NULL},
+
+
+	{ "DP-1"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080
+	/*       touch name        tablet name */
+    , "ELAN9009:00 04F3:2C1B", "ELAN9009:00 04F3:2C1B Stylus"}
 };
 
 /* keyboard */
