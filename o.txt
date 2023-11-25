@@ -1,0 +1,1187 @@
+I can print here!!!
+Proximit
+In
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.644862, Y: 0.729740
+Proximit
+Out
+Proximit
+In
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.642050, Y: 0.738528
+updated_axes: 3d
+X: 0.641946, Y: 0.738723
+updated_axes: 3d
+X: 0.641685, Y: 0.739309
+updated_axes: 3d
+X: 0.641373, Y: 0.740090
+updated_axes: 3d
+X: 0.640956, Y: 0.741261
+updated_axes: 3d
+X: 0.640487, Y: 0.742238
+updated_axes: 3d
+X: 0.640071, Y: 0.743214
+updated_axes: 3d
+X: 0.639550, Y: 0.744191
+updated_axes: 3d
+X: 0.639029, Y: 0.745167
+updated_axes: 3d
+X: 0.638508, Y: 0.746339
+updated_axes: 3d
+X: 0.637936, Y: 0.747315
+updated_axes: 3d
+X: 0.637363, Y: 0.748487
+updated_axes: 3d
+X: 0.636790, Y: 0.749658
+updated_axes: 3d
+X: 0.636165, Y: 0.750830
+updated_axes: 3d
+X: 0.635592, Y: 0.752002
+updated_axes: 3d
+X: 0.634967, Y: 0.752978
+updated_axes: 3d
+X: 0.634394, Y: 0.754150
+updated_axes: 3d
+X: 0.633873, Y: 0.755126
+updated_axes: 3d
+X: 0.633405, Y: 0.756102
+updated_axes: 3d
+X: 0.632936, Y: 0.757079
+updated_axes: 3d
+X: 0.632519, Y: 0.757860
+updated_axes: 3d
+X: 0.632155, Y: 0.758641
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.630957, Y: 0.761179
+updated_axes: 3d
+X: 0.629655, Y: 0.763132
+updated_axes: 3d
+X: 0.628353, Y: 0.765085
+updated_axes: 3d
+X: 0.627103, Y: 0.766842
+updated_axes: 3d
+X: 0.626738, Y: 0.766647
+updated_axes: 3d
+X: 0.626478, Y: 0.766647
+updated_axes: 3d
+X: 0.626217, Y: 0.766842
+updated_axes: 3d
+X: 0.625957, Y: 0.766842
+updated_axes: 3d
+X: 0.625644, Y: 0.766647
+updated_axes: 3d
+X: 0.625436, Y: 0.766061
+updated_axes: 3d
+X: 0.625280, Y: 0.765280
+updated_axes: 3d
+X: 0.625176, Y: 0.764304
+updated_axes: 3d
+X: 0.625176, Y: 0.762742
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.625280, Y: 0.760789
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.625488, Y: 0.757860
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.625801, Y: 0.754345
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.626269, Y: 0.750244
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.626790, Y: 0.745753
+updated_axes: 11d
+Pressure: 0.003205
+X: 0.627363, Y: 0.740871
+updated_axes: 11d
+Pressure: 0.007150
+X: 0.628092, Y: 0.735794
+updated_axes: 11d
+Pressure: 0.011095
+X: 0.628873, Y: 0.730521
+updated_axes: 11d
+Pressure: 0.013807
+X: 0.629811, Y: 0.724858
+updated_axes: 11d
+Pressure: 0.016519
+X: 0.630853, Y: 0.719195
+updated_axes: 11d
+Pressure: 0.018738
+X: 0.632102, Y: 0.713337
+updated_axes: 11d
+Pressure: 0.020957
+X: 0.633509, Y: 0.707088
+updated_axes: 11d
+Pressure: 0.022682
+X: 0.635071, Y: 0.700840
+updated_axes: 11d
+Pressure: 0.024408
+X: 0.636842, Y: 0.694591
+updated_axes: 11d
+Pressure: 0.026381
+X: 0.638717, Y: 0.688147
+updated_axes: 11d
+Pressure: 0.028107
+X: 0.640800, Y: 0.681898
+updated_axes: 11d
+Pressure: 0.030572
+X: 0.642987, Y: 0.675845
+updated_axes: 11d
+Pressure: 0.033284
+X: 0.645279, Y: 0.670377
+updated_axes: 11d
+Pressure: 0.036489
+X: 0.647570, Y: 0.665690
+updated_axes: 11d
+Pressure: 0.040187
+X: 0.649706, Y: 0.661785
+updated_axes: 11d
+Pressure: 0.042899
+X: 0.654081, Y: 0.655145
+Tip
+Tip down, clientupdated_axes: 11d
+Pressure: 0.045858
+X: 0.654341, Y: 0.654950
+forwarding to client
+updated_axes: 11d
+Pressure: 0.049556
+X: 0.654810, Y: 0.654755
+forwarding to client
+updated_axes: 11d
+Pressure: 0.053254
+X: 0.655487, Y: 0.654950
+forwarding to client
+updated_axes: 11d
+Pressure: 0.057199
+X: 0.656320, Y: 0.655341
+forwarding to client
+updated_axes: 11d
+Pressure: 0.061144
+X: 0.657101, Y: 0.656122
+forwarding to client
+updated_axes: 11d
+Pressure: 0.065582
+X: 0.657882, Y: 0.657489
+forwarding to client
+updated_axes: 11d
+Pressure: 0.070266
+X: 0.658716, Y: 0.659246
+forwarding to client
+updated_axes: 11d
+Pressure: 0.074458
+X: 0.659497, Y: 0.661590
+forwarding to client
+updated_axes: 11d
+Pressure: 0.078649
+X: 0.660226, Y: 0.664519
+forwarding to client
+updated_axes: 11d
+Pressure: 0.083333
+X: 0.660799, Y: 0.667838
+forwarding to client
+updated_axes: 11d
+Pressure: 0.088018
+X: 0.661268, Y: 0.671549
+forwarding to client
+updated_axes: 11d
+Pressure: 0.095907
+X: 0.661528, Y: 0.675259
+forwarding to client
+updated_axes: 11d
+Pressure: 0.104043
+X: 0.661580, Y: 0.678969
+forwarding to client
+updated_axes: 11d
+Pressure: 0.113412
+X: 0.661424, Y: 0.682679
+forwarding to client
+updated_axes: 11d
+Pressure: 0.122781
+X: 0.661007, Y: 0.686194
+forwarding to client
+updated_axes: 11d
+Pressure: 0.130917
+X: 0.660330, Y: 0.689904
+forwarding to client
+updated_axes: 11d
+Pressure: 0.138807
+X: 0.659341, Y: 0.693615
+forwarding to client
+updated_axes: 11d
+Pressure: 0.146450
+X: 0.658143, Y: 0.697520
+forwarding to client
+updated_axes: 11d
+Pressure: 0.154093
+X: 0.656685, Y: 0.701426
+forwarding to client
+updated_axes: 11d
+Pressure: 0.161736
+X: 0.655018, Y: 0.705722
+forwarding to client
+updated_axes: 11d
+Pressure: 0.169872
+X: 0.653143, Y: 0.710018
+forwarding to client
+updated_axes: 11d
+Pressure: 0.176529
+X: 0.651060, Y: 0.714118
+forwarding to client
+updated_axes: 11d
+Pressure: 0.183432
+X: 0.648820, Y: 0.717829
+forwarding to client
+updated_axes: 11d
+Pressure: 0.188609
+X: 0.646529, Y: 0.720953
+forwarding to client
+updated_axes: 11d
+Pressure: 0.194280
+X: 0.644289, Y: 0.723296
+forwarding to client
+updated_axes: 11d
+Pressure: 0.198718
+X: 0.642102, Y: 0.725054
+forwarding to client
+updated_axes: 11d
+Pressure: 0.203156
+X: 0.639915, Y: 0.726030
+forwarding to client
+updated_axes: 11d
+Pressure: 0.209813
+X: 0.637831, Y: 0.726225
+forwarding to client
+updated_axes: 11d
+Pressure: 0.216223
+X: 0.635800, Y: 0.725444
+forwarding to client
+updated_axes: 11d
+Pressure: 0.222387
+X: 0.633925, Y: 0.723687
+forwarding to client
+updated_axes: 11d
+Pressure: 0.228550
+X: 0.632207, Y: 0.720953
+forwarding to client
+updated_axes: 11d
+Pressure: 0.234961
+X: 0.630644, Y: 0.717633
+forwarding to client
+updated_axes: 11d
+Pressure: 0.241124
+X: 0.629290, Y: 0.713923
+forwarding to client
+updated_axes: 11d
+Pressure: 0.245316
+X: 0.628040, Y: 0.710018
+forwarding to client
+updated_axes: 11d
+Pressure: 0.249507
+X: 0.626947, Y: 0.705526
+forwarding to client
+updated_axes: 11d
+Pressure: 0.253945
+X: 0.625957, Y: 0.701035
+forwarding to client
+updated_axes: 11d
+Pressure: 0.258629
+X: 0.625124, Y: 0.696153
+forwarding to client
+updated_axes: 11d
+Pressure: 0.262574
+X: 0.624395, Y: 0.691271
+forwarding to client
+updated_axes: 11d
+Pressure: 0.266519
+X: 0.623822, Y: 0.686389
+forwarding to client
+updated_axes: 11d
+Pressure: 0.268984
+X: 0.623353, Y: 0.681508
+forwarding to client
+updated_axes: 11d
+Pressure: 0.271450
+X: 0.623040, Y: 0.676430
+forwarding to client
+updated_axes: 11d
+Pressure: 0.273422
+X: 0.622936, Y: 0.671744
+forwarding to client
+updated_axes: 11d
+Pressure: 0.275148
+X: 0.622988, Y: 0.667448
+forwarding to client
+updated_axes: 11d
+Pressure: 0.277860
+X: 0.623249, Y: 0.663152
+forwarding to client
+updated_axes: 11d
+Pressure: 0.280572
+X: 0.623770, Y: 0.659051
+forwarding to client
+updated_axes: 11d
+Pressure: 0.282544
+X: 0.624551, Y: 0.654755
+forwarding to client
+updated_axes: 11d
+Pressure: 0.284763
+X: 0.625592, Y: 0.650068
+forwarding to client
+updated_axes: 11d
+Pressure: 0.286982
+X: 0.626842, Y: 0.645186
+forwarding to client
+updated_axes: 11d
+Pressure: 0.289201
+X: 0.628353, Y: 0.639914
+forwarding to client
+updated_axes: 11d
+Pressure: 0.291420
+X: 0.630176, Y: 0.634837
+forwarding to client
+updated_axes: 11d
+Pressure: 0.293639
+X: 0.632259, Y: 0.629565
+forwarding to client
+updated_axes: 11d
+Pressure: 0.296105
+X: 0.634602, Y: 0.624292
+forwarding to client
+updated_axes: 11d
+Pressure: 0.298817
+X: 0.637154, Y: 0.619215
+forwarding to client
+updated_axes: 11d
+Pressure: 0.301529
+X: 0.639863, Y: 0.614333
+forwarding to client
+updated_axes: 11d
+Pressure: 0.304487
+X: 0.642779, Y: 0.609451
+forwarding to client
+updated_axes: 11d
+Pressure: 0.306213
+X: 0.645800, Y: 0.605155
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308185
+X: 0.649029, Y: 0.601640
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308679
+X: 0.652362, Y: 0.598906
+forwarding to client
+updated_axes: 11d
+Pressure: 0.309418
+X: 0.655851, Y: 0.597344
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310404
+X: 0.659341, Y: 0.596954
+forwarding to client
+updated_axes: 11d
+Pressure: 0.311391
+X: 0.662830, Y: 0.597930
+forwarding to client
+updated_axes: 11d
+Pressure: 0.311884
+X: 0.666163, Y: 0.599688
+forwarding to client
+updated_axes: 11d
+Pressure: 0.312130
+X: 0.669340, Y: 0.602226
+forwarding to client
+updated_axes: 3d
+X: 0.672361, Y: 0.605936
+forwarding to client
+updated_axes: 3d
+X: 0.675069, Y: 0.610232
+forwarding to client
+updated_axes: 11d
+Pressure: 0.311884
+X: 0.677517, Y: 0.615700
+forwarding to client
+updated_axes: 11d
+Pressure: 0.311391
+X: 0.679600, Y: 0.622144
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310897
+X: 0.681423, Y: 0.629565
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310651
+X: 0.682985, Y: 0.637376
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310404
+X: 0.684235, Y: 0.645186
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310158
+X: 0.685225, Y: 0.653193
+forwarding to client
+updated_axes: 11d
+Pressure: 0.309665
+X: 0.685798, Y: 0.661199
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308925
+X: 0.686058, Y: 0.669596
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308185
+X: 0.685954, Y: 0.678188
+forwarding to client
+updated_axes: 11d
+Pressure: 0.307692
+X: 0.685433, Y: 0.686780
+forwarding to client
+updated_axes: 3d
+X: 0.684496, Y: 0.695567
+forwarding to client
+updated_axes: 3d
+X: 0.683142, Y: 0.704355
+forwarding to client
+updated_axes: 3d
+X: 0.681371, Y: 0.713142
+forwarding to client
+updated_axes: 3d
+X: 0.679183, Y: 0.721539
+forwarding to client
+updated_axes: 3d
+X: 0.676579, Y: 0.729350
+forwarding to client
+updated_axes: 11d
+Pressure: 0.307939
+X: 0.673611, Y: 0.736380
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308185
+X: 0.670278, Y: 0.742628
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308432
+X: 0.666580, Y: 0.748096
+forwarding to client
+updated_axes: 3d
+X: 0.662518, Y: 0.752197
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308679
+X: 0.658195, Y: 0.755126
+forwarding to client
+updated_axes: 11d
+Pressure: 0.308925
+X: 0.653716, Y: 0.756883
+forwarding to client
+updated_axes: 11d
+Pressure: 0.309418
+X: 0.649081, Y: 0.757079
+forwarding to client
+updated_axes: 11d
+Pressure: 0.309665
+X: 0.644341, Y: 0.755712
+forwarding to client
+updated_axes: 11d
+Pressure: 0.309911
+X: 0.639706, Y: 0.752978
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310404
+X: 0.635175, Y: 0.748682
+forwarding to client
+updated_axes: 11d
+Pressure: 0.310897
+X: 0.630957, Y: 0.743409
+forwarding to client
+updated_axes: 11d
+Pressure: 0.311884
+X: 0.627155, Y: 0.737356
+forwarding to client
+updated_axes: 11d
+Pressure: 0.312623
+X: 0.623822, Y: 0.730717
+forwarding to client
+updated_axes: 11d
+Pressure: 0.313363
+X: 0.620957, Y: 0.723882
+forwarding to client
+updated_axes: 11d
+Pressure: 0.314349
+X: 0.618614, Y: 0.716852
+forwarding to client
+updated_axes: 11d
+Pressure: 0.314842
+X: 0.616687, Y: 0.710018
+forwarding to client
+updated_axes: 11d
+Pressure: 0.315335
+X: 0.615176, Y: 0.702988
+forwarding to client
+updated_axes: 3d
+X: 0.613978, Y: 0.695763
+forwarding to client
+updated_axes: 11d
+Pressure: 0.315582
+X: 0.613145, Y: 0.688342
+forwarding to client
+updated_axes: 11d
+Pressure: 0.071252
+X: 0.612572, Y: 0.682679
+forwarding to client
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.611426, Y: 0.659442
+forwarding to client
+Tip
+updated_axes: 3d
+X: 0.611322, Y: 0.657879
+forwarding to client
+updated_axes: 3d
+X: 0.611270, Y: 0.655731
+forwarding to client
+updated_axes: 3d
+X: 0.611218, Y: 0.652802
+forwarding to client
+updated_axes: 3d
+X: 0.611218, Y: 0.648897
+forwarding to client
+updated_axes: 3d
+X: 0.611426, Y: 0.645186
+forwarding to client
+updated_axes: 3d
+X: 0.611739, Y: 0.640695
+forwarding to client
+updated_axes: 3d
+X: 0.612208, Y: 0.635032
+forwarding to client
+Proximit
+Out
+Proximit
+In
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.627728, Y: 0.582503
+updated_axes: 3d
+X: 0.627936, Y: 0.581722
+updated_axes: 3d
+X: 0.628405, Y: 0.580355
+updated_axes: 3d
+X: 0.628978, Y: 0.578598
+updated_axes: 3d
+X: 0.629759, Y: 0.576450
+updated_axes: 3d
+X: 0.630488, Y: 0.574497
+updated_axes: 3d
+X: 0.631113, Y: 0.572935
+updated_axes: 3d
+X: 0.631738, Y: 0.571373
+updated_axes: 3d
+X: 0.632311, Y: 0.570006
+updated_axes: 3d
+X: 0.632832, Y: 0.568639
+updated_axes: 3d
+X: 0.633457, Y: 0.567077
+updated_axes: 3d
+X: 0.634029, Y: 0.565515
+updated_axes: 3d
+X: 0.634602, Y: 0.563757
+updated_axes: 3d
+X: 0.635071, Y: 0.562390
+updated_axes: 3d
+X: 0.635384, Y: 0.561414
+updated_axes: 3d
+X: 0.635748, Y: 0.560437
+Proximit
+Out
+Proximit
+In
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.627624, Y: 0.557313
+updated_axes: 3d
+X: 0.627051, Y: 0.557508
+updated_axes: 3d
+X: 0.625957, Y: 0.557899
+updated_axes: 3d
+X: 0.624238, Y: 0.558485
+updated_axes: 3d
+X: 0.621843, Y: 0.559266
+updated_axes: 3d
+X: 0.619395, Y: 0.560437
+updated_axes: 3d
+X: 0.616843, Y: 0.561804
+updated_axes: 3d
+X: 0.614239, Y: 0.563757
+updated_axes: 3d
+X: 0.611635, Y: 0.565905
+updated_axes: 3d
+X: 0.609031, Y: 0.568053
+updated_axes: 3d
+X: 0.606375, Y: 0.570201
+Proximit
+Out
+Proximit
+In
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.604656, Y: 0.565515
+updated_axes: 3d
+X: 0.605541, Y: 0.563757
+updated_axes: 3d
+X: 0.607000, Y: 0.561023
+updated_axes: 3d
+X: 0.608979, Y: 0.557313
+updated_axes: 3d
+X: 0.611479, Y: 0.552626
+updated_axes: 3d
+X: 0.613718, Y: 0.548526
+updated_axes: 3d
+X: 0.615958, Y: 0.544425
+updated_axes: 3d
+X: 0.618301, Y: 0.540519
+updated_axes: 3d
+X: 0.620645, Y: 0.536809
+updated_axes: 3d
+X: 0.622884, Y: 0.533490
+updated_axes: 3d
+X: 0.625020, Y: 0.530365
+updated_axes: 3d
+X: 0.627103, Y: 0.527436
+updated_axes: 3d
+X: 0.629186, Y: 0.524702
+updated_axes: 3d
+X: 0.631217, Y: 0.521968
+updated_axes: 3d
+X: 0.633352, Y: 0.519235
+updated_axes: 3d
+X: 0.635592, Y: 0.516110
+Proximit
+Out
+Proximit
+In
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.431957, Y: 0.628198
+updated_axes: 3d
+X: 0.432009, Y: 0.625659
+updated_axes: 3d
+X: 0.432061, Y: 0.622730
+updated_axes: 3d
+X: 0.432165, Y: 0.619801
+updated_axes: 3d
+X: 0.432269, Y: 0.616481
+updated_axes: 3d
+X: 0.432373, Y: 0.615310
+updated_axes: 3d
+X: 0.432477, Y: 0.614138
+updated_axes: 3d
+X: 0.432530, Y: 0.612771
+updated_axes: 3d
+X: 0.432582, Y: 0.611599
+updated_axes: 3d
+X: 0.432686, Y: 0.610232
+updated_axes: 3d
+X: 0.432738, Y: 0.608865
+updated_axes: 3d
+X: 0.432842, Y: 0.607499
+updated_axes: 3d
+X: 0.432946, Y: 0.605936
+updated_axes: 3d
+X: 0.433102, Y: 0.604765
+updated_axes: 3d
+X: 0.433207, Y: 0.603593
+updated_axes: 3d
+X: 0.433311, Y: 0.602421
+updated_axes: 3d
+X: 0.433467, Y: 0.601250
+updated_axes: 3d
+X: 0.433571, Y: 0.600078
+updated_axes: 3d
+X: 0.433727, Y: 0.598906
+updated_axes: 3d
+X: 0.433936, Y: 0.597540
+updated_axes: 3d
+X: 0.434144, Y: 0.596173
+updated_axes: 3d
+X: 0.434352, Y: 0.594806
+updated_axes: 3d
+X: 0.434561, Y: 0.593439
+updated_axes: 3d
+X: 0.434769, Y: 0.592072
+updated_axes: 3d
+X: 0.434977, Y: 0.590705
+updated_axes: 3d
+X: 0.435238, Y: 0.589143
+updated_axes: 3d
+X: 0.435498, Y: 0.587776
+updated_axes: 3d
+X: 0.435706, Y: 0.586409
+updated_axes: 3d
+X: 0.435967, Y: 0.585042
+updated_axes: 3d
+X: 0.436175, Y: 0.583870
+updated_axes: 3d
+X: 0.436384, Y: 0.582503
+updated_axes: 3d
+X: 0.436592, Y: 0.581332
+updated_axes: 3d
+X: 0.436852, Y: 0.579965
+updated_axes: 3d
+X: 0.437113, Y: 0.578598
+updated_axes: 3d
+X: 0.437425, Y: 0.577231
+updated_axes: 3d
+X: 0.437738, Y: 0.575864
+updated_axes: 3d
+X: 0.437998, Y: 0.574497
+updated_axes: 3d
+X: 0.438311, Y: 0.572935
+updated_axes: 3d
+X: 0.438571, Y: 0.571568
+updated_axes: 3d
+X: 0.438831, Y: 0.570396
+updated_axes: 3d
+X: 0.439092, Y: 0.569029
+updated_axes: 3d
+X: 0.439300, Y: 0.567858
+updated_axes: 3d
+X: 0.439508, Y: 0.566686
+updated_axes: 3d
+X: 0.439717, Y: 0.565515
+updated_axes: 3d
+X: 0.439873, Y: 0.564343
+updated_axes: 3d
+X: 0.440029, Y: 0.563171
+updated_axes: 3d
+X: 0.440185, Y: 0.562000
+updated_axes: 3d
+X: 0.440394, Y: 0.560828
+updated_axes: 3d
+X: 0.440602, Y: 0.559656
+updated_axes: 3d
+X: 0.440810, Y: 0.558485
+updated_axes: 3d
+X: 0.441071, Y: 0.557118
+updated_axes: 3d
+X: 0.441383, Y: 0.555751
+updated_axes: 3d
+X: 0.441696, Y: 0.554579
+updated_axes: 3d
+X: 0.442008, Y: 0.553212
+updated_axes: 3d
+X: 0.442373, Y: 0.551845
+updated_axes: 3d
+X: 0.442737, Y: 0.550674
+updated_axes: 3d
+X: 0.443102, Y: 0.549502
+updated_axes: 3d
+X: 0.443466, Y: 0.548526
+updated_axes: 3d
+X: 0.443779, Y: 0.547745
+updated_axes: 3d
+X: 0.444144, Y: 0.546963
+updated_axes: 3d
+X: 0.444508, Y: 0.546182
+updated_axes: 3d
+X: 0.444925, Y: 0.545401
+updated_axes: 3d
+X: 0.445289, Y: 0.544620
+updated_axes: 3d
+X: 0.445758, Y: 0.543839
+updated_axes: 3d
+X: 0.446227, Y: 0.542863
+updated_axes: 3d
+X: 0.446800, Y: 0.542082
+updated_axes: 3d
+X: 0.447373, Y: 0.540910
+updated_axes: 3d
+X: 0.448050, Y: 0.539738
+updated_axes: 3d
+X: 0.448727, Y: 0.538176
+updated_axes: 3d
+X: 0.449456, Y: 0.536614
+updated_axes: 3d
+X: 0.450237, Y: 0.534661
+updated_axes: 3d
+X: 0.451070, Y: 0.532513
+updated_axes: 3d
+X: 0.451956, Y: 0.530365
+updated_axes: 59d
+Pressure: 0.000000
+X: 0.454664, Y: 0.525483
+updated_axes: 3d
+X: 0.457320, Y: 0.520601
+updated_axes: 3d
+X: 0.459924, Y: 0.516110
+updated_axes: 3d
+X: 0.462528, Y: 0.511814
+updated_axes: 3d
+X: 0.463413, Y: 0.510252
+updated_axes: 3d
+X: 0.464351, Y: 0.508690
+updated_axes: 3d
+X: 0.465392, Y: 0.506932
+updated_axes: 3d
+X: 0.466486, Y: 0.504979
+updated_axes: 3d
+X: 0.467580, Y: 0.503027
+updated_axes: 3d
+X: 0.468674, Y: 0.500879
+updated_axes: 3d
+X: 0.469819, Y: 0.498731
+updated_axes: 3d
+X: 0.470965, Y: 0.496387
+updated_axes: 3d
+X: 0.472267, Y: 0.493849
+updated_axes: 3d
+X: 0.473621, Y: 0.491310
+updated_axes: 3d
+X: 0.474975, Y: 0.488772
+updated_axes: 3d
+X: 0.476329, Y: 0.486624
+updated_axes: 3d
+X: 0.477631, Y: 0.484671
+updated_axes: 3d
+X: 0.478881, Y: 0.482913
+updated_axes: 3d
+X: 0.480131, Y: 0.481156
+updated_axes: 3d
+X: 0.481381, Y: 0.479399
+updated_axes: 3d
+X: 0.482631, Y: 0.477836
+updated_axes: 3d
+X: 0.484037, Y: 0.476079
+updated_axes: 3d
+X: 0.485600, Y: 0.474126
+updated_axes: 3d
+X: 0.487266, Y: 0.472173
+updated_axes: 3d
+X: 0.489089, Y: 0.470025
+updated_axes: 3d
+X: 0.491016, Y: 0.467682
+updated_axes: 3d
+X: 0.492943, Y: 0.465144
+updated_axes: 3d
+X: 0.494922, Y: 0.462410
+updated_axes: 3d
+X: 0.496901, Y: 0.459871
+updated_axes: 3d
+X: 0.498880, Y: 0.457333
+updated_axes: 3d
+X: 0.500807, Y: 0.455185
+updated_axes: 3d
+X: 0.502682, Y: 0.453037
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.504453, Y: 0.451279
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.506015, Y: 0.449912
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.507421, Y: 0.448740
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.508776, Y: 0.447959
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.510026, Y: 0.447569
+updated_axes: 11d
+Pressure: 0.000493
+X: 0.511328, Y: 0.447374
+updated_axes: 11d
+Pressure: 0.003205
+X: 0.512682, Y: 0.447374
+updated_axes: 11d
+Pressure: 0.006657
+X: 0.514088, Y: 0.447178
+updated_axes: 11d
+Pressure: 0.009862
+X: 0.515598, Y: 0.446983
+updated_axes: 9d
+Pressure: 0.013067
+X: 0.517161, Y: 0.446983
+updated_axes: 11d
+Pressure: 0.016272
+X: 0.518671, Y: 0.446983
+updated_axes: 11d
+Pressure: 0.019231
+X: 0.520181, Y: 0.446983
+updated_axes: 11d
+Pressure: 0.022436
+X: 0.521639, Y: 0.446788
+updated_axes: 11d
+Pressure: 0.024901
+X: 0.523098, Y: 0.446592
+updated_axes: 11d
+Pressure: 0.027367
+X: 0.524556, Y: 0.446592
+updated_axes: 11d
+Pressure: 0.030325
+X: 0.525962, Y: 0.446788
+updated_axes: 11d
+Pressure: 0.033777
+X: 0.527316, Y: 0.447178
+updated_axes: 11d
+Pressure: 0.036736
+X: 0.528566, Y: 0.447764
+updated_axes: 11d
+Pressure: 0.039694
+X: 0.529712, Y: 0.448350
+updated_axes: 11d
+Pressure: 0.042406
+X: 0.532160, Y: 0.450888
+Tip
+Tip down, clientupdated_axes: 11d
+Pressure: 0.044872
+X: 0.532316, Y: 0.451084
+forwarding to client
+updated_axes: 11d
+Pressure: 0.046351
+X: 0.532629, Y: 0.451474
+forwarding to client
+updated_axes: 11d
+Pressure: 0.048077
+X: 0.533097, Y: 0.452060
+forwarding to client
+updated_axes: 11d
+Pressure: 0.049063
+X: 0.533670, Y: 0.452841
+forwarding to client
+updated_axes: 11d
+Pressure: 0.050049
+X: 0.534191, Y: 0.453622
+forwarding to client
+updated_axes: 11d
+Pressure: 0.050542
+X: 0.534660, Y: 0.454599
+forwarding to client
+updated_axes: 11d
+Pressure: 0.051282
+X: 0.535076, Y: 0.455380
+forwarding to client
+updated_axes: 11d
+Pressure: 0.051529
+X: 0.535441, Y: 0.455770
+forwarding to client
+updated_axes: 11d
+Pressure: 0.051775
+X: 0.535701, Y: 0.456161
+forwarding to client
+updated_axes: 3d
+X: 0.535910, Y: 0.456356
+forwarding to client
+updated_axes: 11d
+Pressure: 0.052022
+X: 0.536014, Y: 0.456551
+forwarding to client
+updated_axes: 11d
+Pressure: 0.052268
+X: 0.536170, Y: 0.456942
+forwarding to client
+updated_axes: 11d
+Pressure: 0.052515
+X: 0.536274, Y: 0.457333
+forwarding to client
+updated_axes: 11d
+Pressure: 0.052761
+X: 0.536430, Y: 0.457723
+forwarding to client
+updated_axes: 11d
+Pressure: 0.053254
+X: 0.536587, Y: 0.458504
+forwarding to client
+updated_axes: 11d
+Pressure: 0.053748
+X: 0.536743, Y: 0.459481
+forwarding to client
+updated_axes: 11d
+Pressure: 0.054241
+X: 0.536899, Y: 0.460847
+forwarding to client
+updated_axes: 11d
+Pressure: 0.054487
+X: 0.536951, Y: 0.462410
+forwarding to client
+updated_axes: 11d
+Pressure: 0.054980
+X: 0.537003, Y: 0.464167
+forwarding to client
+updated_axes: 11d
+Pressure: 0.055473
+X: 0.536951, Y: 0.465925
+forwarding to client
+updated_axes: 11d
+Pressure: 0.056213
+X: 0.536899, Y: 0.467877
+forwarding to client
+updated_axes: 11d
+Pressure: 0.056460
+X: 0.536795, Y: 0.469830
+forwarding to client
+updated_axes: 11d
+Pressure: 0.056953
+X: 0.536587, Y: 0.471978
+forwarding to client
+updated_axes: 3d
+X: 0.536326, Y: 0.474126
+forwarding to client
+updated_axes: 3d
+X: 0.535962, Y: 0.476469
+forwarding to client
+updated_axes: 11d
+Pressure: 0.055473
+X: 0.535493, Y: 0.478813
+forwarding to client
+updated_axes: 11d
+Pressure: 0.054487
+X: 0.534972, Y: 0.481351
+forwarding to client
+updated_axes: 11d
+Pressure: 0.050542
+X: 0.534347, Y: 0.484280
+forwarding to client
+updated_axes: 11d
+Pressure: 0.046844
+X: 0.533618, Y: 0.487210
+forwarding to client
+updated_axes: 11d
+Pressure: 0.042899
+X: 0.532837, Y: 0.490139
+forwarding to client
+updated_axes: 11d
+Pressure: 0.038955
+X: 0.532004, Y: 0.493263
+forwarding to client
+updated_axes: 11d
+Pressure: 0.035750
+X: 0.531118, Y: 0.496192
+forwarding to client
+updated_axes: 11d
+Pressure: 0.032298
+X: 0.530233, Y: 0.498926
+forwarding to client
+updated_axes: 11d
+Pressure: 0.029832
+X: 0.529400, Y: 0.501465
+forwarding to client
+updated_axes: 11d
+Pressure: 0.027367
+X: 0.528618, Y: 0.504003
+forwarding to client
+updated_axes: 11d
+Pressure: 0.025394
+X: 0.527941, Y: 0.506346
+forwarding to client
+updated_axes: 11d
+Pressure: 0.023422
+X: 0.527316, Y: 0.508494
+forwarding to client
+updated_axes: 11d
+Pressure: 0.021943
+X: 0.526795, Y: 0.510252
+forwarding to client
+updated_axes: 11d
+Pressure: 0.020464
+X: 0.526379, Y: 0.511814
+forwarding to client
+updated_axes: 11d
+Pressure: 0.018984
+X: 0.526066, Y: 0.512986
+forwarding to client
+updated_axes: 11d
+Pressure: 0.017998
+X: 0.525858, Y: 0.514157
+forwarding to client
+updated_axes: 11d
+Pressure: 0.017505
+X: 0.525702, Y: 0.515134
+forwarding to client
+updated_axes: 11d
+Pressure: 0.016765
+X: 0.525598, Y: 0.516305
+forwarding to client
+updated_axes: 3d
+X: 0.525546, Y: 0.517477
+forwarding to client
+updated_axes: 3d
+X: 0.525493, Y: 0.518649
+forwarding to client
+updated_axes: 11d
+Pressure: 0.017505
+X: 0.525441, Y: 0.519820
+forwarding to client
+updated_axes: 11d
+Pressure: 0.017998
+X: 0.525389, Y: 0.520992
+forwarding to client
+updated_axes: 11d
+Pressure: 0.019970
+X: 0.525285, Y: 0.522359
+forwarding to client
+updated_axes: 11d
+Pressure: 0.022189
+X: 0.525129, Y: 0.523921
+forwarding to client
+updated_axes: 11d
+Pressure: 0.024408
+X: 0.524868, Y: 0.526069
+forwarding to client
+updated_axes: 11d
+Pressure: 0.026627
+X: 0.524504, Y: 0.528412
+forwarding to client
+updated_axes: 11d
+Pressure: 0.027367
+X: 0.524087, Y: 0.531342
+forwarding to client
+updated_axes: 11d
+Pressure: 0.028353
+X: 0.523514, Y: 0.534271
+forwarding to client
+updated_axes: 3d
+X: 0.522837, Y: 0.537200
+forwarding to client
+updated_axes: 3d
+X: 0.522108, Y: 0.540129
+forwarding to client
+updated_axes: 11d
+Pressure: 0.027860
+X: 0.521327, Y: 0.542863
+forwarding to client
+updated_axes: 11d
+Pressure: 0.027613
+X: 0.520546, Y: 0.545401
+forwarding to client
+updated_axes: 11d
+Pressure: 0.026381
+X: 0.519765, Y: 0.547745
+forwarding to client
+updated_axes: 11d
+Pressure: 0.025148
+X: 0.519035, Y: 0.549893
+forwarding to client
+updated_axes: 11d
+Pressure: 0.023669
+X: 0.518358, Y: 0.551845
+forwarding to client
+updated_axes: 11d
+Pressure: 0.022436
+X: 0.517786, Y: 0.553408
+forwarding to client
+updated_axes: 11d
+Pressure: 0.000000
+X: 0.517004, Y: 0.555360
+forwarding to client
+Tip
+updated_axes: 56d
+Pressure: 0.000000
+Proximit
+Out

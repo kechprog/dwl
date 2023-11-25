@@ -161,6 +161,8 @@ static const Key keys[] = {
 	{ 0                        , XF86XK_Launch6,     flipmons,       {0} },
 	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
 
+	// {MODKEY,                     XKB_KEY_c,            check_tablet, {0}}, /* temporary */
+
 	TAGKEYS(          XKB_KEY_1, XKB_KEY_exclam,                     0),
 	TAGKEYS(          XKB_KEY_2, XKB_KEY_at,                         1),
 	TAGKEYS(          XKB_KEY_3, XKB_KEY_numbersign,                 2),
