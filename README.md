@@ -1,4 +1,4 @@
-###TODO:
+### TODO:
  - Make tablet input relative(configurable)
  - Complete Trackpad emulation
  - Make flipmons preserve selected tags
