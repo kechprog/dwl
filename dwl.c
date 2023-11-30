@@ -1,14 +1,7 @@
 #include "dwl.h"
-#include <math.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <wayland-server-core.h>
-#include <wayland-server-protocol.h>
+#include <assert.h>
+#include <limits.h>
 #include <wayland-util.h>
-#include <wlr/util/log.h>
 
 /* variables */
 static const char broken[] = "broken";
@@ -878,8 +871,6 @@ createtablet(struct wlr_tablet *tablet)
 	wl_list_init(&tab->tools);
 	wl_list_insert(&tablets, &tab->link);
 
-	wlr_cursor_attach_input_device(cursor, &tablet->base);
-
 	if (wl_list_empty(&mons))
 		return;
 	wl_list_for_each(m, &mons, link) {
@@ -1187,6 +1178,7 @@ void flipmons(const Arg *arg)
 		return;
 
 	focusclient(cur, 1);
+
 	/* mouse follows */
 	wlr_cursor_warp_closest(cursor, NULL,
 		cur->geom.x + cur->geom.width  / 2.0,
@@ -2303,7 +2295,11 @@ tabletaxis(struct wl_listener *listener, void *data)
 {
 	struct wlr_tablet_tool_axis_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_axis);
+	double sx, sy, lx, ly;
+	Client *c;
 	Tool *t;
+	Monitor *other = wl_container_of(tab->m->link.next, other, link);
+
 	bool found = false;
 
 	wl_list_for_each(t, &tab->tools, link) {
@@ -2313,40 +2309,26 @@ tabletaxis(struct wl_listener *listener, void *data)
 		}
 	}
 
-	if (ev->tool->distance)
-		printf("Supports distance\n");
-	else 
-		printf("Does not support distance\n");
-
 	if (!found)
 		return;
 
-	printf("updated_axes: %u\n", ev->updated_axes);
+	if (t->toolv2->focused_surface)
+		c = t->fclient;
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE) {
-		printf("Pressure: %f\n", ev->pressure);
-        wlr_tablet_v2_tablet_tool_notify_pressure(t->toolv2, ev->pressure + 0.0001); // HACK: add offset
-	}
+    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
+        wlr_tablet_v2_tablet_tool_notify_pressure(t->toolv2, ev->pressure);
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE) {
-		printf("Distance: %f\n", ev->distance);
+    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE)
         wlr_tablet_v2_tablet_tool_notify_distance(t->toolv2, ev->distance);
-	}
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION) {
-		printf("Rotation: %f\n", ev->rotation);
+    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION)
 		wlr_tablet_v2_tablet_tool_notify_rotation(t->toolv2, ev->rotation);
-	}
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER) {
-		printf("Slider: %f\n", ev->slider);
+    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
 		wlr_tablet_v2_tablet_tool_notify_slider(t->toolv2, ev->slider);
-	}
 
-	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL) {
-		printf("Wheel: %f\n", ev->wheel_delta);
+	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
 		wlr_tablet_v2_tablet_tool_notify_wheel(t->toolv2, ev->wheel_delta, 0);
-	}
 
 	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_X)
 		t->x = ev->x;
@@ -2357,21 +2339,17 @@ tabletaxis(struct wl_listener *listener, void *data)
 	if (ev->updated_axes &
 		(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
 	{
-		printf("X: %f, Y: %f\n", t->x, t->y);
-		if (t->forward_to_client) {
-			printf("forwarding to client\n");
-			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, t->x, t->y);
-		}
-		else {
-			double lx, ly;
-			Monitor *other = wl_container_of(tab->m->link.next, other, link);
+		if (t->toolv2->focused_surface) {
+			sx = t->x * (c->geom.width  - 2 * c->bw);
+			sy = t->y * (c->geom.height - 2 * c->bw);
+			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
+		} else {
 			pointtolocal(other, ev->x, ev->y, &lx, &ly);
 			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 			motionnotify(ev->time_msec);
 		}
 	}
 
-    /* Update tilt, use old values if no new values are provided */
     if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
         t->tilt_x = ev->tilt_x;
 
@@ -2387,7 +2365,6 @@ tabletaxis(struct wl_listener *listener, void *data)
 void
 tabletproximity(struct wl_listener *listener, void *data)
 {
-	printf("Proximit\n");
 
 	struct wlr_tablet_tool_proximity_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_proximity);
@@ -2397,14 +2374,12 @@ tabletproximity(struct wl_listener *listener, void *data)
 
 	if (ev->state == WLR_TABLET_TOOL_PROXIMITY_IN) 
 	{
-		printf("In\n");
 		t = createtool(
 			ev->tool, 
 			wlr_tablet_tool_create(tabletmanager, seat, ev->tool));
 
 		wl_list_insert(&tab->tools, &t->link);
 
-		// HACK: what if there is more than 2 monitors(very specific to my device)
 		Monitor *other = wl_container_of(tab->m->link.next, other, link);
 		pointtolocal(other, ev->x, ev->y, &lx, &ly);
 
@@ -2414,11 +2389,11 @@ tabletproximity(struct wl_listener *listener, void *data)
 			c = focustop(selmon);
 
 		if (!c || !wlr_surface_accepts_tablet_v2(tab->tablet_v2, client_surface(c))) {
-			printf("putting at: y = %f, x = %f\n", lx, ly);
 			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 			return;
 		}
 
+		t->fclient = c;
 		wlr_tablet_v2_tablet_tool_notify_proximity_in(
 			t->toolv2, 
 			tab->tablet_v2, 
@@ -2426,7 +2401,6 @@ tabletproximity(struct wl_listener *listener, void *data)
 	}
 	else if (ev->state == WLR_TABLET_TOOL_PROXIMITY_OUT)/* OUT */ 
 	{
-		printf("Out\n");
 		bool found = false;
 		wl_list_for_each(t, &tab->tools, link) {
 			if (t->tool == ev->tool) {
@@ -2472,17 +2446,14 @@ tabletbutton(struct wl_listener *listener, void *data)
 void
 tablettip(struct wl_listener *listener, void *data)
 {
-	printf("Tip\n");
-
 	struct wlr_tablet_tool_tip_event *ev = data;
 	Tablet *tab = wl_container_of(listener, tab, tablet_tool_tip);
 	Tool *t;
 	Client *c;
 	double lx, ly;
+
 	bool found = false;
 	Monitor *other = wl_container_of(tab->m->link.next, other, link);
-
-	// HACK: same
 	pointtolocal(other, ev->x, ev->y, &lx, &ly);
 
 	wl_list_for_each(t, &tab->tools, link) {
@@ -2498,18 +2469,20 @@ tablettip(struct wl_listener *listener, void *data)
 	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN) {
 		xytonode(lx, ly, NULL, &c, NULL, NULL, NULL);
 		if (c && wlr_surface_accepts_tablet_v2(tab->tablet_v2, client_surface(c))) {
-			printf("Tip down, client");
 			focusclient(c, 1);
+			t->fclient = c;
+
+			if (!t->toolv2->focused_surface) {
+				wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tablet_v2, client_surface(c));
+			}
+
 			wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
-			t->forward_to_client = true;
 		} else {
-			printf("Tip down, no client");
-			t->forward_to_client = false;
 			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 			motionnotify(0);
 		}
 	}
-	else
+	else if (t->toolv2->focused_surface)
 		wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
 }
 

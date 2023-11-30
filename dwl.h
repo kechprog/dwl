@@ -2,14 +2,7 @@
 
 #include <getopt.h>
 #include <X11/XF86keysym.h>
-#include <assert.h>
-#include <math.h>
-#include <libinput.h>
-#include <limits.h>
 #include <linux/input-event-codes.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
@@ -303,9 +296,10 @@ typedef struct {
 typedef struct {
 	struct wl_list link;
 
+	Client *fclient;
+
 	double tilt_x, tilt_y;
 	double x, y, px, py;
-	bool forward_to_client;
 	struct wlr_tablet_tool           *tool;
 	struct wlr_tablet_v2_tablet_tool *toolv2;
 } Tool;
