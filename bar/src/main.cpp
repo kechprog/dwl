@@ -522,9 +522,9 @@ int main(int argc, char* argv[])
 	batChargeCurFd = fileno(batChargeCurFile);
 	std::string content((std::istreambuf_iterator<char>(file)),
 							 std::istreambuf_iterator<char>());
-	int curCharge = std::stoi(content);
+	size_t curCharge = std::stoull(content);
 	for (auto &m : monitors) {
-		m.bar.setBat(curCharge*100 / batChargeFull , true);
+		m.bar.setBat((curCharge / (double)batChargeFull)*100 , true);
 	}
 
 	pollfds.push_back({
@@ -577,9 +577,9 @@ int main(int argc, char* argv[])
 					std::ifstream file(batChargeNow);
 					std::string content((std::istreambuf_iterator<char>(file)),
 											 std::istreambuf_iterator<char>());
-					int curCharge = std::stoi(content);
+					size_t curCharge = std::stoull(content);
 					for (auto &m : monitors) {
-						m.bar.setBat(curCharge*100 / batChargeFull , true);
+						m.bar.setBat((curCharge / (double)batChargeFull)*100 , true);
 						m.bar.invalidate();
 					}
 				}

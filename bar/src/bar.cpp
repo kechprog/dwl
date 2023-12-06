@@ -176,7 +176,7 @@ void Bar::updateTime()
     std::tm localtime = *std::localtime(&now_c);
     std::ostringstream ss;
 
-    ss << std::put_time(&localtime, "%H:%M:%S");
+    ss << std::put_time(&localtime, "%H:%M");
     _timeCmp.setText(ss.str());
 }
 
