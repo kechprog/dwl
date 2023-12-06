@@ -2342,8 +2342,8 @@ tabletaxis(struct wl_listener *listener, void *data)
 		double tablet_aspect_ratio  = tab->m->m.width / (double)tab->m->w.height,
 			   monitor_aspect_ratio = other->m.width  / (double)other->m.height;
 
-		sx = t->x * (c->geom.width  - 2 * c->bw);
-		sy = t->y * (c->geom.height - 2 * c->bw);
+		sx = (t->x - t->px) * (c->geom.width  - 2 * c->bw);
+		sy = (t->y - t->py) * (c->geom.height - 2 * c->bw);
 		
 		// coment for absolute mode
 		if (tablet_aspect_ratio > monitor_aspect_ratio)
@@ -2351,12 +2351,14 @@ tabletaxis(struct wl_listener *listener, void *data)
 		else 
 			sx *= (tablet_aspect_ratio  / monitor_aspect_ratio);
 
-		if (t->toolv2->focused_surface) {
-			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
+		if (t->toolv2->focused_surface && !t->tip_up) {
+			t->last_sx = cursor->x - c->geom.x + sx;
+			t->last_sy = cursor->y - c->geom.y + sy;
+			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, t->last_sx, t->last_sy);
 		} else {
 			pointtolocal(other, ev->x, ev->y, &lx, &ly);
 			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-			motionnotify(ev->time_msec);
+			motionnotify(0);
 		}
 	}
 
@@ -2483,6 +2485,9 @@ tablettip(struct wl_listener *listener, void *data)
 			focusclient(c, 1);
 			t->fclient = c;
 
+			t->px = ev->x;
+			t->py = ev->y;
+
 			if (!t->toolv2->focused_surface) {
 				wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tablet_v2, client_surface(c));
 			}
@@ -2495,6 +2500,11 @@ tablettip(struct wl_listener *listener, void *data)
 	else if (t->toolv2->focused_surface) {
 		t->tip_up = true;
 		wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
+
+		wlr_cursor_warp_closest(cursor, NULL, 
+			t->fclient->geom.x + t->last_sx, 
+			t->fclient->geom.y + t->last_sy);
+		motionnotify(0);
 	}
 }
 

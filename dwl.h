@@ -299,7 +299,9 @@ typedef struct {
 	bool tip_up;
 	Client *fclient;
 	double tilt_x, tilt_y;
-	double x, y, px, py;
+	double x, y; 
+	double px, py;
+	double last_sx, last_sy; /* for tip up only */
 	struct wlr_tablet_tool           *tool;
 	struct wlr_tablet_v2_tablet_tool *toolv2;
 } Tool;
