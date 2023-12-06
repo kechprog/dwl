@@ -296,8 +296,8 @@ typedef struct {
 typedef struct {
 	struct wl_list link;
 
+	bool tip_up;
 	Client *fclient;
-
 	double tilt_x, tilt_y;
 	double x, y, px, py;
 	struct wlr_tablet_tool           *tool;
