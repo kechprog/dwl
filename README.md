@@ -1,21 +1,22 @@
 ### TODO:
- - Make tablet input relative(configurable)
+ - fix tablet lag
  - Complete Trackpad emulation
  - Make flipmons preserve selected tags
  - ability to send client to monitor(atleast next)
  - alt-tab to work cross monitor
+ - flip between mons(broken)
  - HUGE Refactorh
  - Bar add:
-   - Battery
    - Tablet Status
-   - Brightness
    - Touch State
 
 
 ### DONE:
+ - Make tablet input relative(configurable)
  - pinch support
  - gesture support
  - touch support
- - flip between mons(broken)
  - Bar:
   - Time
+  - Battery
+  - Brightness
