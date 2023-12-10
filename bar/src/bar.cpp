@@ -99,6 +99,10 @@ Bar::Bar()
 	_titleCmp  = createComponent();
 	_statusCmp = createComponent();
 	_batCmp    = createComponent("BAT");
+
+	for (auto& cmp : _brightnessCmp) {
+		cmp = createComponent();
+	}
 }
 
 const wl_surface* Bar::surface() const
@@ -187,6 +191,13 @@ void Bar::setBat(int perc, bool isCharging)
 	_batCmp.setText(ss.str());
 }
 
+void Bar::setBrightness(size_t val, size_t idx) {
+	std::stringstream ss;
+	val = val * 100 / displayConfigs[idx].second;
+	ss << "BRIGHTNESS: " << val << "%";
+	_brightnessCmp[idx].setText(ss.str());
+}
+
 void Bar::invalidate()
 {
 	if (_invalid || !visible()) {
@@ -258,6 +269,8 @@ void Bar::render()
 	renderComponent(_titleCmp);
 	renderComponent(_timeCmp);
 	renderComponent(_batCmp);
+	for (auto &bcmp : _brightnessCmp)
+		renderComponent(bcmp);
 	renderStatus();
 
 	_painter = nullptr;

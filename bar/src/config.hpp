@@ -3,6 +3,9 @@
 
 #pragma once
 #include "common.hpp"
+#include <string_view>
+
+using namespace std::literals;
 
 constexpr bool topbar = true;
 
@@ -17,6 +20,13 @@ constexpr ColorScheme  colorActive   = {Color(0xee, 0xee, 0xee), Color(0x00, 0x5
 constexpr const char*  termcmd[]     = {"foot", nullptr};
 constexpr const char*  batChargeNow  = "/sys/class/power_supply/BAT0/energy_now";
 constexpr const size_t batChargeFull = 62732000;
+
+constexpr const std::pair<std::string_view, size_t> displayConfigs[] = {
+	/*           current brightness(file)             , max brightness */
+	{"/sys/class/backlight/intel_backlight/brightness",     19200       },
+	{"/sys/class/leds/asus::screenpad/brightness",            255}
+};
+
 
 constexpr Button buttons[] = {
 	{ ClkTagBar,       BTN_LEFT,   view,       {0} },

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <wayland-client.h>
+#include "config.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "shm_buffer.hpp"
@@ -39,6 +40,7 @@ class Bar {
 	std::optional<ShmBuffer>             _bufs;
 	std::vector<Tag> _tags;
 	BarComponent _layoutCmp, _titleCmp, _statusCmp, _timeCmp, _batCmp;
+	std::array<BarComponent, sizeof(displayConfigs) / sizeof(displayConfigs[0])> _brightnessCmp;
 	bool _selected;
 	bool _invalid {false};
 
@@ -66,12 +68,13 @@ public:
 	void show(wl_output* output);
 	void hide();
 	/* state updating */
-	void setTag     (int tag, int state, int numClients, int focusedClient);
-	void setSelected(bool selected);
-	void setLayout  (const std::string& layout);
-	void setTitle   (const std::string& title );
-	void setStatus  (const std::string& status);
-	void setBat     (int perc, bool isCharging);
+	void setTag      (int tag, int state, int numClients, int focusedClient);
+	void setSelected (bool selected);
+	void setLayout   (const std::string& layout);
+	void setTitle    (const std::string& title );
+	void setStatus   (const std::string& status);
+	void setBat      (int perc, bool isCharging);
+	void setBrightness(size_t val, size_t idx);
 	void updateTime ();
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);

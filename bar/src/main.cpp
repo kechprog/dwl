@@ -1,14 +1,13 @@
 // See LICENSE file for copyright and license details.
 #include <algorithm>
-#include <sstream>
+#include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <list>
-#include <mutex>
 #include <optional>
+#include <sstream>
 #include <sys/poll.h>
 #include <thread>
 #include <utility>
@@ -109,6 +108,7 @@ static std::array<int, 2> signalSelfPipe;
 static std::array<int, 2> timePipe;
 static int displayFd {-1};
 static int batChargeCurFd {-1};
+static std::array<int, sizeof(displayConfigs) / sizeof(displayConfigs[0])> displayBrightness = {0};
 static int statusFifoWriter {-1};
 static bool quitting {false};
 static std::atomic<bool> threads_should_run(true);
@@ -532,6 +532,26 @@ int main(int argc, char* argv[])
 		.events = POLLIN,
 	});
 
+	/* brightness */
+	for (int i = 0; i<displayBrightness.size(); i++) {
+		FILE *f = fopen(displayConfigs[i].first.data(), "r");
+		displayBrightness[i] = fileno(f);
+		pollfds.push_back({
+			.fd = displayBrightness[i],
+			.events = POLLIN,
+		});
+
+		/* read contents of file */
+		std::ifstream fs(displayConfigs[i].first.data());
+		std::stringstream buffer;
+		buffer << fs.rdbuf();
+
+		size_t curBrightness = std::stoull(buffer.str());
+		std::cout << "i: " << i << " curBrightness: " << curBrightness << "\n";
+		for (auto &m : monitors)
+			m.bar.setBrightness(curBrightness, i);
+	}
+
 	/*           time                */
 	pollfds.push_back({
 		.fd = timePipe[0],
@@ -582,10 +602,24 @@ int main(int argc, char* argv[])
 						m.bar.setBat((curCharge / (double)batChargeFull)*100 , true);
 						m.bar.invalidate();
 					}
+				} else if (auto it = std::find(displayBrightness.begin(), displayBrightness.end(), ev.fd); it != displayBrightness.end() 
+					   && (ev.revents & POLLIN)) 
+				{
+					size_t idx = it - displayBrightness.begin();
+					auto file_name = displayConfigs[idx].first;
+					std::ifstream file(file_name.data());
+					std::string content((std::istreambuf_iterator<char>(file)),
+											 std::istreambuf_iterator<char>());
+	
+					for (auto &m : monitors) {
+						m.bar.setBrightness(std::stoull(content.c_str()), idx);
+						m.bar.invalidate();
+					}
 				}
 			}
 		}
 	}
+
 	threads_should_run = false;
 	time_handle.join();
 	cleanup();
