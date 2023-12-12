@@ -1720,46 +1720,43 @@ pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 void
 printstatus(void)
 {
-	// NOTE: REMOVE ME ||
-	//                 \/
-					return;
 	Monitor *m = NULL;
-	Client *c;
-	uint32_t occ, urg, sel;
-	const char *appid, *title;
-
+	// Client *c;
+	// uint32_t occ, urg, sel;
+	// const char *appid, *title;
+	//
 	wl_list_for_each(m, &mons, link) {
-		occ = urg = 0;
-		wl_list_for_each(c, &clients, link) {
-			if (c->mon != m)
-				continue;
-			occ |= c->tags;
-			if (c->isurgent)
-				urg |= c->tags;
-		}
-		if ((c = focustop(m))) {
-			title = client_get_title(c);
-			appid = client_get_appid(c);
-			printf("%s title %s\n", m->wlr_output->name, title ? title : broken);
-			printf("%s appid %s\n", m->wlr_output->name, appid ? appid : broken);
-			printf("%s fullscreen %u\n", m->wlr_output->name, c->isfullscreen);
-			printf("%s floating %u\n", m->wlr_output->name, c->isfloating);
-			sel = c->tags;
-		} else {
-			printf("%s title \n", m->wlr_output->name);
-			printf("%s appid \n", m->wlr_output->name);
-			printf("%s fullscreen \n", m->wlr_output->name);
-			printf("%s floating \n", m->wlr_output->name);
-			sel = 0;
-		}
-
-		printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
-		printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ, m->tagset[m->seltags],
-				sel, urg);
-		printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
+		// occ = urg = 0;
+		// wl_list_for_each(c, &clients, link) {
+		// 	if (c->mon != m)
+		// 		continue;
+		// 	occ |= c->tags;
+		// 	if (c->isurgent)
+		// 		urg |= c->tags;
+		// }
+		// if ((c = focustop(m))) {
+		// 	title = client_get_title(c);
+		// 	appid = client_get_appid(c);
+		// 	printf("%s title %s\n", m->wlr_output->name, title ? title : broken);
+		// 	printf("%s appid %s\n", m->wlr_output->name, appid ? appid : broken);
+		// 	printf("%s fullscreen %u\n", m->wlr_output->name, c->isfullscreen);
+		// 	printf("%s floating %u\n", m->wlr_output->name, c->isfloating);
+		// 	sel = c->tags;
+		// } else {
+		// 	printf("%s title \n", m->wlr_output->name);
+		// 	printf("%s appid \n", m->wlr_output->name);
+		// 	printf("%s fullscreen \n", m->wlr_output->name);
+		// 	printf("%s floating \n", m->wlr_output->name);
+		// 	sel = 0;
+		// }
+		//
+		// printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
+		// printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ, m->tagset[m->seltags],
+		// 		sel, urg);
+		// printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
 		dwl_wm_printstatus(m);
 	}
-	fflush(stdout);
+	// fflush(stdout);
 }
 
 void

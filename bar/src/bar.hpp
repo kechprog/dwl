@@ -20,6 +20,7 @@ public:
 	void setText(const std::string& text);
 	wl_unique_ptr<PangoLayout> pangoLayout;
 	int x {0};
+	int align {0}; /* 0: left, 1: right */
 };
 
 struct Tag {
@@ -35,31 +36,29 @@ class Bar {
 	static const wl_callback_listener           _frameListener;
 
 	wl_unique_ptr<wl_surface>            _surface;
-	wl_unique_ptr<zwlr_layer_surface_v1> _layerSurface;
-	wl_unique_ptr<PangoContext>          _pangoContext;
-	std::optional<ShmBuffer>             _bufs;
-	std::vector<Tag> _tags;
-	BarComponent _layoutCmp, _titleCmp, _statusCmp, _timeCmp, _batCmp;
+	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
+	wl_unique_ptr<PangoContext>          pangoContext;
+	std::optional<ShmBuffer>             bufs;
+	std::vector<Tag> tags;
+	BarComponent layoutCmp, titleCmp, statusCmp, _timeCmp, _batCmp;
 	std::array<BarComponent, sizeof(displayConfigs) / sizeof(displayConfigs[0])> _brightnessCmp;
-	bool _selected;
-	bool _invalid {false};
+	bool selected;
+	bool invalid {false};
 
 	// only vaild during render()
-	cairo_t* _painter {nullptr};
-	int _x;
-	ColorScheme _colorScheme;
+	cairo_t* painter {nullptr};
+	int x_left, x_right;
+	ColorScheme colorScheme;
 
 	void layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height);
 	void render();
+	void setColor(int color);
 	void renderTags();
-	void renderStatus();
 
 	// low-level rendering
-	void setColorScheme(const ColorScheme& scheme, bool invert = false);
-	void beginFg();
-	void beginBg();
+	void updateColorScheme(void);
 	void renderComponent(BarComponent& component);
-	BarComponent createComponent(const std::string& initial = {});
+	BarComponent createComponent(const int align, const std::string& initial = {});
 
 public:
 	Bar();

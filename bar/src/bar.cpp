@@ -2,6 +2,7 @@
 // See LICENSE file for copyright and license details.
 
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <wayland-client-protocol.h>
 #include <pango/pangocairo.h>
@@ -26,6 +27,17 @@ const wl_callback_listener Bar::_frameListener = {
 		wl_callback_destroy(cb);
 	}
 };
+
+void Bar::setColor(int color)
+{
+	uint8_t red   = (color >> 24) & 0xFF,
+	        green = (color >> 16) & 0xFF,
+	        blue  = (color >> 8 ) & 0xFF,
+	        alpha =  255;
+
+	cairo_set_source_rgba(painter,
+		red / 255.0, green / 255.0, blue / 255.0, alpha / 255.0);
+}
 
 struct Font {
 	PangoFontDescription* description;
@@ -86,23 +98,25 @@ void BarComponent::setText(const std::string& text)
 
 Bar::Bar()
 {
-	_pangoContext.reset(pango_font_map_create_context(pango_cairo_font_map_get_default()));
-	if (!_pangoContext) {
+	pangoContext.reset(pango_font_map_create_context(pango_cairo_font_map_get_default()));
+	if (!pangoContext) {
 		die("pango_font_map_create_context");
 	}
 	for (const auto& tagName : tagNames) {
-		_tags.push_back({ TagState::None, 0, 0, createComponent(tagName) });
+		tags.push_back({ TagState::None, 0, 0, createComponent(0, tagName) });
 	}
-	_timeCmp   = createComponent(); /* creates zero initialized component */
+
+	_timeCmp   = createComponent(1); /* creates zero initialized component */
 	updateTime();
-	_layoutCmp = createComponent();
-	_titleCmp  = createComponent();
-	_statusCmp = createComponent();
-	_batCmp    = createComponent("BAT");
+	layoutCmp = createComponent(0);
+	titleCmp  = createComponent(0);
+	statusCmp = createComponent(0);
+	_batCmp    = createComponent(1, "BAT");
 
 	for (auto& cmp : _brightnessCmp) {
-		cmp = createComponent();
+		cmp = createComponent(1);
 	}
+
 }
 
 const wl_surface* Bar::surface() const
@@ -121,16 +135,16 @@ void Bar::show(wl_output* output)
 		return;
 	}
 	_surface.reset(wl_compositor_create_surface(compositor));
-	_layerSurface.reset(zwlr_layer_shell_v1_get_layer_surface(wlrLayerShell,
+	layerSurface.reset(zwlr_layer_shell_v1_get_layer_surface(wlrLayerShell,
 		_surface.get(), output, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "net.tapesoftware.Somebar"));
-	zwlr_layer_surface_v1_add_listener(_layerSurface.get(), &_layerSurfaceListener, this);
+	zwlr_layer_surface_v1_add_listener(layerSurface.get(), &_layerSurfaceListener, this);
 	auto anchor = topbar ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
-	zwlr_layer_surface_v1_set_anchor(_layerSurface.get(),
+	zwlr_layer_surface_v1_set_anchor(layerSurface.get(),
 		anchor | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
 
 	auto barSize = barfont.height + paddingY * 2;
-	zwlr_layer_surface_v1_set_size(_layerSurface.get(), 0, barSize);
-	zwlr_layer_surface_v1_set_exclusive_zone(_layerSurface.get(), barSize);
+	zwlr_layer_surface_v1_set_size(layerSurface.get(), 0, barSize);
+	zwlr_layer_surface_v1_set_exclusive_zone(layerSurface.get(), barSize);
 	wl_surface_commit(_surface.get());
 }
 
@@ -139,14 +153,14 @@ void Bar::hide()
 	if (!visible()) {
 		return;
 	}
-	_layerSurface.reset();
+	layerSurface.reset();
 	_surface.reset();
-	_bufs.reset();
+	bufs.reset();
 }
 
 void Bar::setTag(int tag, int state, int numClients, int focusedClient)
 {
-	auto& t = _tags[tag];
+	auto& t = tags[tag];
 	t.state = state;
 	t.numClients = numClients;
 	t.focusedClient = focusedClient;
@@ -154,22 +168,22 @@ void Bar::setTag(int tag, int state, int numClients, int focusedClient)
 
 void Bar::setSelected(bool selected)
 {
-	_selected = selected;
+	this->selected = selected;
 }
 
 void Bar::setLayout(const std::string& layout)
 {
-	_layoutCmp.setText(layout);
+	layoutCmp.setText(layout);
 }
 
 void Bar::setTitle(const std::string& title)
 {
-	_titleCmp.setText(title);
+	titleCmp.setText(title);
 }
 
 void Bar::setStatus(const std::string& status)
 {
-	_statusCmp.setText(status);
+	statusCmp.setText(status);
 }
 
 void Bar::updateTime() 
@@ -200,10 +214,10 @@ void Bar::setBrightness(size_t val, size_t idx) {
 
 void Bar::invalidate()
 {
-	if (_invalid || !visible()) {
+	if (invalid || !visible()) {
 		return;
 	}
-	_invalid = true;
+	invalid = true;
 	auto frame = wl_surface_frame(_surface.get());
 	wl_callback_add_listener(frame, &_frameListener, this);
 	wl_surface_commit(_surface.get());
@@ -214,14 +228,14 @@ void Bar::click(Monitor* mon, int x, int, int btn)
 	Arg arg = {0};
 	Arg* argp = nullptr;
 	int control = ClkNone;
-	if (x > _statusCmp.x) {
+	if (x > statusCmp.x) {
 		control = ClkStatusText;
-	} else if (x > _titleCmp.x) {
+	} else if (x > titleCmp.x) {
 		control = ClkWinTitle;
-	} else if (x > _layoutCmp.x) {
+	} else if (x > layoutCmp.x) {
 		control = ClkLayoutSymbol;
-	} else for (int tag = _tags.size()-1; tag >= 0; tag--) {
-		if (x > _tags[tag].component.x) {
+	} else for (int tag = tags.size()-1; tag >= 0; tag--) {
+		if (x > tags[tag].component.x) {
 			control = ClkTagBar;
 			arg.ui = 1<<tag;
 			argp = &arg;
@@ -238,121 +252,105 @@ void Bar::click(Monitor* mon, int x, int, int btn)
 
 void Bar::layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height)
 {
-	zwlr_layer_surface_v1_ack_configure(_layerSurface.get(), serial);
-	if (_bufs && width == _bufs->width && height == _bufs->height) {
+	zwlr_layer_surface_v1_ack_configure(layerSurface.get(), serial);
+	if (bufs && width == bufs->width && height == bufs->height) {
 		return;
 	}
-	_bufs.emplace(width, height, WL_SHM_FORMAT_XRGB8888);
+	bufs.emplace(width, height, WL_SHM_FORMAT_XRGB8888);
 	render();
 }
 
 void Bar::render()
 {
-	if (!_bufs) {
+	if (!bufs) {
 		return;
 	}
 	auto img = wl_unique_ptr<cairo_surface_t> {cairo_image_surface_create_for_data(
-		_bufs->data(),
+		bufs->data(),
 		CAIRO_FORMAT_ARGB32,
-		_bufs->width,
-		_bufs->height,
-		_bufs->stride
+		bufs->width,
+		bufs->height,
+		bufs->stride
 		)};
-	auto painter = wl_unique_ptr<cairo_t> {cairo_create(img.get())};
-	_painter = painter.get();
-	pango_cairo_update_context(_painter, _pangoContext.get());
-	_x = 0;
+	auto _painter = wl_unique_ptr<cairo_t> {cairo_create(img.get())};
+	painter = _painter.get();
+	pango_cairo_update_context(painter, pangoContext.get());
+	x_left = x_right = 0;
+
+	updateColorScheme();
+
+	/* bg of bar */
+	setColor(colorScheme.barBg);
+	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
 
 	renderTags();
-	setColorScheme(_selected ? colorActive : colorInactive);
-	renderComponent(_layoutCmp);
-	renderComponent(_titleCmp);
+	renderComponent(layoutCmp);
+	renderComponent(titleCmp);
 	renderComponent(_timeCmp);
 	renderComponent(_batCmp);
 	for (auto &bcmp : _brightnessCmp)
 		renderComponent(bcmp);
-	renderStatus();
+	renderComponent(statusCmp);
 
-	_painter = nullptr;
-	wl_surface_attach(_surface.get(), _bufs->buffer(), 0, 0);
-	wl_surface_damage(_surface.get(), 0, 0, _bufs->width, _bufs->height);
+	painter = nullptr;
+	wl_surface_attach(_surface.get(), bufs->buffer(), 0, 0);
+	wl_surface_damage(_surface.get(), 0, 0, bufs->width, bufs->height);
 	wl_surface_commit(_surface.get());
-	_bufs->flip();
-	_invalid = false;
+	bufs->flip();
+	invalid = false;
 }
 
 void Bar::renderTags()
 {
-	for (auto &tag : _tags) {
-		setColorScheme(
-			tag.state & TagState::Active ? colorActive : colorInactive,
-			tag.state & TagState::Urgent);
+	for (auto &tag : tags) {
 		renderComponent(tag.component);
-		auto indicators = std::min(tag.numClients, static_cast<int>(_bufs->height/2));
+		auto indicators = std::min(tag.numClients, static_cast<int>(bufs->height/2));
 		for (auto ind = 0; ind < indicators; ind++) {
 			auto w = ind == tag.focusedClient ? 7 : 1;
-			cairo_move_to(_painter, tag.component.x, ind*2+0.5);
-			cairo_rel_line_to(_painter, w, 0);
-			cairo_close_path(_painter);
-			cairo_set_line_width(_painter, 1);
-			cairo_stroke(_painter);
+			cairo_move_to(painter, tag.component.x, ind*2+0.5);
+			cairo_rel_line_to(painter, w, 0);
+			cairo_close_path(painter);
+			cairo_set_line_width(painter, 1);
+			cairo_stroke(painter);
 		}
 	}
 }
 
-void Bar::renderStatus()
-{
-	pango_cairo_update_layout(_painter, _statusCmp.pangoLayout.get());
-	beginBg();
-	auto start = _bufs->width - _statusCmp.width() - paddingX*2;
-	cairo_rectangle(_painter, _x, 0, _bufs->width-_x+start, _bufs->height);
-	cairo_fill(_painter);
-
-	_x = start;
-	renderComponent(_statusCmp);
-}
-
-void Bar::setColorScheme(const ColorScheme& scheme, bool invert)
-{
-	_colorScheme = invert
-		? ColorScheme {scheme.bg, scheme.fg}
-		: ColorScheme {scheme.fg, scheme.bg};
-}
-static void setColor(cairo_t* painter, const Color& color)
-{
-	cairo_set_source_rgba(painter,
-		color.r/255.0, color.g/255.0, color.b/255.0, color.a/255.0);
-}
-void Bar::beginFg()
-{
-	setColor(_painter, _colorScheme.fg);
-}
-void Bar::beginBg()
-{
-	setColor(_painter, _colorScheme.bg);
+void Bar::updateColorScheme(void) {
+	this->colorScheme = colors[selected];
 }
 
 void Bar::renderComponent(BarComponent& component)
 {
-	pango_cairo_update_layout(_painter, component.pangoLayout.get());
+	pango_cairo_update_layout(painter, component.pangoLayout.get());
 	auto size = component.width() + paddingX*2;
-	component.x = _x;
 
-	beginBg();
-	cairo_rectangle(_painter, _x, 0, size, _bufs->height);
-	cairo_fill(_painter);
-	cairo_move_to(_painter, _x+paddingX, paddingY);
+	switch (component.align) {
+		case 0: /* left */
+			component.x = x_left;
+			x_left += size;
+			break;
+		case 1: /* right */
+			component.x = bufs->width - x_right - size;
+			x_right += size;
+			break;
+	} 
 
-	beginFg();
-	pango_cairo_show_layout(_painter, component.pangoLayout.get());
-	_x += size;
+	setColor(colorScheme.cmpBg);
+	cairo_move_to(painter, component.x+paddingX, paddingY);
+	cairo_fill(painter);
+
+	setColor(colorScheme.text);
+	cairo_move_to(painter, component.x+paddingX, paddingY);
+	pango_cairo_show_layout(painter, component.pangoLayout.get());
 }
 
-BarComponent Bar::createComponent(const std::string &initial)
+BarComponent Bar::createComponent(const int align, const std::string &initial)
 {
-	auto layout = pango_layout_new(_pangoContext.get());
+	auto layout = pango_layout_new(pangoContext.get());
 	pango_layout_set_font_description(layout, barfont.description);
 	auto res = BarComponent {wl_unique_ptr<PangoLayout> {layout}};
 	res.setText(initial);
+	res.align = align;
 	return res;
 }

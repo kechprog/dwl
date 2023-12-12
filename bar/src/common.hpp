@@ -17,13 +17,16 @@ struct Color {
 	constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a=255) : r(r), g(g), b(b), a(a) { }
 	uint8_t r, g, b, a {255};
 };
+
 struct ColorScheme {
-	Color fg, bg;
+	uint32_t barBg, text, cmpBg;
 };
+
 union Arg {
 	unsigned int ui;
 	const void* v;
 };
+
 struct Monitor;
 
 enum TagState { None, Active = 0x01, Urgent = 0x02 };
