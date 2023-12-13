@@ -417,6 +417,8 @@ static const struct wl_registry_listener registry_listener = {
 
 int main(int argc, char* argv[])
 {
+
+	signal(SIGINT, [](int a) {_exit(0);});
 	int opt;
 	while ((opt = getopt(argc, argv, "chvs:")) != -1) {
 		switch (opt) {
@@ -533,23 +535,30 @@ int main(int argc, char* argv[])
 	});
 
 	/* brightness */
-	for (int i = 0; i<displayBrightness.size(); i++) {
-		FILE *f = fopen(displayConfigs[i].first.data(), "r");
-		displayBrightness[i] = fileno(f);
+	for (size_t i = 0; i<displayBrightness.size(); i++) {
+		int fd = open(displayConfigs[i].first.data(), O_RDONLY | O_NONBLOCK);
+		displayBrightness[i] = fd;
+		char buf[25];
+		size_t nread = 0;
+
 		pollfds.push_back({
-			.fd = displayBrightness[i],
+			.fd = fd,
 			.events = POLLIN,
 		});
 
 		/* read contents of file */
-		std::ifstream fs(displayConfigs[i].first.data());
-		std::stringstream buffer;
-		buffer << fs.rdbuf();
+		lseek(fd, 0, SEEK_SET);
+		nread = read(fd, buf, sizeof(buf));
+		if (nread <=0)
+			continue;
 
-		size_t curBrightness = std::stoull(buffer.str());
-		std::cout << "i: " << i << " curBrightness: " << curBrightness << "\n";
-		for (auto &m : monitors)
+		std::string content(buf, nread);
+		size_t curBrightness = std::stoull(content.data());
+
+		for (auto &m : monitors) {
 			m.bar.setBrightness(curBrightness, i);
+			m.bar.invalidate();
+		}
 	}
 
 	/*           time                */
@@ -605,11 +614,19 @@ int main(int argc, char* argv[])
 				} else if (auto it = std::find(displayBrightness.begin(), displayBrightness.end(), ev.fd); it != displayBrightness.end() 
 					   && (ev.revents & POLLIN)) 
 				{
-					size_t idx = it - displayBrightness.begin();
-					auto file_name = displayConfigs[idx].first;
-					std::ifstream file(file_name.data());
-					std::string content((std::istreambuf_iterator<char>(file)),
-											 std::istreambuf_iterator<char>());
+					char buf[25];
+					size_t idx = std::distance(displayBrightness.begin(), it);
+					size_t nread;
+
+					lseek(ev.fd, 0, SEEK_SET);
+					nread = read(ev.fd, buf, sizeof(buf));
+
+					// std::cout << "Brightness, recieved" << std::endl;
+					if (nread <=0)
+						continue;
+
+					// std::cout << "Brightness, nread = " << nread << std::endl;
+					std::string content(buf, nread);
 	
 					for (auto &m : monitors) {
 						m.bar.setBrightness(std::stoull(content.c_str()), idx);
