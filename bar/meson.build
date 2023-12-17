@@ -25,6 +25,7 @@ endif
 executable('somebar',
     'src/main.cpp',
     'src/shm_buffer.cpp',
+    'src/file_listener.cpp',
     'src/bar.cpp',
     wayland_sources,
     dependencies: [

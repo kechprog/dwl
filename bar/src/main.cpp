@@ -1,13 +1,12 @@
-// See LICENSE file for copyright and license details.
 #include <algorithm>
-#include <cstdlib>
 #include <fstream>
+#include <inotifytools/inotify.h>
+#include <cstdlib>
 #include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <list>
-#include <optional>
-#include <sstream>
+#include <sys/inotify.h>
 #include <sys/poll.h>
 #include <thread>
 #include <utility>
@@ -23,7 +22,6 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <atomic>
-#include "src/config.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -31,30 +29,9 @@
 #include "common.hpp"
 #include "bar.hpp"
 #include "line_buffer.hpp"
+#include "file_listener.hpp"
+#include "main.hpp"
 
-struct Monitor {
-	uint32_t                 registryName;
-	std::string              xdgName;
-	wl_unique_ptr<wl_output> wlOutput;
-	Bar 					 bar;
-	bool 				   	 desiredVisibility {true};
-	bool 					 hasData;
-	uint32_t 				 tags;
-	wl_unique_ptr<znet_tapesoftware_dwl_wm_monitor_v1> dwlMonitor;
-};
-
-struct SeatPointer {
-	wl_unique_ptr<wl_pointer> wlPointer;
-	Monitor* focusedMonitor;
-	int x, y;
-	std::vector<int> btns;
-};
-
-struct Seat {
-	uint32_t name;
-	wl_unique_ptr<wl_seat> wlSeat;
-	std::optional<SeatPointer> pointer;
-};
 
 struct HandleGlobalHelper {
 	wl_registry* registry;
@@ -107,10 +84,10 @@ static std::vector<pollfd> pollfds;
 static std::array<int, 2> signalSelfPipe;
 static std::array<int, 2> timePipe;
 static int displayFd {-1};
-static int batChargeCurFd {-1};
-static std::array<int, sizeof(displayConfigs) / sizeof(displayConfigs[0])> displayBrightness = {0};
 static int statusFifoWriter {-1};
 static bool quitting {false};
+static int inotify_fd {-1};
+
 static std::atomic<bool> threads_should_run(true);
 const std::string prefixStatus = "status ";
 const std::string prefixShow   = "show ";
@@ -518,48 +495,13 @@ int main(int argc, char* argv[])
 		diesys("fcntl F_SETFL");
 	}
 
-	/* battery percent */
-	FILE* batChargeCurFile = fopen(batChargeNow, "r");
-	std::ifstream file(batChargeNow);
-	batChargeCurFd = fileno(batChargeCurFile);
-	std::string content((std::istreambuf_iterator<char>(file)),
-							 std::istreambuf_iterator<char>());
-	size_t curCharge = std::stoull(content);
-	for (auto &m : monitors) {
-		m.bar.setBat((curCharge / (double)batChargeFull)*100 , true);
-	}
-
+	/* file listeners */
+	inotify_fd = inotify_init();
+	const auto file_listeners = setupFileListeners(monitors, inotify_fd);
 	pollfds.push_back({
-		.fd = batChargeCurFd,
+		.fd = inotify_fd,
 		.events = POLLIN,
 	});
-
-	/* brightness */
-	for (size_t i = 0; i<displayBrightness.size(); i++) {
-		int fd = open(displayConfigs[i].first.data(), O_RDONLY | O_NONBLOCK);
-		displayBrightness[i] = fd;
-		char buf[25];
-		size_t nread = 0;
-
-		pollfds.push_back({
-			.fd = fd,
-			.events = POLLIN,
-		});
-
-		/* read contents of file */
-		lseek(fd, 0, SEEK_SET);
-		nread = read(fd, buf, sizeof(buf));
-		if (nread <=0)
-			continue;
-
-		std::string content(buf, nread);
-		size_t curBrightness = std::stoull(content.data());
-
-		for (auto &m : monitors) {
-			m.bar.setBrightness(curBrightness, i);
-			m.bar.invalidate();
-		}
-	}
 
 	/*           time                */
 	pollfds.push_back({
@@ -602,35 +544,19 @@ int main(int argc, char* argv[])
 						m.bar.updateTime();
 						m.bar.invalidate();
 					}
-				} else if (ev.fd == batChargeCurFd && (ev.revents & POLL_IN)) {
-					std::ifstream file(batChargeNow);
-					std::string content((std::istreambuf_iterator<char>(file)),
-											 std::istreambuf_iterator<char>());
-					size_t curCharge = std::stoull(content);
-					for (auto &m : monitors) {
-						m.bar.setBat((curCharge / (double)batChargeFull)*100 , true);
-						m.bar.invalidate();
-					}
-				} else if (auto it = std::find(displayBrightness.begin(), displayBrightness.end(), ev.fd); it != displayBrightness.end() 
-					   && (ev.revents & POLLIN)) 
-				{
-					char buf[25];
-					size_t idx = std::distance(displayBrightness.begin(), it);
+				} else if (ev.fd == inotify_fd && (ev.revents & POLLIN)) {
+					inotify_event ev;
 					size_t nread;
 
-					lseek(ev.fd, 0, SEEK_SET);
-					nread = read(ev.fd, buf, sizeof(buf));
+					while (true) {
+						nread = read(inotify_fd, &ev, sizeof(ev));
 
-					// std::cout << "Brightness, recieved" << std::endl;
-					if (nread <=0)
-						continue;
+						if (nread != sizeof(ev))
+							die("Read of inotify event");
 
-					// std::cout << "Brightness, nread = " << nread << std::endl;
-					std::string content(buf, nread);
-	
-					for (auto &m : monitors) {
-						m.bar.setBrightness(std::stoull(content.c_str()), idx);
-						m.bar.invalidate();
+						for (auto &fl : file_listeners)
+							if (fl == ev.wd)
+								fl(&ev);
 					}
 				}
 			}

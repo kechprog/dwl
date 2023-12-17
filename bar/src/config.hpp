@@ -21,7 +21,7 @@ const constexpr ColorScheme colors[2] = {
 };
 
 constexpr const char*  termcmd[]     = {"foot", nullptr};
-constexpr const char*  batChargeNow  = "/sys/class/power_supply/BAT0/energy_now";
+constexpr const std::string_view batChargeNow  = "/sys/class/power_supply/BAT0/energy_now";
 constexpr const size_t batChargeFull = 62732000;
 
 constexpr const std::pair<std::string_view, size_t> displayConfigs[] = {
