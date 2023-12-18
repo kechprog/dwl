@@ -31,14 +31,12 @@ constexpr int FileListener::get_watch_fd() const
 /* compare with watch_fd */
 bool FileListener::operator==(const int watch_fd) const
 {
-	std::cout << "Got ==" << std::endl;
 	return this->watch_fd == watch_fd;
 }
 
 /* call callback */
 void FileListener::operator()(const inotify_event *event) const
 {
-	std::cout << "Got Callback" << std::endl;
 	if (event->mask & this->flags)
 		this->callback();
 
@@ -55,7 +53,6 @@ std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int ino
 		
 		f >> buf;
 		size_t curCharge = std::stoull(buf.c_str());
-		std::cout << "batCallback: " << buf << std::endl;
 
 		for (auto &m: mons) {
 			m.bar.setBat((double)curCharge / (double)batChargeFull * 100, true);
@@ -70,7 +67,7 @@ std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int ino
 		size_t curBrightness = std::stoull(buf.c_str());
 		for (auto &m : mons) {
 			m.bar.setBrightness(curBrightness, 0);
-			// m.bar.invalidate();
+			m.bar.invalidate();
 		}
 	};
 
@@ -82,7 +79,7 @@ std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int ino
 		size_t curBrightness = std::stoull(buf.c_str());
 		for (auto &m : mons) {
 			m.bar.setBrightness(curBrightness, 1);
-			// m.bar.invalidate();
+			m.bar.invalidate();
 		}
 	};
 

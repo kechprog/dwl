@@ -548,16 +548,19 @@ int main(int argc, char* argv[])
 					inotify_event ev;
 					size_t nread;
 
-					while (true) {
-						nread = read(inotify_fd, &ev, sizeof(ev));
+					/**\
+					|**|  there is no need to loop, since if somehting is left on inotify_fd,
+					|**|  poll will still let us know and we will end up here again
+				    \**/
 
-						if (nread != sizeof(ev))
-							die("Read of inotify event");
+					nread = read(inotify_fd, &ev, sizeof(ev));
 
-						for (auto &fl : file_listeners)
-							if (fl == ev.wd)
-								fl(&ev);
-					}
+					if (nread != sizeof(ev))
+						die("Read of inotify event");
+
+					for (auto &fl : file_listeners)
+						if (fl == ev.wd)
+							fl(&ev);
 				}
 			}
 		}

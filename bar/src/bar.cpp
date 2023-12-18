@@ -209,9 +209,7 @@ void Bar::setBrightness(size_t val, size_t idx) {
 	std::stringstream ss;
 	val = val * 100 / displayConfigs[idx].second;
 	ss << "BRIGHTNESS: " << val << "%";
-	std::cout << ss.str() << std::endl;
 	_brightnessCmp[idx].setText(ss.str());
-	this->invalidate();
 }
 
 void Bar::invalidate()
