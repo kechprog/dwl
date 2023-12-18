@@ -43,7 +43,7 @@ void FileListener::operator()(const inotify_event *event) const
 }
 
 /* defenition of some listeners */
-std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
+std::array<FileListener, 3> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
 {
 
 	const auto batCallback = [&]()
@@ -53,6 +53,8 @@ std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int ino
 		
 		f >> buf;
 		size_t curCharge = std::stoull(buf.c_str());
+
+		std::cout << "Battery Charge: " << curCharge << std::endl;
 
 		for (auto &m: mons) {
 			m.bar.setBat((double)curCharge / (double)batChargeFull * 100, true);
@@ -83,8 +85,8 @@ std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int ino
 		}
 	};
 
-	const std::array<FileListener, 2> listeners = {
-		// FileListener(batChargeNow, batCallback, inotify_fd),
+	const std::array<FileListener, 3> listeners = {
+		FileListener(batChargeNow, batCallback, inotify_fd),
 		FileListener(displayConfigs[0].first, brightnessCallback1, inotify_fd),
 		FileListener(displayConfigs[1].first, brightnessCallback2, inotify_fd),
 	};

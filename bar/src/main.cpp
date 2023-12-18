@@ -1,14 +1,11 @@
 #include <algorithm>
-#include <fstream>
+#include <ctime>
 #include <inotifytools/inotify.h>
 #include <cstdlib>
-#include <chrono>
 #include <cstdio>
-#include <iostream>
 #include <list>
 #include <sys/inotify.h>
 #include <sys/poll.h>
-#include <thread>
 #include <utility>
 #include <vector>
 #include <fcntl.h>
@@ -17,11 +14,11 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/timerfd.h>
 #include <unistd.h>
 #include <linux/input-event-codes.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
-#include <atomic>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -82,13 +79,11 @@ static std::string lastStatus;
 static std::string statusFifoName;
 static std::vector<pollfd> pollfds;
 static std::array<int, 2> signalSelfPipe;
-static std::array<int, 2> timePipe;
 static int displayFd {-1};
 static int statusFifoWriter {-1};
 static bool quitting {false};
 static int inotify_fd {-1};
 
-static std::atomic<bool> threads_should_run(true);
 const std::string prefixStatus = "status ";
 const std::string prefixShow   = "show ";
 const std::string prefixHide   = "hide ";
@@ -442,14 +437,8 @@ int main(int argc, char* argv[])
 		diesys("self pipe");
 	}
 
-	if (pipe(timePipe.data()) < 0) {
-		diesys("time pipe");
-	}
-
 	setCloexec(signalSelfPipe[0]);
 	setCloexec(signalSelfPipe[1]);
-	setCloexec(timePipe[0]);
-	setCloexec(timePipe[1]);
 
 	struct sigaction sighandler = {};
 	sighandler.sa_handler = [](int) {
@@ -504,15 +493,13 @@ int main(int argc, char* argv[])
 	});
 
 	/*           time                */
+	struct itimerspec timer_spec{{0}};
+	timer_spec.it_value.tv_sec = 20;
+	int timer_fd = timerfd_create(CLOCK_REALTIME, 0);
+	timerfd_settime(timer_fd, 0, &timer_spec, NULL);
 	pollfds.push_back({
-		.fd = timePipe[0],
-		.events = POLLIN,
-	});
-	auto time_handle = std::thread([&](){
-		while (threads_should_run) {
-			write(timePipe[1], "0", 1);
-			std::this_thread::sleep_for(std::chrono::seconds(2));
-		}
+		.fd     = timer_fd,
+		.events = POLLIN
 	});
 
 	while (!quitting) {
@@ -537,10 +524,10 @@ int main(int argc, char* argv[])
 					}
 				} else if (ev.fd == signalSelfPipe[0] && (ev.revents & POLLIN)) {
 					quitting = true;
-				} else if (ev.fd == timePipe[0] && (ev.revents & POLLIN)) {
-					for (auto& m : monitors){
-						char tmpbuf[1];
-						read(timePipe[0], tmpbuf, 1); /* to clear the thing */
+				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
+					uint64_t _x;
+					read(timer_fd, &_x, sizeof(_x));
+					for (auto &m : monitors) {
 						m.bar.updateTime();
 						m.bar.invalidate();
 					}
@@ -566,8 +553,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	threads_should_run = false;
-	time_handle.join();
 	cleanup();
 }
 
