@@ -9,6 +9,7 @@ wayland_cursor_dep = dependency('wayland-cursor')
 cairo_dep = dependency('cairo')
 pango_dep = dependency('pango')
 pangocairo_dep = dependency('pangocairo')
+dbus_dep = dependency('dbus-1')
 
 subdir('protocols')
 
@@ -27,6 +28,7 @@ executable('somebar',
     'src/shm_buffer.cpp',
     'src/file_listener.cpp',
     'src/bar.cpp',
+    'src/dbus_handles.cpp',
     wayland_sources,
     dependencies: [
         wayland_dep,
@@ -34,6 +36,7 @@ executable('somebar',
         cairo_dep,
         pango_dep,
         pangocairo_dep,
+		dbus_dep,
     ],
     install: true,
     cpp_args: cpp_args + ['-DSOMEBAR_VERSION="@0@"'.format(meson.project_version()), '-pg', '-g3'],

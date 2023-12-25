@@ -819,7 +819,7 @@ createtouch(struct wlr_touch *touch) {
 	t->touch_name = ecalloc(strlen(name), sizeof(char));
 	strcpy(t->touch_name, name);
 	// TODO: make me configurable
-	t->mode = SMOff;
+	t->mode = SMTouch;
 	t->last_touch = clock();
 	wl_list_init(&t->track_points);
 

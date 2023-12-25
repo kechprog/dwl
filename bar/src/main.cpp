@@ -3,6 +3,7 @@
 #include <inotifytools/inotify.h>
 #include <cstdlib>
 #include <cstdio>
+#include <iostream>
 #include <list>
 #include <sys/inotify.h>
 #include <sys/poll.h>
@@ -19,6 +20,8 @@
 #include <linux/input-event-codes.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
+#include <dbus-1.0/dbus/dbus.h>
+#include "src/config.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -28,6 +31,7 @@
 #include "line_buffer.hpp"
 #include "file_listener.hpp"
 #include "main.hpp"
+#include "dbus_handles.hpp"
 
 
 struct HandleGlobalHelper {
@@ -502,6 +506,13 @@ int main(int argc, char* argv[])
 		.events = POLLIN
 	});
 
+	/* dbus */
+	const DbusListener dbus_listener{};
+	pollfds.push_back({
+		.fd = dbus_listener.get_fd(),
+		.events = POLLIN,
+	});
+
 	while (!quitting) {
 		waylandFlush();
 		if (poll(pollfds.data(), pollfds.size(), -1) < 0) {
@@ -524,6 +535,8 @@ int main(int argc, char* argv[])
 					}
 				} else if (ev.fd == signalSelfPipe[0] && (ev.revents & POLLIN)) {
 					quitting = true;
+				} else if (ev.fd == dbus_listener.get_fd()) {
+					dbus_listener(ev.revents, monitors);
 				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
 					uint64_t _x;
 					read(timer_fd, &_x, sizeof(_x));
@@ -532,22 +545,14 @@ int main(int argc, char* argv[])
 						m.bar.invalidate();
 					}
 				} else if (ev.fd == inotify_fd && (ev.revents & POLLIN)) {
-					inotify_event ev;
-					size_t nread;
-
 					/**\
 					|**|  there is no need to loop, since if somehting is left on inotify_fd,
 					|**|  poll will still let us know and we will end up here again
 				    \**/
-
-					nread = read(inotify_fd, &ev, sizeof(ev));
-
-					if (nread != sizeof(ev))
-						die("Read of inotify event");
-
+					inotify_event ev;
+					read(inotify_fd, &ev, sizeof(ev));
 					for (auto &fl : file_listeners)
-						if (fl == ev.wd)
-							fl(&ev);
+						fl(&ev);
 				}
 			}
 		}

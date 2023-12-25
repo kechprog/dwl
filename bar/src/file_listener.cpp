@@ -4,13 +4,14 @@
 #include <fcntl.h>
 #include <iostream>
 #include <list>
+#include <string>
 #include <sys/inotify.h>
 #include <fstream>
 
 FileListener::FileListener
-	(const std::string_view file_path, std::function<void(void)> callback, const int inotify_fd, int flags)
+	(const std::filesystem::path file, std::function<void(void)> callback, const int inotify_fd, int flags)
 {
-	this->watch_fd = inotify_add_watch(inotify_fd, file_path.data(), flags);
+	this->watch_fd = inotify_add_watch(inotify_fd, file.c_str(), flags);
 	this->inotify_fd = inotify_fd;
 	this->callback = callback;
 	this->flags = flags;
@@ -18,53 +19,30 @@ FileListener::FileListener
 	/* set initial value */
 	callback();
 }
+
 FileListener::~FileListener()
 {
 	inotify_rm_watch(inotify_fd, watch_fd);
 }
 
-constexpr int FileListener::get_watch_fd() const
-{
-	return watch_fd;
-}
-
-/* compare with watch_fd */
-bool FileListener::operator==(const int watch_fd) const
-{
-	return this->watch_fd == watch_fd;
-}
-
 /* call callback */
 void FileListener::operator()(const inotify_event *event) const
 {
-	if (event->mask & this->flags)
+	if (event->wd == this->watch_fd 
+	&& (event->mask & this->flags))
 		this->callback();
 
 }
 
 /* defenition of some listeners */
-std::array<FileListener, 3> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
+std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
 {
 
-	const auto batCallback = [&]()
-	{
-		std::string buf;
-		std::ifstream f(batChargeNow.data());
-		
-		f >> buf;
-		size_t curCharge = std::stoull(buf.c_str());
-
-		std::cout << "Battery Charge: " << curCharge << std::endl;
-
-		for (auto &m: mons) {
-			m.bar.setBat((double)curCharge / (double)batChargeFull * 100, true);
-		}
-	};
 
 	const auto brightnessCallback1 = [&]()
 	{
 		std::string buf;
-		std::ifstream f(displayConfigs[0].first.data());
+		std::ifstream f(displayConfigs[0].first.c_str());
 		f >> buf;
 		size_t curBrightness = std::stoull(buf.c_str());
 		for (auto &m : mons) {
@@ -76,7 +54,7 @@ std::array<FileListener, 3> setupFileListeners(std::list<Monitor> &mons, int ino
 	const auto brightnessCallback2 = [&]()
 	{
 		std::string buf;
-		std::ifstream f(displayConfigs[1].first.data());
+		std::ifstream f(displayConfigs[1].first.c_str());
 		f >> buf;
 		size_t curBrightness = std::stoull(buf.c_str());
 		for (auto &m : mons) {
@@ -85,8 +63,7 @@ std::array<FileListener, 3> setupFileListeners(std::list<Monitor> &mons, int ino
 		}
 	};
 
-	const std::array<FileListener, 3> listeners = {
-		FileListener(batChargeNow, batCallback, inotify_fd),
+	const std::array<FileListener, 2> listeners = {
 		FileListener(displayConfigs[0].first, brightnessCallback1, inotify_fd),
 		FileListener(displayConfigs[1].first, brightnessCallback2, inotify_fd),
 	};
