@@ -28,15 +28,12 @@ const wl_callback_listener Bar::_frameListener = {
 	}
 };
 
-void Bar::setColor(int color)
+void Bar::setColor(Color c)
 {
-	uint8_t red   = (color >> 24) & 0xFF,
-	        green = (color >> 16) & 0xFF,
-	        blue  = (color >> 8 ) & 0xFF,
-	        alpha =  255;
 
+	const auto [r, g, b, a] = c;
 	cairo_set_source_rgba(painter,
-		red / 255.0, green / 255.0, blue / 255.0, alpha / 255.0);
+		r / 255.0, g / 255.0, b / 255.0, a / 255.0);
 }
 
 struct Font {
@@ -79,9 +76,7 @@ static Font barfont = getFont();
 
 BarComponent::BarComponent() { }
 BarComponent::BarComponent(wl_unique_ptr<PangoLayout> layout)
-	: pangoLayout {std::move(layout)}
-{
-}
+	  : pangoLayout {std::move(layout)} {}
 
 int BarComponent::width() const
 {
@@ -96,6 +91,12 @@ void BarComponent::setText(const std::string& text)
 	pango_layout_set_text(pangoLayout.get(), _text->c_str(), _text->size());
 }
 
+void BarComponent::setCol(Color bg, Color fg)
+{
+	this->bg = bg;
+	this->fg = fg;
+}
+
 Bar::Bar()
 {
 	pangoContext.reset(pango_font_map_create_context(pango_cairo_font_map_get_default()));
@@ -104,6 +105,7 @@ Bar::Bar()
 	}
 	for (const auto& tagName : tagNames) {
 		tags.push_back({ TagState::None, 0, 0, createComponent(0, tagName) });
+		std::cout << "Tag(" << tagName << ") has width: " << createComponent(0, tagName).width() << std::endl;
 	}
 
 	_timeCmp   = createComponent(1); /* creates zero initialized component */
@@ -282,6 +284,7 @@ void Bar::render()
 	/* bg of bar */
 	setColor(colorScheme.barBg);
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
+	cairo_fill(painter);
 
 	renderTags();
 	renderComponent(layoutCmp);
@@ -303,27 +306,30 @@ void Bar::render()
 void Bar::renderTags()
 {
 	for (auto &tag : tags) {
+		if (tag.state == 1) /* active */
+			tag.component.bg = {255, 255, 255, 255};
 		renderComponent(tag.component);
-		auto indicators = std::min(tag.numClients, static_cast<int>(bufs->height/2));
-		for (auto ind = 0; ind < indicators; ind++) {
-			auto w = ind == tag.focusedClient ? 7 : 1;
-			cairo_move_to(painter, tag.component.x, ind*2+0.5);
-			cairo_rel_line_to(painter, w, 0);
-			cairo_close_path(painter);
-			cairo_set_line_width(painter, 1);
-			cairo_stroke(painter);
-		}
 	}
 }
 
 void Bar::updateColorScheme(void) {
 	this->colorScheme = colors[selected];
+
+	layoutCmp.setCol(colorScheme.cmpBg, colorScheme.text);
+	titleCmp.setCol(colorScheme.cmpBg, colorScheme.text);
+	_timeCmp.setCol(colorScheme.cmpBg, colorScheme.text);
+	_batCmp.setCol(colorScheme.cmpBg, colorScheme.text);
+	statusCmp.setCol(colorScheme.cmpBg, colorScheme.text);
+	for (auto &bcmp : _brightnessCmp)
+		bcmp.setCol(colorScheme.cmpBg, colorScheme.text);
+	for (auto &tag : tags) 
+		tag.component.setCol(colorScheme.cmpBg, colorScheme.text);
 }
 
 void Bar::renderComponent(BarComponent& component)
 {
 	pango_cairo_update_layout(painter, component.pangoLayout.get());
-	auto size = component.width() + paddingX*2;
+	const auto size = component.width() + paddingX*2;
 
 	switch (component.align) {
 		case 0: /* left */
@@ -336,11 +342,11 @@ void Bar::renderComponent(BarComponent& component)
 			break;
 	} 
 
-	setColor(colorScheme.cmpBg);
-	cairo_move_to(painter, component.x+paddingX, paddingY);
+	setColor(component.bg);
+	cairo_rectangle(painter, component.x, 0, size, bufs->height);
 	cairo_fill(painter);
 
-	setColor(colorScheme.text);
+	setColor(component.fg);
 	cairo_move_to(painter, component.x+paddingX, paddingY);
 	pango_cairo_show_layout(painter, component.pangoLayout.get());
 }

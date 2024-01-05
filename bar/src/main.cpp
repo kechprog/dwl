@@ -3,7 +3,6 @@
 #include <inotifytools/inotify.h>
 #include <cstdlib>
 #include <cstdio>
-#include <iostream>
 #include <list>
 #include <sys/inotify.h>
 #include <sys/poll.h>
@@ -21,14 +20,12 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <dbus-1.0/dbus/dbus.h>
-#include "src/config.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
 #include "net-tapesoftware-dwl-wm-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "bar.hpp"
-#include "line_buffer.hpp"
 #include "file_listener.hpp"
 #include "main.hpp"
 #include "dbus_handles.hpp"
@@ -94,7 +91,6 @@ const std::string prefixHide   = "hide ";
 const std::string prefixToggle = "toggle ";
 const std::string argAll       = "all";
 const std::string argSelected  = "selected";
-static LineBuffer<512> statusBuffer;
 
 /* handalers */
 static const struct xdg_wm_base_listener xdgWmBaseListener = {

@@ -14,11 +14,11 @@ constexpr int paddingY = 3;
 constexpr const char* font = "Sans 12";
 
 const constexpr ColorScheme colors[2] = {
-	ColorScheme {.barBg = 0x6e738d, .text = 0x24273a, .cmpBg = 0xcad3f5}, /* inactive */
-	ColorScheme {.barBg = 0x24273a, .text = 0x181926, .cmpBg = 0xc6a0f6}, /*  active  */
+	ColorScheme {.barBg = {255, 0, 0, 0}, .text = {0x18, 0x19, 0x26, 255}, .cmpBg = {0xf5, 0xbd, 0xe6, 255} }, /* inactive */
+	ColorScheme {.barBg = {255, 0, 0, 0}, .text = {0xca, 0xd3, 0xf5, 255}, .cmpBg = {0xed, 0x87, 0x96, 255} }, /*  active  */
 };
 
-constexpr const char*  termcmd[]     = {"foot", nullptr};
+constexpr const char* termcmd[]     = {"foot", nullptr};
 
 const std::pair<std::filesystem::path, size_t> displayConfigs[] = {
 	/*           current brightness(file)             , max brightness */

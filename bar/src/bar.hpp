@@ -14,9 +14,11 @@
 class BarComponent {
 	std::unique_ptr<std::string> _text;
 public:
+	Color bg={0, 0, 0, 0}, fg={0, 0, 0, 0};
 	BarComponent();
 	explicit BarComponent(wl_unique_ptr<PangoLayout> layout);
 	int width() const;
+	void setCol(Color bg, Color fg);
 	void setText(const std::string& text);
 	wl_unique_ptr<PangoLayout> pangoLayout;
 	int x {0};
@@ -52,7 +54,7 @@ class Bar {
 
 	void layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height);
 	void render();
-	void setColor(int color);
+	void setColor(Color color);
 	void renderTags();
 
 	// low-level rendering
