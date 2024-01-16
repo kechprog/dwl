@@ -2295,7 +2295,7 @@ tabletaxis(struct wl_listener *listener, void *data)
 	double sx, sy, lx, ly;
 	Client *c;
 	Tool *t;
-	Monitor *other = wl_container_of(tab->m->link.next, other, link);
+	Monitor *curmon = wl_container_of(tab->m->link.next, curmon, link);
 
 	bool found = false;
 
@@ -2336,26 +2336,16 @@ tabletaxis(struct wl_listener *listener, void *data)
 	if (ev->updated_axes &
 		(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
 	{
-		double tablet_aspect_ratio  = tab->m->m.width / (double)tab->m->w.height,
-			   monitor_aspect_ratio = other->m.width  / (double)other->m.height;
+		sx = (t->x) * (c->geom.width  - 2 * c->bw);
+		sy = (t->y) * (c->geom.height - 2 * c->bw);
+		pointtolocal(curmon, t->x, t->y, &lx, &ly);
 
-		sx = (t->x - t->px) * (c->geom.width  - 2 * c->bw);
-		sy = (t->y - t->py) * (c->geom.height - 2 * c->bw);
-		
-		// coment for absolute mode
-		if (tablet_aspect_ratio > monitor_aspect_ratio)
-			sy *= (monitor_aspect_ratio / tablet_aspect_ratio);
-		else 
-			sx *= (tablet_aspect_ratio  / monitor_aspect_ratio);
-
-		if (t->toolv2->focused_surface && !t->tip_up) {
-			t->last_sx = cursor->x - c->geom.x + sx;
-			t->last_sy = cursor->y - c->geom.y + sy;
-			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, t->last_sx, t->last_sy);
-		} else {
-			pointtolocal(other, ev->x, ev->y, &lx, &ly);
+		if (t->toolv2->focused_surface) {
+			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
 			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-			motionnotify(0);
+		} else {
+			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
+			motionnotify(ev->time_msec);
 		}
 	}
 
@@ -2367,7 +2357,7 @@ tabletaxis(struct wl_listener *listener, void *data)
 
     if (ev->updated_axes &
         (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y))
-        wlr_tablet_v2_tablet_tool_notify_tilt(t->toolv2, t->tilt_x, t->tilt_y);
+        wlr_tablet_v2_tablet_tool_notify_tilt(t->toolv2, ev->tilt_x, ev->tilt_y);
 	
 }
 
@@ -2377,6 +2367,7 @@ tabletproximity(struct wl_listener *listener, void *data)
 
 	struct wlr_tablet_tool_proximity_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_proximity);
+	Monitor *curmon = xytomon(cursor->x, cursor->y);
 	Client *c = NULL;
 	Tool *t;
 	double lx, ly;
@@ -2386,12 +2377,9 @@ tabletproximity(struct wl_listener *listener, void *data)
 		t = createtool(
 			ev->tool, 
 			wlr_tablet_tool_create(tabletmanager, seat, ev->tool));
-
 		wl_list_insert(&tab->tools, &t->link);
 
-		Monitor *other = wl_container_of(tab->m->link.next, other, link);
-		pointtolocal(other, ev->x, ev->y, &lx, &ly);
-
+		pointtolocal(curmon, ev->x, ev->y, &lx, &ly);
 		xytonode(lx, ly, NULL, &c, NULL, NULL, NULL);
 
 		if (!c)
@@ -2418,7 +2406,7 @@ tabletproximity(struct wl_listener *listener, void *data)
 			}
 		}	
 
-		if (!found )
+		if (!found)
 			return;
 
 		if (t->toolv2->focused_surface)
@@ -2462,7 +2450,7 @@ tablettip(struct wl_listener *listener, void *data)
 	double lx, ly;
 
 	bool found = false;
-	Monitor *other = wl_container_of(tab->m->link.next, other, link);
+	Monitor *other = xytomon(cursor->x, cursor->y);
 	pointtolocal(other, ev->x, ev->y, &lx, &ly);
 
 	wl_list_for_each(t, &tab->tools, link) {
@@ -2477,31 +2465,18 @@ tablettip(struct wl_listener *listener, void *data)
 
 	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN) {
 		xytonode(lx, ly, NULL, &c, NULL, NULL, NULL);
-		t->tip_up = false;
-		if (c && wlr_surface_accepts_tablet_v2(tab->tablet_v2, client_surface(c))) {
-			focusclient(c, 1);
+
+		/* update focused client */
+		if (t->fclient != c) {
+			wlr_tablet_v2_tablet_tool_notify_proximity_out(t->toolv2);
+			wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tablet_v2, client_surface(c));
 			t->fclient = c;
-
-			t->px = ev->x;
-			t->py = ev->y;
-
-			if (!t->toolv2->focused_surface) {
-				wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tablet_v2, client_surface(c));
-			}
-			wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
-		} else {
-			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-			motionnotify(0);
 		}
+
+		wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
 	}
 	else if (t->toolv2->focused_surface) {
-		t->tip_up = true;
 		wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
-
-		wlr_cursor_warp_closest(cursor, NULL, 
-			t->fclient->geom.x + t->last_sx, 
-			t->fclient->geom.y + t->last_sy);
-		motionnotify(0);
 	}
 }
 

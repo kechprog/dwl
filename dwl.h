@@ -296,14 +296,11 @@ typedef struct {
 typedef struct {
 	struct wl_list link;
 
-	bool tip_up;
 	Client *fclient;
-	double tilt_x, tilt_y;
-	double x, y; 
-	double px, py;
-	double last_sx, last_sy; /* for tip up only */
 	struct wlr_tablet_tool           *tool;
 	struct wlr_tablet_v2_tablet_tool *toolv2;
+	double x,y;
+	double tilt_x, tilt_y;
 } Tool;
 
 typedef struct {
