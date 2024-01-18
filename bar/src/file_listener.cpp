@@ -2,7 +2,6 @@
 #include "src/config.hpp"
 #include "file_listener.hpp"
 #include <fcntl.h>
-#include <iostream>
 #include <list>
 #include <string>
 #include <sys/inotify.h>
@@ -35,7 +34,7 @@ void FileListener::operator()(const inotify_event *event) const
 }
 
 /* defenition of some listeners */
-std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
+std::array<FileListener, sizeof(displayConfigs) / sizeof(displayConfigs[0])> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
 {
 
 
@@ -63,9 +62,8 @@ std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int ino
 		}
 	};
 
-	const std::array<FileListener, 2> listeners = {
+	const std::array<FileListener, sizeof(displayConfigs) / sizeof(displayConfigs[0])> listeners = {
 		FileListener(displayConfigs[0].first, brightnessCallback1, inotify_fd),
-		FileListener(displayConfigs[1].first, brightnessCallback2, inotify_fd),
 	};
 
 	return listeners;

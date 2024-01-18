@@ -20,4 +20,4 @@ class FileListener {
 };
 
 /* the big boy function */
-std::array<FileListener, 2> setupFileListeners(std::list<Monitor> &mons, int notify_fd);
+std::array<FileListener, sizeof(displayConfigs) / sizeof(displayConfigs[0])> setupFileListeners(std::list<Monitor> &mons, int notify_fd);

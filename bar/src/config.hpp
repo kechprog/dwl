@@ -22,8 +22,8 @@ constexpr const char* termcmd[]     = {"foot", nullptr};
 
 const std::pair<std::filesystem::path, size_t> displayConfigs[] = {
 	/*           current brightness(file)             , max brightness */
-	{"/sys/class/backlight/intel_backlight/brightness",     19200       },
-	{"/sys/class/leds/asus::screenpad/brightness",            255}
+	{ "/sys/class/backlight/amdgpu_bl0/brightness",          255       },
+	// {"/sys/class/leds/asus::screenpad/brightness",            255}
 };
 
 

@@ -6,18 +6,6 @@
 #include <sys/poll.h>
 #include <utility>
 
-
-// /* on POLLIN on fd */
-// void dbus_on_poll(std::list<Monitor> &mons)
-// {
-// 		dbus_connection_read_write(conn, 0);
-// 		DBusMessage* msg;
-// 		while ((msg = dbus_connection_pop_message(conn)) != NULL) {
-// 			parse_msg(msg);
-// 			dbus_message_unref(msg);
-// 		}
-// }
-
 DbusListener::DbusListener(void)
 {
 	dbus_error_init(&err);
