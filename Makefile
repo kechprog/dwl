@@ -3,9 +3,7 @@
 
 include config.mk
 
-# Specify custom pkg-config path for wlroots
-WLROOTS_PKG_CONFIG_PATH = /usr/lib/wlroots0.16/pkgconfig
-PKG_CONFIG = PKG_CONFIG_PATH=$(WLROOTS_PKG_CONFIG_PATH) pkg-config
+PKG_CONFIG = pkg-config
 
 # flags for compiling
 DWLCPPFLAGS = -I. -DWLR_USE_UNSTABLE -std=c11 -D_POSIX_C_SOURCE=200809L -DVERSION=\"$(VERSION)\" $(XWAYLAND)
