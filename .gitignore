@@ -10,3 +10,4 @@ compile_commands.json
 bar/.builds
 bar/.cache/clangd/index
 bar/gmon.out
+gmon.out
