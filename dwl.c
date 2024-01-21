@@ -2255,7 +2255,7 @@ setup(void)
 	LISTEN_STATIC(&output_mgr->events.test, outputmgrtest);
 
 	wlr_scene_set_presentation(scene, wlr_presentation_create(dpy, backend));
-
+	wl_global_create(dpy, &znet_tapesoftware_dwl_wm_v1_interface, 1, NULL, dwl_wm_bind);
 #ifdef XWAYLAND
 	/*
 	 * Initialise the XWayland X server.
