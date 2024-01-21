@@ -4,17 +4,23 @@
 
 class BarComponent {
 	std::string _text;
+	int _align;
+	wl_unique_ptr<PangoLayout> _pangoLayout;
+
 public:
 	BarComponent();
-	explicit BarComponent(wl_unique_ptr<PangoLayout> layout);
+	explicit BarComponent(wl_unique_ptr<PangoLayout> layout, int align);
+
 	void setCol(Color bg, Color fg);
 	void setText(std::string text);
+	void render(cairo_t *painter) const;
 
-	void render(wl_unique_ptr<cairo_surface_t> sf) const;
+	/*
+	 * width, height, align(0-left, 1-right)
+	 * h==-1 => full height 
+	 */
+	std::tuple<int, int, int> dim() const; 
 
-	wl_unique_ptr<PangoLayout> pangoLayout;
-	std::pair<int, int> dim(); /* h==-1 => full height */
 	Color bg={0, 0, 0, 0}, fg={0, 0, 0, 0};
 	int x {0};
-	int align {0}; /* 0: left, 1: right */
 };

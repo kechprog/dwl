@@ -72,30 +72,6 @@ static Font getFont()
 }
 static Font barfont = getFont();
 
-BarComponent::BarComponent() {}
-
-BarComponent::BarComponent(wl_unique_ptr<PangoLayout> layout)
-	  : pangoLayout {std::move(layout)} {}
-
-std::pair<int, int> BarComponent::dim()
-{
-	int w, h;
-	pango_layout_get_size(pangoLayout.get(), &w, &h);
-	return std::make_pair(PANGO_PIXELS(w) , 0);
-}
-
-void BarComponent::setText(std::string text)
-{
-	_text = std::move(text);
-	pango_layout_set_text(pangoLayout.get(), _text.c_str(), _text.size());
-}
-
-void BarComponent::setCol(Color bg, Color fg)
-{
-	this->bg = bg;
-	this->fg = fg;
-}
-
 Bar::Bar()
 {
 	pangoContext.reset(pango_font_map_create_context(pango_cairo_font_map_get_default()));
@@ -122,12 +98,12 @@ Bar::Bar()
 
 const wl_surface* Bar::surface() const
 {
-	return _surface.get();
+	return _wl_surface.get();
 }
 
 bool Bar::visible() const
 {
-	return _surface.get();
+	return _wl_surface.get();
 }
 
 void Bar::show(wl_output* output)
@@ -135,9 +111,9 @@ void Bar::show(wl_output* output)
 	if (visible()) {
 		return;
 	}
-	_surface.reset(wl_compositor_create_surface(compositor));
+	_wl_surface.reset(wl_compositor_create_surface(compositor));
 	layerSurface.reset(zwlr_layer_shell_v1_get_layer_surface(wlrLayerShell,
-		_surface.get(), output, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "net.tapesoftware.Somebar"));
+		_wl_surface.get(), output, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "net.tapesoftware.Somebar"));
 	zwlr_layer_surface_v1_add_listener(layerSurface.get(), &_layerSurfaceListener, this);
 	auto anchor = topbar ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
 	zwlr_layer_surface_v1_set_anchor(layerSurface.get(),
@@ -146,7 +122,7 @@ void Bar::show(wl_output* output)
 	auto barSize = barfont.height + paddingY * 2;
 	zwlr_layer_surface_v1_set_size(layerSurface.get(), 0, barSize);
 	zwlr_layer_surface_v1_set_exclusive_zone(layerSurface.get(), barSize);
-	wl_surface_commit(_surface.get());
+	wl_surface_commit(_wl_surface.get());
 }
 
 void Bar::hide()
@@ -155,7 +131,7 @@ void Bar::hide()
 		return;
 	}
 	layerSurface.reset();
-	_surface.reset();
+	_wl_surface.reset();
 	bufs.reset();
 }
 
@@ -219,9 +195,9 @@ void Bar::invalidate()
 		return;
 	}
 	invalid = true;
-	auto frame = wl_surface_frame(_surface.get());
+	auto frame = wl_surface_frame(_wl_surface.get());
 	wl_callback_add_listener(frame, &_frameListener, this);
-	wl_surface_commit(_surface.get());
+	wl_surface_commit(_wl_surface.get());
 }
 
 void Bar::click(Monitor* mon, int x, int, int btn)
@@ -274,7 +250,10 @@ void Bar::render()
 		bufs->stride
 		)};
 	auto _painter = wl_unique_ptr<cairo_t> {cairo_create(img.get())};
+
 	painter = _painter.get();
+	cairo_surface = img.get();
+
 	pango_cairo_update_context(painter, pangoContext.get());
 	x_left = x_right = 0;
 
@@ -295,9 +274,9 @@ void Bar::render()
 	renderComponent(statusCmp);
 
 	painter = nullptr;
-	wl_surface_attach(_surface.get(), bufs->buffer(), 0, 0);
-	wl_surface_damage(_surface.get(), 0, 0, bufs->width, bufs->height);
-	wl_surface_commit(_surface.get());
+	wl_surface_attach(_wl_surface.get(), bufs->buffer(), 0, 0);
+	wl_surface_damage(_wl_surface.get(), 0, 0, bufs->width, bufs->height);
+	wl_surface_commit(_wl_surface.get());
 	bufs->flip();
 	invalid = false;
 }
@@ -327,36 +306,39 @@ void Bar::updateColorScheme(void) {
 
 void Bar::renderComponent(BarComponent& component)
 {
-	pango_cairo_update_layout(painter, component.pangoLayout.get());
-	auto [w, h]= component.dim();
-	w += paddingX*2;
+	auto [w, h, align]= component.dim();
+	if (h == -1) 
+		h = bufs->height;
 
-	switch (component.align) {
+	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
+		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, h) };
+	// TODO: move me to BarComponent::render()
+	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
+
+	component.render(slice_painter.get());
+
+	int x_position;
+	switch (align) {
 		case 0: /* left */
-			component.x = x_left;
+			x_position = x_left;
 			x_left += w;
 			break;
 		case 1: /* right */
-			component.x = bufs->width - x_right - w;
+			x_position = bufs->width - x_right - w;
 			x_right += w;
 			break;
 	} 
 
-	setColor(component.bg);
-	cairo_rectangle(painter, component.x, 0, w, bufs->height);
+	cairo_set_source_surface(painter, slice_surface.get(), x_position, 0);
+	cairo_rectangle(painter, x_position, 0, w, h);
 	cairo_fill(painter);
-
-	setColor(component.fg);
-	cairo_move_to(painter, component.x+paddingX, paddingY);
-	pango_cairo_show_layout(painter, component.pangoLayout.get());
 }
 
 BarComponent Bar::createComponent(const int align, const std::string &initial)
 {
 	auto layout = pango_layout_new(pangoContext.get());
 	pango_layout_set_font_description(layout, barfont.description);
-	auto res = BarComponent {wl_unique_ptr<PangoLayout> {layout}};
+	auto res = BarComponent {wl_unique_ptr<PangoLayout> {layout}, align};
 	res.setText(initial);
-	res.align = align;
 	return res;
 }

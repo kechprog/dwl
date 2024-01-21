@@ -2169,7 +2169,7 @@ setup(void)
 	LISTEN_STATIC(&xdg_shell->events.new_surface, createnotify);
 
 	// NOTE: should probably figure out what 4(used to be 3) means
-	layer_shell = wlr_layer_shell_v1_create(dpy, 3);
+	layer_shell = wlr_layer_shell_v1_create(dpy, 4);
 	LISTEN_STATIC(&layer_shell->events.new_surface, createlayersurface);
 
 	idle_notifier = wlr_idle_notifier_v1_create(dpy);
