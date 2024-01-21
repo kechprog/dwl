@@ -29,6 +29,7 @@ executable('somebar',
     'src/file_listener.cpp',
     'src/bar.cpp',
     'src/dbus_handles.cpp',
+    'src/BarComponent.cpp'
     wayland_sources,
     dependencies: [
         wayland_dep,

@@ -10,20 +10,7 @@
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "shm_buffer.hpp"
-
-class BarComponent {
-	std::unique_ptr<std::string> _text;
-public:
-	Color bg={0, 0, 0, 0}, fg={0, 0, 0, 0};
-	BarComponent();
-	explicit BarComponent(wl_unique_ptr<PangoLayout> layout);
-	int width() const;
-	void setCol(Color bg, Color fg);
-	void setText(const std::string& text);
-	wl_unique_ptr<PangoLayout> pangoLayout;
-	int x {0};
-	int align {0}; /* 0: left, 1: right */
-};
+#include "BarComponent.hpp"
 
 struct Tag {
 	int state;

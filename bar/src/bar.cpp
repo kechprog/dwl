@@ -1,6 +1,3 @@
-// somebar - dwl barbar
-// See LICENSE file for copyright and license details.
-
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -40,6 +37,7 @@ struct Font {
 	PangoFontDescription* description;
 	int height {0};
 };
+
 static Font getFont()
 {
 	auto fontMap = pango_cairo_font_map_get_default();
@@ -74,21 +72,22 @@ static Font getFont()
 }
 static Font barfont = getFont();
 
-BarComponent::BarComponent() { }
+BarComponent::BarComponent() {}
+
 BarComponent::BarComponent(wl_unique_ptr<PangoLayout> layout)
 	  : pangoLayout {std::move(layout)} {}
 
-int BarComponent::width() const
+std::pair<int, int> BarComponent::dim()
 {
 	int w, h;
 	pango_layout_get_size(pangoLayout.get(), &w, &h);
-	return PANGO_PIXELS(w);
+	return std::make_pair(PANGO_PIXELS(w) , 0);
 }
 
-void BarComponent::setText(const std::string& text)
+void BarComponent::setText(std::string text)
 {
-	_text = std::make_unique<std::string>(text);
-	pango_layout_set_text(pangoLayout.get(), _text->c_str(), _text->size());
+	_text = std::move(text);
+	pango_layout_set_text(pangoLayout.get(), _text.c_str(), _text.size());
 }
 
 void BarComponent::setCol(Color bg, Color fg)
@@ -103,9 +102,9 @@ Bar::Bar()
 	if (!pangoContext) {
 		die("pango_font_map_create_context");
 	}
+
 	for (const auto& tagName : tagNames) {
 		tags.push_back({ TagState::None, 0, 0, createComponent(0, tagName) });
-		std::cout << "Tag(" << tagName << ") has width: " << createComponent(0, tagName).width() << std::endl;
 	}
 
 	_timeCmp   = createComponent(1); /* creates zero initialized component */
@@ -329,21 +328,22 @@ void Bar::updateColorScheme(void) {
 void Bar::renderComponent(BarComponent& component)
 {
 	pango_cairo_update_layout(painter, component.pangoLayout.get());
-	const auto size = component.width() + paddingX*2;
+	auto [w, h]= component.dim();
+	w += paddingX*2;
 
 	switch (component.align) {
 		case 0: /* left */
 			component.x = x_left;
-			x_left += size;
+			x_left += w;
 			break;
 		case 1: /* right */
-			component.x = bufs->width - x_right - size;
-			x_right += size;
+			component.x = bufs->width - x_right - w;
+			x_right += w;
 			break;
 	} 
 
 	setColor(component.bg);
-	cairo_rectangle(painter, component.x, 0, size, bufs->height);
+	cairo_rectangle(painter, component.x, 0, w, bufs->height);
 	cairo_fill(painter);
 
 	setColor(component.fg);
