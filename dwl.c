@@ -940,25 +940,28 @@ destroylocksurface(struct wl_listener *listener, void *data)
 void
 destroynotify(struct wl_listener *listener, void *data)
 {
+
 	/* Called when the xdg_toplevel is destroyed. */
 	Client *c = wl_container_of(listener, c, destroy);
 	wl_list_remove(&c->destroy.link);
 	wl_list_remove(&c->set_title.link);
 	wl_list_remove(&c->fullscreen.link);
-#ifdef XWAYLAND
-	if (c->type != XDGShell) {
+
+	printf("Destroy Notify: Client is x11 = %d\n", client_is_x11(c));
+	if (client_is_x11(c)) {
 		wl_list_remove(&c->activate.link);
 		wl_list_remove(&c->associate.link);
 		wl_list_remove(&c->configure.link);
 		wl_list_remove(&c->dissociate.link);
 		wl_list_remove(&c->set_hints.link);
-	} else
-#endif
-	{
+	} else {
+		printf("Before seg, wayland\n");
 		wl_list_remove(&c->commit.link);
+		printf("After seg, wayland\n");
 		wl_list_remove(&c->map.link);
 		wl_list_remove(&c->unmap.link);
 	}
+
 	free(c);
 }
 
@@ -2166,7 +2169,7 @@ setup(void)
 	LISTEN_STATIC(&xdg_shell->events.new_surface, createnotify);
 
 	// NOTE: should probably figure out what 4(used to be 3) means
-	layer_shell = wlr_layer_shell_v1_create(dpy, 4);
+	layer_shell = wlr_layer_shell_v1_create(dpy, 3);
 	LISTEN_STATIC(&layer_shell->events.new_surface, createlayersurface);
 
 	idle_notifier = wlr_idle_notifier_v1_create(dpy);
@@ -2984,7 +2987,6 @@ unmapnotify(struct wl_listener *listener, void *data)
 		wl_list_remove(&c->flink);
 	}
 
-	wl_list_remove(&c->commit.link);
 	wlr_scene_node_destroy(&c->scene->node);
 	printstatus();
 	motionnotify(0);
