@@ -14,13 +14,16 @@
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
+#include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_data_control_v1.h>
 #include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_drm.h>
+#include <wlr/types/wlr_linux_dmabuf_v1.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
+#include <wlr/types/wlr_fractional_scale_v1.h>
 #include <wlr/types/wlr_pointer_gestures_v1.h>
 #include <wlr/types/wlr_tablet_v2.h>
-#include <wlr/types/wlr_idle.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
 #include <wlr/types/wlr_input_device.h>
@@ -71,7 +74,7 @@
 #define END(A)                  ((A) + LENGTH(A))
 #define TAGMASK                 ((1u << tagcount) - 1)
 #define LISTEN(E, L, H)         wl_signal_add((E), ((L)->notify = (H), (L)))
-#define IDLE_NOTIFY_ACTIVITY    wlr_idle_notify_activity(idle, seat), wlr_idle_notifier_v1_notify_activity(idle_notifier, seat)
+#define LISTEN_STATIC(E, H)     do { static struct wl_listener _l = {.notify = (H)}; wl_signal_add((E), &_l); } while (0)
 #define PI 3.14159265358979323846
 
 /* enums */
@@ -126,8 +129,11 @@ typedef struct {
 	struct wl_listener set_title;
 	struct wl_listener fullscreen;
 	struct wlr_box prev; /* layout-relative, includes border */
+	struct wlr_box bounds;
 #ifdef XWAYLAND
 	struct wl_listener activate;
+	struct wl_listener associate;
+	struct wl_listener dissociate;
 	struct wl_listener configure;
 	struct wl_listener set_hints;
 #endif
@@ -135,7 +141,6 @@ typedef struct {
 	uint32_t tags;
 	int isfloating, isurgent, isfullscreen;
 	uint32_t resize; /* configure serial of a pending resize */
-
 } Client;
 
 typedef struct {
@@ -195,20 +200,22 @@ struct Monitor {
 	struct wlr_scene_rect *fullscreen_bg; /* See createmon() for info */
 	struct wl_listener frame;
 	struct wl_listener destroy;
+	struct wl_listener request_state;
 	struct wl_listener destroy_lock_surface;
 	struct wlr_session_lock_surface_v1 *lock_surface;
 	struct wlr_box m; /* monitor area, layout-relative */
 	struct wlr_box w; /* window area, layout-relative */
 	struct wl_list layers[4]; /* LayerSurface::link */
-	struct wl_list dwl_wm_monitor_link;
 	const Layout *lt[2];
 	unsigned int seltags;
 	unsigned int sellt;
 	uint32_t tagset[2];
 	double mfact;
+	int gamma_lut_changed;
 	int nmaster;
 	char ltsymbol[16];
 
+	struct wl_list dwl_wm_monitor_link;
 	char *touch_name; /* null if nothing is asociated, see MonitorRule */
 	char *tablet_name;
 };
@@ -381,11 +388,14 @@ void pinchend(struct wl_listener *listener, void *data);
 void quit(const Arg *arg);
 void rendermon(struct wl_listener *listener, void *data);
 void requeststartdrag(struct wl_listener *listener, void *data);
+static void requestmonstate(struct wl_listener *listener, void *data);
 void resize(Client *c, struct wlr_box geo, int interact);
 void run(char *startup_cmd);
 void setcursor(struct wl_listener *listener, void *data);
+static void setcursorshape(struct wl_listener *listener, void *data);
 void setfloating(Client *c, int floating);
 void setfullscreen(Client *c, int fullscreen);
+void setgamma(struct wl_listener *listener, void *data);
 void setlayout(const Arg *arg);
 void setmfact(const Arg *arg);
 void setmon(Client *c, Monitor *m, uint32_t newtags);
