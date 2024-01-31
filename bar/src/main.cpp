@@ -25,6 +25,7 @@
 #include "net-tapesoftware-dwl-wm-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "bar.hpp"
+#include "State.hpp"
 #include "file_listener.hpp"
 #include "main.hpp"
 #include "dbus_handles.hpp"
@@ -71,7 +72,6 @@ static zxdg_output_manager_v1* xdgOutputManager;
 static wl_surface* cursorSurface;
 static wl_cursor_image* cursorImage;
 static bool ready;
-static std::list<Monitor> monitors;
 static std::vector<std::pair<uint32_t, wl_output*>> uninitializedOutputs;
 static std::list<Seat> seats;
 static Monitor* selmon;
@@ -285,16 +285,16 @@ void spawn(Monitor&, const Arg& arg)
 
 Monitor* monitorFromSurface(const wl_surface* surface)
 {
-	auto mon = std::find_if(begin(monitors), end(monitors), [surface](const Monitor& mon) {
+	auto mon = std::find_if(begin(state::monitors), end(state::monitors), [surface](const Monitor& mon) {
 		return mon.bar.surface() == surface;
 	});
-	Monitor *ret = mon != end(monitors) ? &*mon : nullptr;
+	Monitor *ret = mon != end(state::monitors) ? &*mon : nullptr;
 	return ret; 
 }
 
 
 void setupMonitor(uint32_t name, wl_output* output) {
-	auto& monitor = monitors.emplace_back(Monitor {
+	auto& monitor = state::monitors.emplace_back(Monitor {
 		name, 
 		{}, 
 		wl_unique_ptr<wl_output> {output}
@@ -377,7 +377,7 @@ void onGlobalAdd(void*, wl_registry* registry, uint32_t name, const char* interf
 
 void onGlobalRemove(void*, wl_registry* registry, uint32_t name)
 {
-	monitors.remove_if([name](const Monitor &mon) { return mon.registryName == name; });
+	state::monitors.remove_if([name](const Monitor &mon) { return mon.registryName == name; });
 	seats.remove_if([name](const Seat &seat) { return seat.name == name; });
 }
 
@@ -431,6 +431,8 @@ int main(int argc, char* argv[])
 				exit(0);
 		}
 	}
+
+	state::init();
 	
 	if (pipe(signalSelfPipe.data()) < 0) {
 		diesys("self pipe");
@@ -485,7 +487,7 @@ int main(int argc, char* argv[])
 
 	/* file listeners */
 	inotify_fd = inotify_init();
-	const auto file_listeners = setupFileListeners(monitors, inotify_fd);
+	const auto file_listeners = setupFileListeners(state::monitors, inotify_fd);
 	pollfds.push_back({
 		.fd = inotify_fd,
 		.events = POLLIN,
@@ -531,11 +533,11 @@ int main(int argc, char* argv[])
 				} else if (ev.fd == signalSelfPipe[0] && (ev.revents & POLLIN)) {
 					quitting = true;
 				} else if (ev.fd == dbus_listener.get_fd()) {
-					dbus_listener(ev.revents, monitors);
+					dbus_listener(ev.revents);
 				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
 					uint64_t _x;
 					read(timer_fd, &_x, sizeof(_x));
-					for (auto &m : monitors) {
+					for (auto &m : state::monitors) {
 						m.bar.updateTime();
 						m.bar.invalidate();
 					}

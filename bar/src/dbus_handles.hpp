@@ -1,8 +1,8 @@
 #pragma once
 
-#include "src/main.hpp"
 #include <dbus-1.0/dbus/dbus.h>
-#include <list>
+#include <optional>
+#include <utility>
 
 // /* returns fd */
 // int dbus_setup(DBusConnection **conn);
@@ -17,7 +17,7 @@ class DbusListener
 		~DbusListener();
 		int get_fd(void) const;
 		/* to be called on any poll event */
-		void operator()(short int revents, std::list<Monitor> &mons) const;
+		void operator()(short int revents) const;
 
 	private:
 		std::pair<std::optional<double>, std::optional<bool>> parse_msg(DBusMessage *msg) const;

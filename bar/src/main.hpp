@@ -13,6 +13,8 @@ struct Monitor {
 	bool 					 hasData;
 	uint32_t 				 tags;
 	wl_unique_ptr<znet_tapesoftware_dwl_wm_monitor_v1> dwlMonitor;
+
+	uint8_t                  brightness;
 };
 
 struct SeatPointer {

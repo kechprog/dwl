@@ -5,11 +5,11 @@
 #include <pango/pangocairo.h>
 #include <chrono>
 #include "bar.hpp"
+#include "State.hpp"
 #include "cairo.h"
 #include "config.hpp"
 #include "pango/pango-font.h"
 #include "pango/pango-fontmap.h"
-#include "pango/pango-layout.h"
 
 const zwlr_layer_surface_v1_listener Bar::_layerSurfaceListener = {
 	[](void* owner, zwlr_layer_surface_v1*, uint32_t serial, uint32_t width, uint32_t height)
@@ -33,52 +33,9 @@ void Bar::setColor(Color c)
 		r / 255.0, g / 255.0, b / 255.0, a / 255.0);
 }
 
-struct Font {
-	PangoFontDescription* description;
-	int height {0};
-};
-
-static Font getFont()
-{
-	auto fontMap = pango_cairo_font_map_get_default();
-	if (!fontMap) {
-		die("pango_cairo_font_map_get_default");
-	}
-	auto fontDesc = pango_font_description_from_string(font);
-	if (!fontDesc) {
-		die("pango_font_description_from_string");
-	}
-	auto tempContext = pango_font_map_create_context(fontMap);
-	if (!tempContext) {
-		die("pango_font_map_create_context");
-	}
-	auto font = pango_font_map_load_font(fontMap, tempContext, fontDesc);
-	if (!font) {
-		die("pango_font_map_load_font");
-	}
-	auto metrics = pango_font_get_metrics(font, pango_language_get_default());
-	if (!metrics) {
-		die("pango_font_get_metrics");
-	}
-
-	auto res = Font {};
-	res.description = fontDesc;
-	res.height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
-
-	pango_font_metrics_unref(metrics);
-	g_object_unref(font);
-	g_object_unref(tempContext);
-	return res;
-}
-static Font barfont = getFont();
 
 Bar::Bar()
 {
-	pangoContext.reset(pango_font_map_create_context(pango_cairo_font_map_get_default()));
-	if (!pangoContext) {
-		die("pango_font_map_create_context");
-	}
-
 	for (const auto& tagName : tagNames) {
 		tags.push_back({ TagState::None, 0, 0, createComponent(0, tagName) });
 	}
@@ -119,7 +76,7 @@ void Bar::show(wl_output* output)
 	zwlr_layer_surface_v1_set_anchor(layerSurface.get(),
 		anchor | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
 
-	auto barSize = barfont.height + paddingY * 2;
+	auto barSize = state::barfont.height + paddingY * 2;
 	zwlr_layer_surface_v1_set_size(layerSurface.get(), 0, barSize);
 	zwlr_layer_surface_v1_set_exclusive_zone(layerSurface.get(), barSize);
 	wl_surface_commit(_wl_surface.get());
@@ -254,7 +211,7 @@ void Bar::render()
 	painter = _painter.get();
 	cairo_surface = img.get();
 
-	pango_cairo_update_context(painter, pangoContext.get());
+	pango_cairo_update_context(painter, state::pango_ctx.get());
 	x_left = x_right = 0;
 
 	updateColorScheme();
@@ -304,18 +261,18 @@ void Bar::updateColorScheme(void) {
 		tag.component.setCol(colorScheme.cmpBg, colorScheme.text);
 }
 
-void Bar::renderComponent(BarComponent& component)
+void Bar::renderComponent(TextComponent& component)
 {
-	auto [w, h, align]= component.dim();
+	auto [w, h, align]= component.dim(state::monitors.front());
 	if (h == -1) 
 		h = bufs->height;
 
 	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
 		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, h) };
-	// TODO: move me to BarComponent::render()
+	// TODO: move me to IBarComponent::render()
 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
 
-	component.render(slice_painter.get());
+	component.render(slice_painter.get(), state::monitors.front());
 
 	int x_position;
 	switch (align) {
@@ -334,11 +291,9 @@ void Bar::renderComponent(BarComponent& component)
 	cairo_fill(painter);
 }
 
-BarComponent Bar::createComponent(const int align, const std::string &initial)
+TextComponent Bar::createComponent(const int align, const std::string &initial)
 {
-	auto layout = pango_layout_new(pangoContext.get());
-	pango_layout_set_font_description(layout, barfont.description);
-	auto res = BarComponent {wl_unique_ptr<PangoLayout> {layout}, align};
+	auto res = TextComponent {align};
 	res.setText(initial);
 	return res;
 }

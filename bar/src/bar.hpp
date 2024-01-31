@@ -16,7 +16,7 @@ struct Tag {
 	int state;
 	int numClients;
 	int focusedClient;
-	BarComponent component;
+	TextComponent component;
 };
 
 struct Monitor;
@@ -26,11 +26,10 @@ class Bar {
 
 	wl_unique_ptr<wl_surface>            _wl_surface;
 	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
-	wl_unique_ptr<PangoContext>          pangoContext;
 	std::optional<ShmBuffer>             bufs;
 	std::vector<Tag> tags;
-	BarComponent layoutCmp, titleCmp, statusCmp, _timeCmp, _batCmp;
-	std::array<BarComponent, sizeof(displayConfigs) / sizeof(displayConfigs[0])> _brightnessCmp;
+	TextComponent layoutCmp, titleCmp, statusCmp, _timeCmp, _batCmp;
+	std::array<TextComponent, sizeof(displayConfigs) / sizeof(displayConfigs[0])> _brightnessCmp;
 	bool selected;
 	bool invalid {false};
 
@@ -47,8 +46,8 @@ class Bar {
 
 	// low-level rendering
 	void updateColorScheme(void);
-	void renderComponent(BarComponent& component);
-	BarComponent createComponent(const int align, const std::string& initial = {});
+	void renderComponent(TextComponent& component);
+	TextComponent createComponent(const int align, const std::string& initial = {});
 
 public:
 	Bar();

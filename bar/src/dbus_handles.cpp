@@ -1,5 +1,7 @@
 #include "dbus_handles.hpp"
+#include "State.hpp"
 #include "dbus/dbus-shared.h"
+#include <algorithm>
 #include <iostream>
 #include <optional>
 #include <ostream>
@@ -36,7 +38,7 @@ int DbusListener::get_fd(void) const
 	return fd;
 }
 
-void DbusListener::operator()(short int revents, std::list<Monitor> &mons) const
+void DbusListener::operator()(short int revents) const
 {
 		if (!(revents & POLLIN))
 			return;
@@ -44,11 +46,10 @@ void DbusListener::operator()(short int revents, std::list<Monitor> &mons) const
 		dbus_connection_read_write(conn, 0);
 		DBusMessage* msg;
 		while ((msg = dbus_connection_pop_message(conn)) != NULL) {
-			auto [brightness, status] = parse_msg(msg);
-			if (brightness.has_value()) for (auto &m : mons) {
-				std::cout << "Battery: " << brightness.value() << std::endl;
-				m.bar.setBat(brightness.value(), true);
-			}
+			auto [chrg, status] = parse_msg(msg);
+			state::bat_percentage = chrg.value_or(state::bat_percentage);
+			state::bat_is_charging = status.value_or(state::bat_is_charging);
+			state::render();
 			dbus_message_unref(msg);
 		}
 }
