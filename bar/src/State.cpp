@@ -5,6 +5,7 @@
 
 std::list<Monitor> state::monitors {0};
 Monitor *state::selmon = nullptr;
+std::vector<std::string> state::tag_names;
 
 std::array<uint8_t, sizeof(display_configs) / sizeof(display_configs[0])> state::brightnesses = {0};
 
@@ -54,6 +55,9 @@ void state::init() {
 	state::components.push_back(std::make_unique<BatteryComponent>());
 	for (size_t i = 0; i < display_configs_len; i++)
 		state::components.push_back(std::make_unique<BrightnessComponent>(i));
+
+	/* left aligned */
+	state::components.push_back(std::make_unique<TagsComponent>());
 }
 
 void state::render() {

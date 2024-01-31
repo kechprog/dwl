@@ -34,15 +34,10 @@ void Bar::setColor(Color c)
 
 Bar::Bar()
 {
-	for (const auto& tagName : tagNames) {
-		tags.push_back({ TagState::None, 0, 0, createComponent(0, tagName) });
-	}
-
 	_timeCmp   = createComponent(1); /* creates zero initialized component */
 	updateTime();
 	layoutCmp = createComponent(0);
 	titleCmp  = createComponent(0);
-	statusCmp = createComponent(0);
 }
 
 const wl_surface* Bar::surface() const
@@ -92,11 +87,6 @@ void Bar::setTag(int tag, int state, int numClients, int focusedClient)
 	t.focusedClient = focusedClient;
 }
 
-void Bar::setSelected(bool selected)
-{
-	this->selected = selected;
-}
-
 void Bar::setLayout(const std::string& layout)
 {
 	layoutCmp.setText(layout);
@@ -105,11 +95,6 @@ void Bar::setLayout(const std::string& layout)
 void Bar::setTitle(const std::string& title)
 {
 	titleCmp.setText(title);
-}
-
-void Bar::setStatus(const std::string& status)
-{
-	statusCmp.setText(status);
 }
 
 void Bar::updateTime() 
@@ -205,11 +190,9 @@ void Bar::render()
 	for (auto &cmp : state::components)
 		renderComponent(cmp.get());
 	
-	renderTags();
 	renderComponent(&layoutCmp);
 	renderComponent(&titleCmp);
 	renderComponent(&_timeCmp);
-	renderComponent(&statusCmp);
 
 	painter = nullptr;
 	wl_surface_attach(_wl_surface.get(), bufs->buffer(), 0, 0);
@@ -217,15 +200,6 @@ void Bar::render()
 	wl_surface_commit(_wl_surface.get());
 	bufs->flip();
 	invalid = false;
-}
-
-void Bar::renderTags()
-{
-	for (auto &tag : tags) {
-		// if (tag.state == 1) /* active */
-		// 	tag.component.bg = {255, 255, 255, 255};
-		renderComponent(&tag.component);
-	}
 }
 
 // void Bar::renderComponent(TextComponent& component)

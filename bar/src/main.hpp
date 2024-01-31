@@ -11,10 +11,12 @@ struct Monitor {
 	Bar 					 bar;
 	bool 				   	 desiredVisibility {true};
 	bool 					 hasData;
-	uint32_t 				 tags;
+	uint32_t 				 sel_tags;
 	wl_unique_ptr<znet_tapesoftware_dwl_wm_monitor_v1> dwlMonitor;
+	
+	std::vector<Tag> tags;
 
-	uint8_t                  brightness;
+	void set_tag(int tag, int state, int num_clients, int focused_client);
 };
 
 struct SeatPointer {

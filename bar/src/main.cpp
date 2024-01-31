@@ -63,7 +63,6 @@ wl_compositor *compositor;
 wl_shm *shm;
 zwlr_layer_shell_v1 *wlrLayerShell;
 znet_tapesoftware_dwl_wm_v1 *dwlWm;
-std::vector<std::string> tagNames;
 std::vector<std::string> layoutNames;
 
 /* statics */
@@ -74,7 +73,6 @@ static wl_cursor_image* cursorImage;
 static bool ready;
 static std::vector<std::pair<uint32_t, wl_output*>> uninitializedOutputs;
 static std::list<Seat> seats;
-static std::string lastStatus;
 static std::string statusFifoName;
 static std::vector<pollfd> pollfds;
 static std::array<int, 2> signalSelfPipe;
@@ -89,6 +87,14 @@ const std::string prefixHide   = "hide ";
 const std::string prefixToggle = "toggle ";
 const std::string argAll       = "all";
 const std::string argSelected  = "selected";
+
+void Monitor::set_tag(int tag, int state, int num_clients, int focused_client)
+{
+	auto& t = this->tags[tag];
+	t.state = state;
+	t.numClients = num_clients;
+	t.focusedClient = focused_client;
+}
 
 /* handalers */
 static const struct xdg_wm_base_listener xdgWmBaseListener = {
@@ -189,7 +195,7 @@ static const struct wl_seat_listener seatListener = {
 static const struct znet_tapesoftware_dwl_wm_v1_listener dwlWmListener = {
 
 	.tag = [](void*, znet_tapesoftware_dwl_wm_v1*, const char* name) {
-		tagNames.push_back(name);
+		state::tag_names.push_back(name);
 	},
 
 	.layout = [](void*, znet_tapesoftware_dwl_wm_v1*, const char* name) {
@@ -207,7 +213,8 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 		} else if (state::selmon == mon) {
 			state::selmon = nullptr;
 		}
-		mon->bar.setSelected(selected);
+		// TODO: move bg of bar to the separete component
+		// mon->bar.setSelected(selected);
 	},
 	
 	.tag = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t tag, uint32_t state, uint32_t numClients, int32_t focusedClient) {
@@ -217,12 +224,12 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 			tagState |= TagState::Active;
 		if (state & ZNET_TAPESOFTWARE_DWL_WM_MONITOR_V1_TAG_STATE_URGENT)
 			tagState |= TagState::Urgent;
-		mon->bar.setTag(tag, tagState, numClients, focusedClient);
+		mon->set_tag(tag, tagState, numClients, focusedClient);
 		uint32_t mask = 1 << tag;
 		if (tagState & TagState::Active) {
-			mon->tags |= mask;
+			mon->sel_tags |= mask;
 		} else {
-			mon->tags &= ~mask;
+			mon->sel_tags &= ~mask;
 		}
 	},
 
@@ -252,7 +259,7 @@ void view(Monitor& m, const Arg& arg)
 
 void toggleview(Monitor& m, const Arg& arg)
 {
-	znet_tapesoftware_dwl_wm_monitor_v1_set_tags(m.dwlMonitor.get(), m.tags ^ arg.ui, 0);
+	znet_tapesoftware_dwl_wm_monitor_v1_set_tags(m.dwlMonitor.get(), m.sel_tags ^ arg.ui, 0);
 }
 
 void setlayout(Monitor& m, const Arg& arg)
@@ -293,12 +300,16 @@ Monitor* monitorFromSurface(const wl_surface* surface)
 
 
 void setupMonitor(uint32_t name, wl_output* output) {
+	std::vector<Tag> tags(state::tag_names.size());
+	for (size_t i = 0; i < state::tag_names.size(); i++)
+		tags[i] = {TagState::None, 0, 0};
+
 	auto& monitor = state::monitors.emplace_back(Monitor {
-		name, 
-		{}, 
-		wl_unique_ptr<wl_output> {output}
+		.registryName = name, 
+		.xdgName = {}, 
+		.wlOutput = wl_unique_ptr<wl_output> {output},
+		.tags = std::move(tags)
 	});
-	monitor.bar.setStatus(lastStatus);
 
 	auto xdgOutput 
 		= zxdg_output_manager_v1_get_xdg_output(xdgOutputManager, monitor.wlOutput.get());
@@ -486,7 +497,7 @@ int main(int argc, char* argv[])
 
 	/* file listeners */
 	inotify_fd = inotify_init();
-	const auto file_listeners = setupFileListeners(state::monitors, inotify_fd);
+	const auto file_listeners = setupFileListeners(inotify_fd);
 	pollfds.push_back({
 		.fd = inotify_fd,
 		.events = POLLIN,

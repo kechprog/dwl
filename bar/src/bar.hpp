@@ -9,13 +9,12 @@
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "shm_buffer.hpp"
-#include "BarComponent.hpp"
+#include "components/BarComponent.hpp"
 
 struct Tag {
 	int state;
 	int numClients;
 	int focusedClient;
-	TextComponent component;
 };
 
 struct Monitor;
@@ -27,7 +26,7 @@ class Bar {
 	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
 	std::optional<ShmBuffer>             bufs;
 	std::vector<Tag> tags;
-	TextComponent layoutCmp, titleCmp, statusCmp, _timeCmp;
+	TextComponent layoutCmp, titleCmp, _timeCmp;
 	bool selected;
 	bool invalid {false};
 
@@ -43,7 +42,6 @@ class Bar {
 	void renderTags();
 
 	// low-level rendering
-	// void renderComponent(TextComponent& component);
 	void renderComponent(IBarComponent *component);
 	TextComponent createComponent(const int align, const std::string& initial = {});
 
@@ -58,7 +56,6 @@ public:
 	void setSelected (bool selected);
 	void setLayout   (const std::string& layout);
 	void setTitle    (const std::string& title );
-	void setStatus   (const std::string& status);
 	void updateTime ();
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);

@@ -35,7 +35,7 @@ void FileListener::operator()(const inotify_event *event) const
 }
 
 /* defenition of some listeners */
-std::array<FileListener, sizeof(display_configs) / sizeof(display_configs[0])> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
+std::array<FileListener, sizeof(display_configs) / sizeof(display_configs[0])> setupFileListeners(int inotify_fd)
 {
 
 

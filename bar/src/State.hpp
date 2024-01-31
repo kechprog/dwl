@@ -12,6 +12,7 @@ struct Font {
 namespace state {
 	extern Monitor* selmon;
 	extern std::list<Monitor> monitors;
+	extern std::vector<std::string> tag_names;
 	
 	extern std::array<uint8_t, sizeof(display_configs) / sizeof(display_configs[0])> brightnesses;
 

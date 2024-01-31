@@ -36,6 +36,15 @@ private:
 	size_t idx;
 };
 
+class TagsComponent : public IBarComponent {
+public:
+	std::tuple<int, int, int> dim(const Monitor &) override;
+	void render(cairo_t *painter, const Monitor &) const override;
+private:
+	std::vector<wl_unique_ptr<PangoLayout>> pango_layouts;
+	int w; // since we assume tags do not change after startup
+};
+
 class TextComponent : public IBarComponent {
 	std::string _text;
 	int _align;

@@ -1,3 +1,4 @@
+#include "BarComponent.hpp"
 #include "cairo.h"
 #include "pango/pango-layout.h"
 #include "pango/pangocairo.h"
@@ -9,11 +10,11 @@
 
 static inline void setColor(cairo_t *p, Color c)
 {
-
 	const auto [r, g, b, a] = c;
 	cairo_set_source_rgba(p,
 		r / 255.0, g / 255.0, b / 255.0, a / 255.0);
 }
+
 
 /*****************************************************************************************/
 /*------------------------------------BatteryComponent-----------------------------------*/
@@ -26,7 +27,7 @@ BatteryComponent::BatteryComponent() noexcept
 
 std::tuple<int, int, int> BatteryComponent::dim(const Monitor &_mon)
 {
-	// const auto status = state::bat_is_charging ? "charging" : "discharging";
+	const auto status = state::bat_is_charging ? "charging" : "discharging";
 	std::stringstream ss;
 	int w, h;
 
