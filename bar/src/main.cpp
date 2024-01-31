@@ -74,7 +74,6 @@ static wl_cursor_image* cursorImage;
 static bool ready;
 static std::vector<std::pair<uint32_t, wl_output*>> uninitializedOutputs;
 static std::list<Seat> seats;
-static Monitor* selmon;
 static std::string lastStatus;
 static std::string statusFifoName;
 static std::vector<pollfd> pollfds;
@@ -204,9 +203,9 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 	.selected = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t selected) {
 		auto mon = static_cast<Monitor*>(mv);
 		if (selected) {
-			selmon = mon;
-		} else if (selmon == mon) {
-			selmon = nullptr;
+			state::selmon = mon;
+		} else if (state::selmon == mon) {
+			state::selmon = nullptr;
 		}
 		mon->bar.setSelected(selected);
 	},

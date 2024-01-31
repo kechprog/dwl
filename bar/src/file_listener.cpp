@@ -1,5 +1,6 @@
 #include "main.hpp"
 #include "src/config.hpp"
+#include "State.hpp"
 #include "file_listener.hpp"
 #include <fcntl.h>
 #include <list>
@@ -34,36 +35,33 @@ void FileListener::operator()(const inotify_event *event) const
 }
 
 /* defenition of some listeners */
-std::array<FileListener, sizeof(displayConfigs) / sizeof(displayConfigs[0])> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
+std::array<FileListener, sizeof(display_configs) / sizeof(display_configs[0])> setupFileListeners(std::list<Monitor> &mons, int inotify_fd)
 {
 
 
 	const auto brightnessCallback1 = [&]()
 	{
 		std::string buf;
-		std::ifstream f(displayConfigs[0].first.c_str());
+		std::ifstream f(display_configs[0].first.c_str());
 		f >> buf;
 		size_t curBrightness = std::stoull(buf.c_str());
-		for (auto &m : mons) {
-			m.bar.setBrightness(curBrightness, 0);
-			m.bar.invalidate();
-		}
+		state::brightnesses[0] = curBrightness / (double) display_configs[0].second * 100;
+		state::render();
 	};
 
-	const auto brightnessCallback2 = [&]()
-	{
-		std::string buf;
-		std::ifstream f(displayConfigs[1].first.c_str());
-		f >> buf;
-		size_t curBrightness = std::stoull(buf.c_str());
-		for (auto &m : mons) {
-			m.bar.setBrightness(curBrightness, 1);
-			m.bar.invalidate();
-		}
-	};
+	// const auto brightnessCallback2 = [&]()
+	// {
+	// 	std::string buf;
+	// 	std::ifstream f(displayConfigs[1].first.c_str());
+	// 	f >> buf;
+	// 	size_t curBrightness = std::stoull(buf.c_str());
+	//
+	// 	state::brightnesses[1] = curBrightness;
+	// 	state::render();
+	// };
 
-	const std::array<FileListener, sizeof(displayConfigs) / sizeof(displayConfigs[0])> listeners = {
-		FileListener(displayConfigs[0].first, brightnessCallback1, inotify_fd),
+	const std::array<FileListener, sizeof(display_configs) / sizeof(display_configs[0])> listeners = {
+		FileListener(display_configs[0].first, brightnessCallback1, inotify_fd),
 	};
 
 	return listeners;

@@ -8,8 +8,6 @@
 #include "State.hpp"
 #include "cairo.h"
 #include "config.hpp"
-#include "pango/pango-font.h"
-#include "pango/pango-fontmap.h"
 
 const zwlr_layer_surface_v1_listener Bar::_layerSurfaceListener = {
 	[](void* owner, zwlr_layer_surface_v1*, uint32_t serial, uint32_t width, uint32_t height)
@@ -45,12 +43,6 @@ Bar::Bar()
 	layoutCmp = createComponent(0);
 	titleCmp  = createComponent(0);
 	statusCmp = createComponent(0);
-	_batCmp    = createComponent(1, "BAT");
-
-	for (auto& cmp : _brightnessCmp) {
-		cmp = createComponent(1);
-	}
-
 }
 
 const wl_surface* Bar::surface() const
@@ -132,20 +124,6 @@ void Bar::updateTime()
     _timeCmp.setText(ss.str());
 }
 
-void Bar::setBat(int perc, bool isCharging)
-{
-	std::stringstream ss;
-	ss << "BAT " << perc << "%"; // TODO: add icons
-	_batCmp.setText(ss.str());
-}
-
-void Bar::setBrightness(size_t val, size_t idx) {
-	std::stringstream ss;
-	val = val * 100 / displayConfigs[idx].second;
-	ss << "BRIGHTNESS: " << val << "%";
-	_brightnessCmp[idx].setText(ss.str());
-}
-
 void Bar::invalidate()
 {
 	if (invalid || !visible()) {
@@ -159,29 +137,31 @@ void Bar::invalidate()
 
 void Bar::click(Monitor* mon, int x, int, int btn)
 {
-	Arg arg = {0};
-	Arg* argp = nullptr;
-	int control = ClkNone;
-	if (x > statusCmp.x) {
-		control = ClkStatusText;
-	} else if (x > titleCmp.x) {
-		control = ClkWinTitle;
-	} else if (x > layoutCmp.x) {
-		control = ClkLayoutSymbol;
-	} else for (int tag = tags.size()-1; tag >= 0; tag--) {
-		if (x > tags[tag].component.x) {
-			control = ClkTagBar;
-			arg.ui = 1<<tag;
-			argp = &arg;
-			break;
-		}
-	}
-	for (const auto& button : buttons) {
-		if (button.control == control && button.btn == btn) {
-			button.func(*mon, *(argp ? argp : &button.arg));
-			return;
-		}
-	}
+	// TODO: figure me out
+	
+	// Arg arg = {0};
+	// Arg* argp = nullptr;
+	// int control = ClkNone;
+	// if (x > statusCmp.x) {
+	// 	control = ClkStatusText;
+	// } else if (x > titleCmp.x) {
+	// 	control = ClkWinTitle;
+	// } else if (x > layoutCmp.x) {
+	// 	control = ClkLayoutSymbol;
+	// } else for (int tag = tags.size()-1; tag >= 0; tag--) {
+	// 	if (x > tags[tag].component.x) {
+	// 		control = ClkTagBar;
+	// 		arg.ui = 1<<tag;
+	// 		argp = &arg;
+	// 		break;
+	// 	}
+	// }
+	// for (const auto& button : buttons) {
+	// 	if (button.control == control && button.btn == btn) {
+	// 		button.func(*mon, *(argp ? argp : &button.arg));
+	// 		return;
+	// 	}
+	// }
 }
 
 void Bar::layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height)
@@ -214,21 +194,22 @@ void Bar::render()
 	pango_cairo_update_context(painter, state::pango_ctx.get());
 	x_left = x_right = 0;
 
-	updateColorScheme();
+	this->colorScheme = colors[selected];
+
 
 	/* bg of bar */
 	setColor(colorScheme.barBg);
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
 	cairo_fill(painter);
 
+	for (auto &cmp : state::components)
+		renderComponent(cmp.get());
+	
 	renderTags();
-	renderComponent(layoutCmp);
-	renderComponent(titleCmp);
-	renderComponent(_timeCmp);
-	renderComponent(_batCmp);
-	for (auto &bcmp : _brightnessCmp)
-		renderComponent(bcmp);
-	renderComponent(statusCmp);
+	renderComponent(&layoutCmp);
+	renderComponent(&titleCmp);
+	renderComponent(&_timeCmp);
+	renderComponent(&statusCmp);
 
 	painter = nullptr;
 	wl_surface_attach(_wl_surface.get(), bufs->buffer(), 0, 0);
@@ -241,29 +222,45 @@ void Bar::render()
 void Bar::renderTags()
 {
 	for (auto &tag : tags) {
-		if (tag.state == 1) /* active */
-			tag.component.bg = {255, 255, 255, 255};
-		renderComponent(tag.component);
+		// if (tag.state == 1) /* active */
+		// 	tag.component.bg = {255, 255, 255, 255};
+		renderComponent(&tag.component);
 	}
 }
 
-void Bar::updateColorScheme(void) {
-	this->colorScheme = colors[selected];
+// void Bar::renderComponent(TextComponent& component)
+// {
+// 	auto [w, h, align]= component.dim(state::monitors.front());
+// 	if (h == -1) 
+// 		h = bufs->height;
+//
+// 	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
+// 		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, h) };
+// 	// TODO: move me to IBarComponent::render()
+// 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
+//
+// 	component.render(slice_painter.get(), state::monitors.front());
+//
+// 	int x_position;
+// 	switch (align) {
+// 		case 0: /* left */
+// 			x_position = x_left;
+// 			x_left += w;
+// 			break;
+// 		case 1: /* right */
+// 			x_position = bufs->width - x_right - w;
+// 			x_right += w;
+// 			break;
+// 	} 
+//
+// 	cairo_set_source_surface(painter, slice_surface.get(), x_position, 0);
+// 	cairo_rectangle(painter, x_position, 0, w, h);
+// 	cairo_fill(painter);
+// }
 
-	layoutCmp.setCol(colorScheme.cmpBg, colorScheme.text);
-	titleCmp.setCol(colorScheme.cmpBg, colorScheme.text);
-	_timeCmp.setCol(colorScheme.cmpBg, colorScheme.text);
-	_batCmp.setCol(colorScheme.cmpBg, colorScheme.text);
-	statusCmp.setCol(colorScheme.cmpBg, colorScheme.text);
-	for (auto &bcmp : _brightnessCmp)
-		bcmp.setCol(colorScheme.cmpBg, colorScheme.text);
-	for (auto &tag : tags) 
-		tag.component.setCol(colorScheme.cmpBg, colorScheme.text);
-}
-
-void Bar::renderComponent(TextComponent& component)
+void Bar::renderComponent(IBarComponent *cmp)
 {
-	auto [w, h, align]= component.dim(state::monitors.front());
+	auto [w, h, align] = cmp->dim(state::monitors.front());
 	if (h == -1) 
 		h = bufs->height;
 
@@ -272,7 +269,7 @@ void Bar::renderComponent(TextComponent& component)
 	// TODO: move me to IBarComponent::render()
 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
 
-	component.render(slice_painter.get(), state::monitors.front());
+	cmp->render(slice_painter.get(), state::monitors.front());
 
 	int x_position;
 	switch (align) {

@@ -20,11 +20,13 @@ const constexpr ColorScheme colors[2] = {
 
 constexpr const char* termcmd[]     = {"foot", nullptr};
 
-const std::pair<std::filesystem::path, size_t> displayConfigs[] = {
+const std::pair<std::filesystem::path, size_t> display_configs[] = {
 	/*           current brightness(file)             , max brightness */
 	{ "/sys/class/backlight/amdgpu_bl0/brightness",          255       },
 	// {"/sys/class/leds/asus::screenpad/brightness",            255}
 };
+
+const size_t display_configs_len = sizeof(display_configs) / sizeof(display_configs[0]);
 
 
 constexpr Button buttons[] = {

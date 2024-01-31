@@ -1,10 +1,12 @@
+#include <memory>
 #include <vector>
 #include <pango/pangocairo.h>
 #include "State.hpp"
 
 std::list<Monitor> state::monitors {0};
+Monitor *state::selmon = nullptr;
 
-std::array<uint8_t, sizeof(displayConfigs) / sizeof(displayConfigs[0])> brightnesses = {0};
+std::array<uint8_t, sizeof(display_configs) / sizeof(display_configs[0])> state::brightnesses = {0};
 
 bool state::bat_is_charging   = {0};
 uint8_t state::bat_percentage = {0};
@@ -47,6 +49,11 @@ void state::init() {
 	 * put components here 
 	 * order matters
 	 */
+
+	/* right aligned */
+	state::components.push_back(std::make_unique<BatteryComponent>());
+	for (size_t i = 0; i < display_configs_len; i++)
+		state::components.push_back(std::make_unique<BrightnessComponent>(i));
 }
 
 void state::render() {

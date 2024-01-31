@@ -1,7 +1,6 @@
 #include "dbus_handles.hpp"
 #include "State.hpp"
 #include "dbus/dbus-shared.h"
-#include <algorithm>
 #include <iostream>
 #include <optional>
 #include <ostream>
@@ -40,18 +39,18 @@ int DbusListener::get_fd(void) const
 
 void DbusListener::operator()(short int revents) const
 {
-		if (!(revents & POLLIN))
-			return;
+	if (!(revents & POLLIN))
+		return;
 
-		dbus_connection_read_write(conn, 0);
-		DBusMessage* msg;
-		while ((msg = dbus_connection_pop_message(conn)) != NULL) {
-			auto [chrg, status] = parse_msg(msg);
-			state::bat_percentage = chrg.value_or(state::bat_percentage);
-			state::bat_is_charging = status.value_or(state::bat_is_charging);
-			state::render();
-			dbus_message_unref(msg);
-		}
+	dbus_connection_read_write(conn, 0);
+	DBusMessage* msg;
+	while ((msg = dbus_connection_pop_message(conn)) != NULL) {
+		auto [chrg, status] = parse_msg(msg);
+		state::bat_percentage = chrg.value_or(state::bat_percentage);
+		state::bat_is_charging = status.value_or(state::bat_is_charging);
+		state::render();
+		dbus_message_unref(msg);
+	}
 }
 
 std::pair<std::optional<double>, std::optional<bool>>

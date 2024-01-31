@@ -1,4 +1,5 @@
 #include "pango/pango-types.h"
+#include "config.hpp"
 #include "src/main.hpp"
 #include <list>
 #include <memory>
@@ -9,9 +10,10 @@ struct Font {
 };
 
 namespace state {
+	extern Monitor* selmon;
 	extern std::list<Monitor> monitors;
 	
-	extern std::array<uint8_t, sizeof(displayConfigs) / sizeof(displayConfigs[0])> brightnesses;
+	extern std::array<uint8_t, sizeof(display_configs) / sizeof(display_configs[0])> brightnesses;
 
 	extern bool bat_is_charging;
 	extern uint8_t bat_percentage;

@@ -1,5 +1,6 @@
 #pragma once
 #include "src/main.hpp"
+#include "config.hpp"
 #include <functional>
 #include <sys/inotify.h>
 #include <list>
@@ -20,4 +21,4 @@ class FileListener {
 };
 
 /* the big boy function */
-std::array<FileListener, sizeof(displayConfigs) / sizeof(displayConfigs[0])> setupFileListeners(std::list<Monitor> &mons, int notify_fd);
+std::array<FileListener, display_configs_len> setupFileListeners(std::list<Monitor> &mons, int notify_fd);

@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 #include <wayland-client.h>
-#include "config.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "shm_buffer.hpp"
@@ -28,8 +27,7 @@ class Bar {
 	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
 	std::optional<ShmBuffer>             bufs;
 	std::vector<Tag> tags;
-	TextComponent layoutCmp, titleCmp, statusCmp, _timeCmp, _batCmp;
-	std::array<TextComponent, sizeof(displayConfigs) / sizeof(displayConfigs[0])> _brightnessCmp;
+	TextComponent layoutCmp, titleCmp, statusCmp, _timeCmp;
 	bool selected;
 	bool invalid {false};
 
@@ -45,8 +43,8 @@ class Bar {
 	void renderTags();
 
 	// low-level rendering
-	void updateColorScheme(void);
-	void renderComponent(TextComponent& component);
+	// void renderComponent(TextComponent& component);
+	void renderComponent(IBarComponent *component);
 	TextComponent createComponent(const int align, const std::string& initial = {});
 
 public:
@@ -61,8 +59,6 @@ public:
 	void setLayout   (const std::string& layout);
 	void setTitle    (const std::string& title );
 	void setStatus   (const std::string& status);
-	void setBat      (int perc, bool isCharging);
-	void setBrightness(size_t val, size_t idx);
 	void updateTime ();
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);
