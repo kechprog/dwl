@@ -1,13 +1,10 @@
-#include <iomanip>
-#include <iostream>
-#include <sstream>
 #include <wayland-client-protocol.h>
 #include <pango/pangocairo.h>
-#include <chrono>
 #include "bar.hpp"
 #include "State.hpp"
 #include "cairo.h"
 #include "config.hpp"
+#include "src/components/BarComponent.hpp"
 
 const zwlr_layer_surface_v1_listener Bar::_layerSurfaceListener = {
 	[](void* owner, zwlr_layer_surface_v1*, uint32_t serial, uint32_t width, uint32_t height)
@@ -34,10 +31,7 @@ void Bar::setColor(Color c)
 
 Bar::Bar()
 {
-	_timeCmp   = createComponent(1); /* creates zero initialized component */
-	updateTime();
-	layoutCmp = createComponent(0);
-	titleCmp  = createComponent(0);
+	// titleCmp  = createComponent(0);
 }
 
 const wl_surface* Bar::surface() const
@@ -79,34 +73,9 @@ void Bar::hide()
 	bufs.reset();
 }
 
-void Bar::setTag(int tag, int state, int numClients, int focusedClient)
-{
-	auto& t = tags[tag];
-	t.state = state;
-	t.numClients = numClients;
-	t.focusedClient = focusedClient;
-}
-
-void Bar::setLayout(const std::string& layout)
-{
-	layoutCmp.setText(layout);
-}
-
 void Bar::setTitle(const std::string& title)
 {
-	titleCmp.setText(title);
-}
-
-void Bar::updateTime() 
-{
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-
-    std::tm localtime = *std::localtime(&now_c);
-    std::ostringstream ss;
-
-    ss << std::put_time(&localtime, "%H:%M");
-    _timeCmp.setText(ss.str());
+	// titleCmp.setText(title);
 }
 
 void Bar::invalidate()
@@ -181,7 +150,6 @@ void Bar::render()
 
 	this->colorScheme = colors[selected];
 
-
 	/* bg of bar */
 	setColor(colorScheme.barBg);
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
@@ -190,9 +158,7 @@ void Bar::render()
 	for (auto &cmp : state::components)
 		renderComponent(cmp.get());
 	
-	renderComponent(&layoutCmp);
-	renderComponent(&titleCmp);
-	renderComponent(&_timeCmp);
+	// renderComponent(&titleCmp);
 
 	painter = nullptr;
 	wl_surface_attach(_wl_surface.get(), bufs->buffer(), 0, 0);
@@ -202,44 +168,12 @@ void Bar::render()
 	invalid = false;
 }
 
-// void Bar::renderComponent(TextComponent& component)
-// {
-// 	auto [w, h, align]= component.dim(state::monitors.front());
-// 	if (h == -1) 
-// 		h = bufs->height;
-//
-// 	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
-// 		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, h) };
-// 	// TODO: move me to IBarComponent::render()
-// 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
-//
-// 	component.render(slice_painter.get(), state::monitors.front());
-//
-// 	int x_position;
-// 	switch (align) {
-// 		case 0: /* left */
-// 			x_position = x_left;
-// 			x_left += w;
-// 			break;
-// 		case 1: /* right */
-// 			x_position = bufs->width - x_right - w;
-// 			x_right += w;
-// 			break;
-// 	} 
-//
-// 	cairo_set_source_surface(painter, slice_surface.get(), x_position, 0);
-// 	cairo_rectangle(painter, x_position, 0, w, h);
-// 	cairo_fill(painter);
-// }
-
 void Bar::renderComponent(IBarComponent *cmp)
 {
-	auto [w, h, align] = cmp->dim(state::monitors.front());
-	if (h == -1) 
-		h = bufs->height;
+	auto [w, align] = cmp->dim(state::monitors.front());
 
 	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
-		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, h) };
+		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, bufs->height) };
 	// TODO: move me to IBarComponent::render()
 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
 
@@ -258,13 +192,13 @@ void Bar::renderComponent(IBarComponent *cmp)
 	} 
 
 	cairo_set_source_surface(painter, slice_surface.get(), x_position, 0);
-	cairo_rectangle(painter, x_position, 0, w, h);
+	cairo_rectangle(painter, x_position, 0, w, bufs->height);
 	cairo_fill(painter);
 }
 
-TextComponent Bar::createComponent(const int align, const std::string &initial)
-{
-	auto res = TextComponent {align};
-	res.setText(initial);
-	return res;
-}
+// ClassicComponent Bar::createComponent(const int align, const std::string &initial)
+// {
+// 	auto res = ClassicComponent {align};
+// 	res.setText(initial);
+// 	return res;
+// }

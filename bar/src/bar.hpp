@@ -4,12 +4,13 @@
 #pragma once
 #include <optional>
 #include <string>
-#include <vector>
 #include <wayland-client.h>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "shm_buffer.hpp"
-#include "components/BarComponent.hpp"
+
+/* avoid cicling dependancy of header */
+class IBarComponent;
 
 struct Tag {
 	int state;
@@ -25,8 +26,7 @@ class Bar {
 	wl_unique_ptr<wl_surface>            _wl_surface;
 	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
 	std::optional<ShmBuffer>             bufs;
-	std::vector<Tag> tags;
-	TextComponent layoutCmp, titleCmp, _timeCmp;
+	// ClassicComponent titleCmp;
 	bool selected;
 	bool invalid {false};
 
@@ -43,7 +43,7 @@ class Bar {
 
 	// low-level rendering
 	void renderComponent(IBarComponent *component);
-	TextComponent createComponent(const int align, const std::string& initial = {});
+	// ClassicComponent createComponent(const int align, const std::string& initial = {});
 
 public:
 	Bar();

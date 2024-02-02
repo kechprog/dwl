@@ -63,7 +63,6 @@ wl_compositor *compositor;
 wl_shm *shm;
 zwlr_layer_shell_v1 *wlrLayerShell;
 znet_tapesoftware_dwl_wm_v1 *dwlWm;
-std::vector<std::string> layoutNames;
 
 /* statics */
 static xdg_wm_base* xdgWmBase;
@@ -199,7 +198,7 @@ static const struct znet_tapesoftware_dwl_wm_v1_listener dwlWmListener = {
 	},
 
 	.layout = [](void*, znet_tapesoftware_dwl_wm_v1*, const char* name) {
-		layoutNames.push_back(name);
+		state::layout_names.push_back(name);
 	},
 };
 
@@ -235,7 +234,7 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 
 	.layout = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t layout) {
 		auto mon = static_cast<Monitor*>(mv);
-		mon->bar.setLayout(layoutNames[layout]);
+		mon->layout_idx = layout;
 	},
 
 	.title = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, const char* title) {
@@ -254,27 +253,27 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 /* functions */
 void view(Monitor& m, const Arg& arg)
 {
-	znet_tapesoftware_dwl_wm_monitor_v1_set_tags(m.dwlMonitor.get(), arg.ui, 1);
+	znet_tapesoftware_dwl_wm_monitor_v1_set_tags(m.dwl_mon.get(), arg.ui, 1);
 }
 
 void toggleview(Monitor& m, const Arg& arg)
 {
-	znet_tapesoftware_dwl_wm_monitor_v1_set_tags(m.dwlMonitor.get(), m.sel_tags ^ arg.ui, 0);
+	znet_tapesoftware_dwl_wm_monitor_v1_set_tags(m.dwl_mon.get(), m.sel_tags ^ arg.ui, 0);
 }
 
 void setlayout(Monitor& m, const Arg& arg)
 {
-	znet_tapesoftware_dwl_wm_monitor_v1_set_layout(m.dwlMonitor.get(), arg.ui);
+	znet_tapesoftware_dwl_wm_monitor_v1_set_layout(m.dwl_mon.get(), arg.ui);
 }
 
 void tag(Monitor& m, const Arg& arg)
 {
-	znet_tapesoftware_dwl_wm_monitor_v1_set_client_tags(m.dwlMonitor.get(), 0, arg.ui);
+	znet_tapesoftware_dwl_wm_monitor_v1_set_client_tags(m.dwl_mon.get(), 0, arg.ui);
 }
 
 void toggletag(Monitor& m, const Arg& arg)
 {
-	znet_tapesoftware_dwl_wm_monitor_v1_set_client_tags(m.dwlMonitor.get(), ~0, arg.ui);
+	znet_tapesoftware_dwl_wm_monitor_v1_set_client_tags(m.dwl_mon.get(), ~0, arg.ui);
 }
 
 void spawn(Monitor&, const Arg& arg)
@@ -314,8 +313,8 @@ void setupMonitor(uint32_t name, wl_output* output) {
 	auto xdgOutput 
 		= zxdg_output_manager_v1_get_xdg_output(xdgOutputManager, monitor.wlOutput.get());
 	zxdg_output_v1_add_listener(xdgOutput, &xdgOutputListener, &monitor);
-	monitor.dwlMonitor.reset(znet_tapesoftware_dwl_wm_v1_get_monitor(dwlWm, monitor.wlOutput.get()));
-	znet_tapesoftware_dwl_wm_monitor_v1_add_listener(monitor.dwlMonitor.get(), &dwlWmMonitorListener, &monitor);
+	monitor.dwl_mon.reset(znet_tapesoftware_dwl_wm_v1_get_monitor(dwlWm, monitor.wlOutput.get()));
+	znet_tapesoftware_dwl_wm_monitor_v1_add_listener(monitor.dwl_mon.get(), &dwlWmMonitorListener, &monitor);
 }
 
 void updatemon(Monitor& mon)
@@ -547,10 +546,8 @@ int main(int argc, char* argv[])
 				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
 					uint64_t _x;
 					read(timer_fd, &_x, sizeof(_x));
-					for (auto &m : state::monitors) {
-						m.bar.updateTime();
-						m.bar.invalidate();
-					}
+					state::update_time();
+					state::render();
 				} else if (ev.fd == inotify_fd && (ev.revents & POLLIN)) {
 					/**\
 					|**|  there is no need to loop, since if somehting is left on inotify_fd,
@@ -615,4 +612,11 @@ void diesys(const char* why) {
 	perror(why);
 	cleanup();
 	exit(1);
+}
+
+void setColor(cairo_t *p, Color c)
+{
+	const auto [r, g, b, a] = c;
+	cairo_set_source_rgba(p,
+		r / 255.0, g / 255.0, b / 255.0, a / 255.0);
 }
