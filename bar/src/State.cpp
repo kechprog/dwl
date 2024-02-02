@@ -56,6 +56,7 @@ void state::init() {
 	/* left aligned */
 	state::components.push_back(std::make_unique<TagsComponent<0>>());
 	state::components.push_back(std::make_unique<LayoutComponent<0>>());
+	state::components.push_back(std::make_unique<TitleComponent<0>>());
 }
 
 void state::render() {

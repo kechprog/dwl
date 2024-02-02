@@ -124,6 +124,22 @@ public:
 	}
 };
 
+/*****************************************************************************************/
+/*--------------------------------------TimeComponent------------------------------------*/
+/*****************************************************************************************/
+template<int align>
+class TitleComponent : public TextComponent {
+public:
+	TitleComponent() : TextComponent() {};
+	std::tuple<int, int> dim(const Monitor &mon) override
+	{
+		int w, h;
+		pango_layout_set_text(this->pango_layout.get(), mon.title.c_str(), mon.title.size());
+		pango_layout_get_size(this->pango_layout.get(), &w, &h);
+
+		return std::make_tuple(PANGO_PIXELS(w) + 2*paddingX, align);
+	}
+};
 
 template<int align>
 class TagsComponent : public IBarComponent {
@@ -157,13 +173,13 @@ public:
 			switch (mon.tags[i].state)
 			{
 				case 0: // normal
-					setColor(painter, clr_schm.cmpBg);
+					setColor(painter, clr_schm.cmp_bg);
 				break;
 				case 1: // selected
-					setColor(painter, {0, 255, 0, 255}); // TODO: make this configurable
+					setColor(painter, clr_schm.tag_selected);
 				break;
 				case 2: // urgent
-					setColor(painter, {255, 0, 0, 255}); // TODO: make this configurable
+					setColor(painter, clr_schm.tag_urgent);
 				break;
 			}
 

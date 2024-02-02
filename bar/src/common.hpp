@@ -15,7 +15,7 @@
 using Color = std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>;
 
 struct ColorScheme {
-	Color barBg, text, cmpBg;
+	Color bar_bg, text, cmp_bg, tag_selected, tag_urgent;
 };
 
 union Arg {

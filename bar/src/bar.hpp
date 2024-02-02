@@ -3,7 +3,6 @@
 
 #pragma once
 #include <optional>
-#include <string>
 #include <wayland-client.h>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
@@ -26,37 +25,29 @@ class Bar {
 	wl_unique_ptr<wl_surface>            _wl_surface;
 	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
 	std::optional<ShmBuffer>             bufs;
-	// ClassicComponent titleCmp;
-	bool selected;
 	bool invalid {false};
 
-	// only vaild during render()
+	/* valid during invalidate/render */
 	cairo_t* painter {nullptr};
 	cairo_surface_t *cairo_surface {nullptr};
 	int x_left, x_right;
 	ColorScheme colorScheme;
 
 	void layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height);
-	void render();
-	void setColor(Color color);
-	void renderTags();
-
-	// low-level rendering
 	void renderComponent(IBarComponent *component);
-	// ClassicComponent createComponent(const int align, const std::string& initial = {});
+	void render();
 
 public:
-	Bar();
+	Bar() = default;
+	Bar(Monitor *mon) : mon(mon) {}
 	const struct wl_surface* surface() const;
 	bool visible() const;
 	void show(wl_output* output);
 	void hide();
+
 	/* state updating */
-	void setTag      (int tag, int state, int numClients, int focusedClient);
-	void setSelected (bool selected);
-	void setLayout   (const std::string& layout);
-	void setTitle    (const std::string& title );
-	void updateTime ();
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);
+
+	Monitor *mon;
 };

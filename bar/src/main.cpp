@@ -212,8 +212,6 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 		} else if (state::selmon == mon) {
 			state::selmon = nullptr;
 		}
-		// TODO: move bg of bar to the separete component
-		// mon->bar.setSelected(selected);
 	},
 	
 	.tag = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t tag, uint32_t state, uint32_t numClients, int32_t focusedClient) {
@@ -239,7 +237,7 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 
 	.title = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, const char* title) {
 		auto mon = static_cast<Monitor*>(mv);
-		mon->bar.setTitle(title);
+		mon->title = title;
 	},
 
 	.frame = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*) { /* issued after all events to redraw */
@@ -303,12 +301,14 @@ void setupMonitor(uint32_t name, wl_output* output) {
 	for (size_t i = 0; i < state::tag_names.size(); i++)
 		tags[i] = {TagState::None, 0, 0};
 
-	auto& monitor = state::monitors.emplace_back(Monitor {
+	auto &monitor = state::monitors.emplace_back(Monitor {
 		.registryName = name, 
 		.xdgName = {}, 
 		.wlOutput = wl_unique_ptr<wl_output> {output},
 		.tags = std::move(tags)
 	});
+	monitor.bar.mon = &monitor;
+	
 
 	auto xdgOutput 
 		= zxdg_output_manager_v1_get_xdg_output(xdgOutputManager, monitor.wlOutput.get());

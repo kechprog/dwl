@@ -14,8 +14,9 @@ constexpr int paddingY = 3;
 constexpr const char* font = "Sans 12";
 
 const constexpr ColorScheme colors[2] = {
-	ColorScheme {.barBg = {255, 0, 0, 0}, .text = {0x18, 0x19, 0x26, 255}, .cmpBg = {0xf5, 0xbd, 0xe6, 255} }, /* inactive */
-	ColorScheme {.barBg = {255, 0, 0, 0}, .text = {0xca, 0xd3, 0xf5, 255}, .cmpBg = {0xed, 0x87, 0x96, 255} }, /*  active  */
+	/*---------|--------Bar Bg------|--------Text---------|-------Cmp Bg--------|-------Tag Sel-------|-------Tag Urg---------|----Which---*/
+	ColorScheme {{91, 96, 120, 255}, {202, 211, 245, 255}, {145, 215, 227, 255}, {238, 212, 159, 255}, {238, 153, 160, 255} }, /* inactive */
+	ColorScheme {{30, 32, 48 , 255}, {36 , 39 , 58 , 255}, {139, 213, 202, 255}, {245, 169, 127, 255}, {237, 135, 150, 255} }, /*  active  */
 };
 
 constexpr const char* termcmd[]     = {"foot", nullptr};

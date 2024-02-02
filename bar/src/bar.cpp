@@ -20,20 +20,6 @@ const wl_callback_listener Bar::_frameListener = {
 	}
 };
 
-void Bar::setColor(Color c)
-{
-
-	const auto [r, g, b, a] = c;
-	cairo_set_source_rgba(painter,
-		r / 255.0, g / 255.0, b / 255.0, a / 255.0);
-}
-
-
-Bar::Bar()
-{
-	// titleCmp  = createComponent(0);
-}
-
 const wl_surface* Bar::surface() const
 {
 	return _wl_surface.get();
@@ -73,16 +59,12 @@ void Bar::hide()
 	bufs.reset();
 }
 
-void Bar::setTitle(const std::string& title)
-{
-	// titleCmp.setText(title);
-}
-
 void Bar::invalidate()
 {
 	if (invalid || !visible()) {
 		return;
 	}
+
 	invalid = true;
 	auto frame = wl_surface_frame(_wl_surface.get());
 	wl_callback_add_listener(frame, &_frameListener, this);
@@ -148,17 +130,14 @@ void Bar::render()
 	pango_cairo_update_context(painter, state::pango_ctx.get());
 	x_left = x_right = 0;
 
-	this->colorScheme = colors[selected];
-
 	/* bg of bar */
-	setColor(colorScheme.barBg);
+	const auto &clr_schm = colors[this->mon == state::selmon];
+	setColor(painter, clr_schm.bar_bg);
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
 	cairo_fill(painter);
 
 	for (auto &cmp : state::components)
 		renderComponent(cmp.get());
-	
-	// renderComponent(&titleCmp);
 
 	painter = nullptr;
 	wl_surface_attach(_wl_surface.get(), bufs->buffer(), 0, 0);
@@ -170,11 +149,10 @@ void Bar::render()
 
 void Bar::renderComponent(IBarComponent *cmp)
 {
-	auto [w, align] = cmp->dim(state::monitors.front());
+	auto [w, align] = cmp->dim(*this->mon);
 
 	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
 		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, bufs->height) };
-	// TODO: move me to IBarComponent::render()
 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
 
 	cmp->render(slice_painter.get(), state::monitors.front());
@@ -195,10 +173,3 @@ void Bar::renderComponent(IBarComponent *cmp)
 	cairo_rectangle(painter, x_position, 0, w, bufs->height);
 	cairo_fill(painter);
 }
-
-// ClassicComponent Bar::createComponent(const int align, const std::string &initial)
-// {
-// 	auto res = ClassicComponent {align};
-// 	res.setText(initial);
-// 	return res;
-// }

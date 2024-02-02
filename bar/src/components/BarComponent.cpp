@@ -17,7 +17,7 @@ void TextComponent::render(cairo_t *painter, const Monitor &mon) const
 
 	pango_cairo_update_layout(painter, this->pango_layout.get());
 
-	setColor(painter, clr_schm.cmpBg);
+	setColor(painter, clr_schm.cmp_bg);
 	cairo_rectangle(painter, 0, 0, width, hieght);
 	cairo_fill(painter);
 
@@ -60,7 +60,7 @@ void ClassicComponent::render(cairo_t *painter, const Monitor &mon) const
 
 	pango_cairo_update_layout(painter, _pangoLayout.get());
 
-	setColor(painter, clr_schm.cmpBg);
+	setColor(painter, clr_schm.cmp_bg);
 	cairo_rectangle(painter, 0, 0, width, hieght);
 	cairo_fill(painter);
 
