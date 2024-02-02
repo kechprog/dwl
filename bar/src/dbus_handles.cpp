@@ -7,6 +7,10 @@
 #include <sys/poll.h>
 #include <utility>
 
+/*
+ * TODO: charging should be done via another device, e.g. BATT <-> ACAD
+ * this should also be configurable
+ */
 DbusListener::DbusListener(void)
 {
 	dbus_error_init(&err);
@@ -17,19 +21,62 @@ DbusListener::DbusListener(void)
 		exit(-1);
 	}
 
-    dbus_bus_add_match(conn, rule, &err);
-    dbus_connection_flush(conn);
-    if (dbus_error_is_set(&err)) { 
+	dbus_bus_add_match(conn, rule, &err);
+	dbus_connection_flush(conn);
+	if (dbus_error_is_set(&err)) { 
 		std::cerr << "Unable to set rule: " << err.message << std::endl;
 		exit(-1);
-    }
+	}
 
 	dbus_connection_get_unix_fd(conn, &fd);
+	make_initial_battery_state_request();
 }
 
 DbusListener::~DbusListener()
 {
 	/* todo */
+}
+
+void DbusListener::make_initial_battery_state_request()
+{
+// Replace this with the actual object path you're interested in
+    const char* objPath = "/org/freedesktop/UPower/devices/battery_BATT";
+    const char* interfaceName = "org.freedesktop.DBus.Properties";
+    const char* propertyName = "Percentage";
+
+    DBusMessage* msg = dbus_message_new_method_call(
+        "org.freedesktop.UPower", // service to contact
+        objPath,                  // object path
+        interfaceName,            // interface name
+        "Get");                   // method name
+
+    DBusMessageIter args;
+    dbus_message_iter_init_append(msg, &args);
+    const char* propInterface = "org.freedesktop.UPower.Device";
+    if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &propInterface)
+    ||  !dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &propertyName)) {
+        std::cerr << "Out of Memory!" << std::endl;
+    }
+
+    DBusMessage* reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
+    if (!reply) {
+        std::cerr << "Failed to send message: " << (err.message ? err.message : "unknown error") << std::endl;
+    }
+
+    DBusMessageIter replyIter;
+    dbus_message_iter_init(reply, &replyIter);
+    DBusMessageIter variantIter;
+    if (dbus_message_iter_get_arg_type(&replyIter) == DBUS_TYPE_VARIANT) {
+        dbus_message_iter_recurse(&replyIter, &variantIter);
+        if (dbus_message_iter_get_arg_type(&variantIter) == DBUS_TYPE_DOUBLE) {
+            double percentage;
+            dbus_message_iter_get_basic(&variantIter, &percentage);
+		state::bat_percentage = percentage;
+        }
+    }
+
+    dbus_message_unref(reply);
+    dbus_message_unref(msg);
 }
 
 int DbusListener::get_fd(void) const

@@ -21,6 +21,7 @@ class DbusListener
 
 	private:
 		std::pair<std::optional<double>, std::optional<bool>> parse_msg(DBusMessage *msg) const;
+		void make_initial_battery_state_request();
 
 		int fd;
 		DBusConnection *conn;

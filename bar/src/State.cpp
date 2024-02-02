@@ -27,9 +27,8 @@ void state::update_time()
 	std::tm localtime = *std::localtime(&now_c);
 	std::ostringstream ss;
 
-	ss << std::put_time(&localtime, "%H:%M");
+	ss << std::put_time(&localtime, "%H:%M:%S");
 	state::time_txt = ss.str();
-
 }
 
 void state::init() {

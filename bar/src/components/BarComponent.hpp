@@ -47,9 +47,8 @@ public:
 		std::stringstream ss;
 		int w, h;
 
-		ss << "Hello there";
+		ss << status << " " << (int)state::bat_percentage << "%";
 		this->content = ss.str();
-		std::cout << this->content << std::endl;
 
 		pango_layout_set_text(this->pango_layout.get(), this->content.c_str(), this->content.size());
 
@@ -196,20 +195,4 @@ public:
 private:
 	std::vector<wl_unique_ptr<PangoLayout>> pango_layouts;
 	int w; // since we assume tags do not change after startup
-};
-
-// todo: remove me!
-class ClassicComponent : public IBarComponent {
-	std::string _text;
-	int _align;
-	wl_unique_ptr<PangoLayout> _pangoLayout;
-
-public:
-	ClassicComponent();
-	explicit ClassicComponent(int align);
-
-	void setText(std::string text);
-
-	std::tuple<int, int> dim(const Monitor &mon) override; 
-	void render(cairo_t *painter, const Monitor &mon) const override;
 };

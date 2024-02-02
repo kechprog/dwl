@@ -2,6 +2,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <cstdio>
+#include <iostream>
 #include <list>
 #include <sys/inotify.h>
 #include <sys/poll.h>
@@ -502,9 +503,10 @@ int main(int argc, char* argv[])
 		.events = POLLIN,
 	});
 
+	// TODO: fix me
 	/*           time                */
 	struct itimerspec timer_spec{{0}};
-	timer_spec.it_value.tv_sec = 20;
+	timer_spec.it_value.tv_sec = 1;
 	int timer_fd = timerfd_create(CLOCK_REALTIME, 0);
 	timerfd_settime(timer_fd, 0, &timer_spec, NULL);
 	pollfds.push_back({
@@ -546,6 +548,7 @@ int main(int argc, char* argv[])
 				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
 					uint64_t _x;
 					read(timer_fd, &_x, sizeof(_x));
+					std::cout << "Updating time" << std::endl;
 					state::update_time();
 					state::render();
 				} else if (ev.fd == inotify_fd && (ev.revents & POLLIN)) {
