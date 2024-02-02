@@ -503,10 +503,9 @@ int main(int argc, char* argv[])
 		.events = POLLIN,
 	});
 
-	// TODO: fix me
 	/*           time                */
 	struct itimerspec timer_spec{{0}};
-	timer_spec.it_value.tv_sec = 1;
+	timer_spec.it_value.tv_sec = 20;
 	int timer_fd = timerfd_create(CLOCK_REALTIME, 0);
 	timerfd_settime(timer_fd, 0, &timer_spec, NULL);
 	pollfds.push_back({
@@ -551,6 +550,7 @@ int main(int argc, char* argv[])
 					std::cout << "Updating time" << std::endl;
 					state::update_time();
 					state::render();
+					timerfd_settime(timer_fd, 0, &timer_spec, NULL);
 				} else if (ev.fd == inotify_fd && (ev.revents & POLLIN)) {
 					/**\
 					|**|  there is no need to loop, since if somehting is left on inotify_fd,
