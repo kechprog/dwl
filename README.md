@@ -16,6 +16,5 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Pen/Tablet on/off Component
 - Touchscreen on/off Component
 - All screens tags at one Component
-- Dragging(it segfaults now)
 - Tweakable tablet width/hieght
 - Trackpad emulation via touchscreen(done partially)

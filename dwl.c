@@ -864,8 +864,6 @@ cursorframe(struct wl_listener *listener, void *data)
 void
 destroydragicon(struct wl_listener *listener, void *data)
 {
-	struct wlr_drag_icon *icon = data;
-	wlr_scene_node_destroy(icon->data);
 	/* Focus enter isn't sent during drag, so refocus the focused node. */
 	focusclient(focustop(selmon), 1);
 	motionnotify(0);
@@ -947,7 +945,6 @@ destroynotify(struct wl_listener *listener, void *data)
 	wl_list_remove(&c->set_title.link);
 	wl_list_remove(&c->fullscreen.link);
 
-	printf("Destroy Notify: Client is x11 = %d\n", client_is_x11(c));
 	if (client_is_x11(c)) {
 		wl_list_remove(&c->activate.link);
 		wl_list_remove(&c->associate.link);
@@ -955,9 +952,7 @@ destroynotify(struct wl_listener *listener, void *data)
 		wl_list_remove(&c->dissociate.link);
 		wl_list_remove(&c->set_hints.link);
 	} else {
-		printf("Before seg, wayland\n");
 		wl_list_remove(&c->commit.link);
-		printf("After seg, wayland\n");
 		wl_list_remove(&c->map.link);
 		wl_list_remove(&c->unmap.link);
 	}
