@@ -139,7 +139,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 
 /* commands */
 static const char *termcmd[] = { "kitty", NULL };
-static const char *menucmd[] = { "wofi", "-show", "drun", NULL };
+static const char *menucmd[] = { "wofi", NULL };
 static const char *brightnessupcmd[]   = {"light", "-As", "sysfs/backlight/amdgpu_bl0", "10", NULL};
 static const char *brightnessdowncmd[] = {"light", "-Us", "sysfs/backlight/amdgpu_bl0", "10", NULL};
 
