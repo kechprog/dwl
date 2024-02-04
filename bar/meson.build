@@ -19,7 +19,7 @@ link_args = ['-pg']
 
 # Change flags if it's a release build
 if get_option('buildtype') == 'release'
-    cpp_args = ['-Wno-parentheses', '-O2'] # Example release flags
+    cpp_args = ['-Wno-parentheses', '-O3', '-lto'] # Example release flags
     link_args = [] # Example release link flags
 endif
 
@@ -32,7 +32,6 @@ executable('somebar',
     'src/State.cpp',
     'src/components/BarComponent.cpp',
     'src/Font.cpp',
-    # 'src/components/TagsComponent.cpp',
     wayland_sources,
     dependencies: [
         wayland_dep,
@@ -43,6 +42,6 @@ executable('somebar',
 	dbus_dep,
     ],
     install: true,
-    cpp_args: cpp_args + ['-DSOMEBAR_VERSION="@0@"'.format(meson.project_version()), '-pg', '-g3'],
+    cpp_args: cpp_args + ['-DSOMEBAR_VERSION="@0@"'.format(meson.project_version())],
     link_args: link_args
 )
