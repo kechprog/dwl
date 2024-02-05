@@ -138,10 +138,13 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 // #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
-static const char *termcmd[] = { "kitty", NULL };
-static const char *menucmd[] = { "wofi", NULL };
+static const char *termcmd[]           = { "kitty", NULL };
+static const char *menucmd[]           = { "wofi", NULL };
 static const char *brightnessupcmd[]   = {"light", "-As", "sysfs/backlight/amdgpu_bl0", "10", NULL};
 static const char *brightnessdowncmd[] = {"light", "-Us", "sysfs/backlight/amdgpu_bl0", "10", NULL};
+static const char *volupcmd[]          = {"pamixer", "-i", "10"};
+static const char *voldowncmd[]        = {"pamixer", "-d", "10"};
+static const char *volmutetogglecmd[]  = {"pamixer", "-t"};
 
 /* want to know a name of specific key, as they are defined in xf86 keysym ?
  * - https://github.com/jwrdegoede/wev
@@ -178,6 +181,9 @@ static const Key keys[] = {
 	/* FUNCTION KEYS */
 	{ 0, XF86XK_MonBrightnessUp,   spawn, {.v = brightnessupcmd}   },
 	{ 0, XF86XK_MonBrightnessDown, spawn, {.v = brightnessdowncmd} },
+	{ 0, XF86XK_AudioRaiseVolume,  spawn, {.v = volupcmd}          },
+	{ 0, XF86XK_AudioLowerVolume,  spawn, {.v = voldowncmd}        },
+	{ 0, XF86XK_AudioMute,         spawn, {.v = volmutetogglecmd}  },
 
 	// {MODKEY,                     XKB_KEY_c,            check_tablet, {0}}, /* temporary */
 
