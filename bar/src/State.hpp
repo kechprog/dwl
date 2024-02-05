@@ -19,8 +19,10 @@ namespace state {
 	extern bool bat_is_charging;
 	extern uint8_t bat_percentage;
 
-
 	extern std::string time_txt;
+	
+	extern uint32_t volume;
+	extern bool is_mute;
 	
 	/* drawing things */
 	extern wl_unique_ptr<PangoContext> pango_ctx;

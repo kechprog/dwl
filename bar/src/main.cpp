@@ -20,6 +20,7 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <dbus-1.0/dbus/dbus.h>
+#include "src/pa_vol.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -520,6 +521,12 @@ int main(int argc, char* argv[])
 		.events = POLLIN,
 	});
 
+	const PaListener pa_listener {};
+	pollfds.push_back({
+		.fd = pa_listener.get_fd(),
+		.events = POLLIN,
+	});
+
 	while (!quitting) {
 		waylandFlush();
 		if (poll(pollfds.data(), pollfds.size(), -1) < 0) {
@@ -560,6 +567,8 @@ int main(int argc, char* argv[])
 					read(inotify_fd, &ev, sizeof(ev));
 					for (auto &fl : file_listeners)
 						fl(&ev);
+				} else if (ev.fd == pa_listener.get_fd() && (ev.revents & POLLIN)) {
+					pa_listener();
 				}
 			}
 		}

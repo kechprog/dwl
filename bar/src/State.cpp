@@ -16,6 +16,8 @@ namespace state {
 	std::string time_txt;
 	wl_unique_ptr<PangoContext> pango_ctx;
 	Font barfont;
+	uint32_t volume = 0;
+	bool is_mute = 0;
 }
 
 
@@ -42,15 +44,16 @@ void state::init() {
 	state::update_time();
 
 	/* 
-	 * put components here 
+	 * put components here,
 	 * order matters
 	 */
 
 	/* right aligned */
+	state::components.push_back(std::make_unique<TimeComponent<1>>());
 	state::components.push_back(std::make_unique<BatteryComponent<1>>());
+	state::components.push_back(std::make_unique<VolComponent<1>>());
 	for (size_t i = 0; i < display_configs_len; i++)
 		state::components.push_back(std::make_unique<BrightnessComponent<1>>(i));
-	state::components.push_back(std::make_unique<TimeComponent<1>>());
 
 	/* left aligned */
 	state::components.push_back(std::make_unique<TagsComponent<0>>());

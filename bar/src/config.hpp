@@ -29,6 +29,11 @@ const std::pair<std::filesystem::path, size_t> display_configs[] = {
 
 const size_t display_configs_len = sizeof(display_configs) / sizeof(display_configs[0]);
 
+// TODO: configuration for all necessary components
+// constexpr const std::array<char, 10> volume_icons = {
+//
+// };
+// constexpr const char volume_icon_mute = 'M';
 
 constexpr Button buttons[] = {
 	{ ClkTagBar,       BTN_LEFT,   view,       {0} },

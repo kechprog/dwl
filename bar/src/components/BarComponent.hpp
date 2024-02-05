@@ -86,6 +86,32 @@ private:
 	size_t idx;
 };
 
+/*****************************************************************************************/
+/*---------------------------------------VolComponent------------------------------------*/
+/*****************************************************************************************/
+template<int align>
+class VolComponent : public TextComponent {
+public:
+	VolComponent() : TextComponent() {};
+	std::tuple<int, int> dim(const Monitor &) override
+	{
+		int w;
+		std::stringstream ss;
+
+		if (state::is_mute)
+			ss << "Muted";
+		else
+			ss << "Volume: " << state::volume << "%";
+
+		this->content = ss.str();
+		pango_layout_set_text(this->pango_layout.get(), this->content.c_str(), this->content.size());
+		pango_layout_get_size(this->pango_layout.get(), &w, nullptr);
+
+		return std::make_tuple(PANGO_PIXELS(w) + 2*paddingX, align);
+	}
+private:
+	std::string content;
+};
 
 /*****************************************************************************************/
 /*--------------------------------------TimeComponent------------------------------------*/

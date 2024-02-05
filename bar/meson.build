@@ -10,6 +10,7 @@ cairo_dep = dependency('cairo')
 pango_dep = dependency('pango')
 pangocairo_dep = dependency('pangocairo')
 dbus_dep = dependency('dbus-1')
+pa_dep = dependency('libpulse')
 
 subdir('protocols')
 
@@ -32,6 +33,7 @@ executable('somebar',
     'src/State.cpp',
     'src/components/BarComponent.cpp',
     'src/Font.cpp',
+    'src/pa_vol.cpp',
     wayland_sources,
     dependencies: [
         wayland_dep,
@@ -40,6 +42,7 @@ executable('somebar',
         pango_dep,
         pangocairo_dep,
 	dbus_dep,
+	pa_dep,
     ],
     install: true,
     cpp_args: cpp_args + ['-DSOMEBAR_VERSION="@0@"'.format(meson.project_version())],

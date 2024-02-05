@@ -157,7 +157,7 @@ void Bar::renderComponent(IBarComponent *cmp)
 
 	cmp->render(slice_painter.get(), state::monitors.front());
 
-	int x_position;
+	int x_position = -1;
 	switch (align) {
 		case 0: /* left */
 			x_position = x_left;
