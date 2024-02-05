@@ -10,9 +10,9 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Brightness
 - Time
 - Battery
+- Volume
 - Modular file listeners
 ## Planned/Todo
-- Volume Component
 - Pen/Tablet on/off Component
 - Touchscreen on/off Component
 - All screens tags at one Component
