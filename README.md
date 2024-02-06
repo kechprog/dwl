@@ -13,9 +13,9 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Volume
 - Modular file listeners
 - Dynamic font size(dependant on bar hieght)
+- All screens tags at one Component
 ## Planned/Todo
 - Pen/Tablet on/off Component
 - Touchscreen on/off Component
-- All screens tags at one Component
 - Tweakable tablet width/hieght
 - Trackpad emulation via touchscreen(done partially)
