@@ -12,6 +12,7 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Battery
 - Volume
 - Modular file listeners
+- Dynamic font size(dependant on bar hieght)
 ## Planned/Todo
 - Pen/Tablet on/off Component
 - Touchscreen on/off Component
