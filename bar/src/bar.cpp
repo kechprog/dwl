@@ -4,7 +4,7 @@
 #include "State.hpp"
 #include "cairo.h"
 #include "config.hpp"
-#include "src/components/BarComponent.hpp"
+#include "BarComponent.hpp"
 
 const zwlr_layer_surface_v1_listener Bar::_layerSurfaceListener = {
 	[](void* owner, zwlr_layer_surface_v1*, uint32_t serial, uint32_t width, uint32_t height)
@@ -30,6 +30,11 @@ bool Bar::visible() const
 	return _wl_surface.get();
 }
 
+int Bar::height() const
+{
+	return state::barfont->height + paddingY * 2;
+}
+
 void Bar::show(wl_output* output)
 {
 	if (visible()) {
@@ -43,9 +48,8 @@ void Bar::show(wl_output* output)
 	zwlr_layer_surface_v1_set_anchor(layerSurface.get(),
 		anchor | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
 
-	auto barSize = state::barfont.height + paddingY * 2;
-	zwlr_layer_surface_v1_set_size(layerSurface.get(), 0, barSize);
-	zwlr_layer_surface_v1_set_exclusive_zone(layerSurface.get(), barSize);
+	zwlr_layer_surface_v1_set_size(layerSurface.get(), 0, this->height());
+	zwlr_layer_surface_v1_set_exclusive_zone(layerSurface.get(), this->height());
 	wl_surface_commit(_wl_surface.get());
 }
 
@@ -131,7 +135,8 @@ void Bar::render()
 	x_left = x_right = 0;
 
 	/* bg of bar */
-	const auto &clr_schm = colors[this->mon == state::selmon];
+	const Monitor *mon = wl_container_of(this, mon, bar);
+	const auto &clr_schm = colors[mon == state::selmon];
 	setColor(painter, clr_schm.bar_bg);
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
 	cairo_fill(painter);
@@ -149,13 +154,14 @@ void Bar::render()
 
 void Bar::renderComponent(IBarComponent *cmp)
 {
-	auto [w, align] = cmp->dim(*this->mon);
+	const Monitor *mon = wl_container_of(this, mon, bar);
+	auto [w, align] = cmp->setup(mon, bufs->height);
 
 	auto slice_surface = wl_unique_ptr<cairo_surface_t> 
 		{ cairo_image_surface_create(cairo_image_surface_get_format(cairo_surface), w, bufs->height) };
 	auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
 
-	cmp->render(slice_painter.get(), state::monitors.front());
+	cmp->render(slice_painter.get(), mon);
 
 	int x_position = -1;
 	switch (align) {

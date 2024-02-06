@@ -39,15 +39,13 @@ class Bar {
 
 public:
 	Bar() = default;
-	Bar(Monitor *mon) : mon(mon) {}
 	const struct wl_surface* surface() const;
 	bool visible() const;
+	int height() const;
 	void show(wl_output* output);
 	void hide();
 
 	/* state updating */
 	void invalidate();
 	void click(Monitor* mon, int x, int y, int btn);
-
-	Monitor *mon;
 };

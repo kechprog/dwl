@@ -7,11 +7,14 @@
 
 constexpr bool topbar = true;
 
-constexpr int paddingX = 10;
-constexpr int paddingY = 3;
+/* See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html */
+constexpr const char* font = "Sans";
+constexpr const int fontSize = 24; /* in px, keep it multiple of displays for AllTagsComponent */
+constexpr int paddingX = 6;
+constexpr int paddingY = 1;
 
-// See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html
-constexpr const char* font = "Sans 12";
+/* ask ChatGpt if not sure what to put here */
+constexpr const double dpi = 157; 
 
 const constexpr ColorScheme colors[2] = {
 	/*---------|--------Bar Bg------|--------Text------|-------Cmp Bg--------|-------Tag Sel-------|-------Tag Urg---------|----Which---*/
@@ -23,8 +26,9 @@ constexpr const char* termcmd[]     = {"foot", nullptr};
 
 const std::pair<std::filesystem::path, size_t> display_configs[] = {
 	/*           current brightness(file)             , max brightness */
-	{ "/sys/class/backlight/amdgpu_bl0/brightness",          255       },
-	// {"/sys/class/leds/asus::screenpad/brightness",            255}
+	// { "/sys/class/backlight/amdgpu_bl0/brightness",          255       },
+	{ "/sys/class/backlight/intel_backlight/brightness",       19200   },
+	{ "/sys/class/leds/asus::screenpad/brightness",             255    }
 };
 
 const size_t display_configs_len = sizeof(display_configs) / sizeof(display_configs[0]);

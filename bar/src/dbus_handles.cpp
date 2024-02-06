@@ -11,7 +11,8 @@
 static void dbus_query_bat(DBusConnection *conn, const char *property, void *ret)
 {
 	DBusError err;
-	const char* objPath = "/org/freedesktop/UPower/devices/battery_BATT";
+	// const char* objPath = "/org/freedesktop/UPower/devices/battery_BATT";
+	const char* objPath = "/org/freedesktop/UPower/devices/battery_BAT0";
 	const char* interfaceName = "org.freedesktop.DBus.Properties";
 
 	dbus_error_init(&err);

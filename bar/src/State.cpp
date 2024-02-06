@@ -2,7 +2,8 @@
 #include <vector>
 #include <pango/pangocairo.h>
 #include "State.hpp"
-#include "components/BarComponent.hpp"
+#include "BarComponent.hpp"
+#include "src/config.hpp"
 
 namespace state {
 	std::list<Monitor> monitors {0};
@@ -15,7 +16,7 @@ namespace state {
 	std::vector<std::unique_ptr<IBarComponent>> components;
 	std::string time_txt;
 	wl_unique_ptr<PangoContext> pango_ctx;
-	Font barfont;
+	Font *barfont = nullptr;
 	uint32_t volume = 0;
 	bool is_mute = 0;
 }
@@ -40,7 +41,7 @@ void state::init() {
 		die("pango_font_map_create_context");
 	}
 
-	state::barfont = Font::get_font();
+	state::barfont = Font::get_font(fontSize);
 	state::update_time();
 
 	/* 
@@ -56,7 +57,8 @@ void state::init() {
 		state::components.push_back(std::make_unique<BrightnessComponent<1>>(i));
 
 	/* left aligned */
-	state::components.push_back(std::make_unique<TagsComponent<0>>());
+	// state::components.push_back(std::make_unique<TagsComponent<0>>());
+	state::components.push_back(std::make_unique<AllTagsComponent<0>>());
 	state::components.push_back(std::make_unique<LayoutComponent<0>>());
 	state::components.push_back(std::make_unique<TitleComponent<0>>());
 }

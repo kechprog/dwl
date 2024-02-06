@@ -81,5 +81,6 @@ WL_DELETER(cairo_surface_t, cairo_surface_destroy);
 
 WL_DELETER(PangoContext, g_object_unref);
 WL_DELETER(PangoLayout, g_object_unref);
+WL_DELETER(PangoFontDescription, pango_font_description_free);
 
 #undef WL_DELETER

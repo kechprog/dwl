@@ -309,7 +309,6 @@ void setupMonitor(uint32_t name, wl_output* output) {
 		.wlOutput = wl_unique_ptr<wl_output> {output},
 		.tags = std::move(tags)
 	});
-	monitor.bar.mon = &monitor;
 	
 
 	auto xdgOutput 
