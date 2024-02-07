@@ -1119,22 +1119,19 @@ focustop(Monitor *m)
 	return NULL;
 }
 
-// TODO: flips only the stacked clients
-// do same for all(I have no idea what to do about floating)
-// they cause seg faults :(
-void flipmons(const Arg *arg)
+void movenext(const Arg *arg)
 {
 	Client *c, *cur = focustop(selmon);
 	Monitor *m;
 
 	wl_list_for_each(c, &clients, link) {
-		/* get next mon */
 		m = wl_container_of(c->mon->link.next == &mons
 		 ? c->mon->link.next->next
 		 : c->mon->link.next,
 		 m, link);
 
-		setmon(c, m, 0);
+		if (VISIBLEON(c, c->mon))
+			setmon(c, m, 0);
 	}
 
 	if (!cur)

@@ -359,7 +359,7 @@ void focusclient(Client *c, int lift);
 void focusmon(const Arg *arg);
 void focusstack(const Arg *arg);
 Client *focustop(Monitor *m);
-void flipmons(const Arg *arg);
+void movenext(const Arg *arg);
 void fullscreennotify(struct wl_listener *listener, void *data);
 void handlesig(int signo);
 void incnmaster(const Arg *arg);

@@ -16,6 +16,7 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - All screens tags at one Component
 - Horizontal alignment component
 - Configurable components
+- Change brightness on multiple screens 
 ## Planned/Todo
 - Pen/Tablet on/off Component
 - Touchscreen on/off Component
