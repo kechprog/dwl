@@ -130,26 +130,32 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------LayoutComponent----------------------------------*/
 /*****************************************************************************************/
-template<int align>
+template<int align, bool per_mon>
 class LayoutComponent : public TextComponent<align> {
 public:
 	LayoutComponent() : TextComponent<align>() {};
-	void update_text(const Monitor *) override
+	void update_text(const Monitor *mon) override
 	{
-		this->content = state::layout_names[state::selmon->layout_idx];
+		if constexpr (per_mon)
+			this->content = state::layout_names[mon->layout_idx];
+		else
+			this->content = state::layout_names[state::selmon->layout_idx];
 	}
 };
 
 /*****************************************************************************************/
 /*--------------------------------------TimeComponent------------------------------------*/
 /*****************************************************************************************/
-template<int align>
+template<int align, bool per_mon>
 class TitleComponent : public TextComponent<align> {
 public:
 	TitleComponent() : TextComponent<align>() {};
 	void update_text(const Monitor *mon) override
 	{
-		this->content = mon->title;
+		if constexpr (per_mon)
+			this->content = mon->title;
+		else
+			this->content = state::selmon->title;
 	}
 };
 
@@ -242,6 +248,8 @@ public:
 
 			return std::make_tuple(this->w, align);
 		}
+
+		return std::make_tuple(this->w, align);
 	}
 
 	void render(cairo_t *painter, const Monitor *mon) const override
@@ -270,4 +278,45 @@ private:
 	std::vector<TagsComponent<0,5,0>> all_tags;
 	int mon_height;
 	int w;
+};
+
+
+template<int align>
+class HAlignComponent : public IBarComponent {
+public:
+	HAlignComponent(std::vector<std::unique_ptr<IBarComponent>> components) : components { std::move(components) } {}
+	std::tuple<int, int> setup(const Monitor *mon, int height) override
+	{
+		this->cmp_height = height / this->components.size();
+		for (auto &cmp : this->components)
+		{
+			auto [w, _align] = cmp->setup(mon, this->cmp_height);
+			this->max_width = std::max(this->max_width, w);
+		}
+
+		return std::make_tuple(this->max_width, align);
+	}
+
+	void render(cairo_t *painter, const Monitor *mon) const override
+	{
+		int y = 0;
+		const auto img = cairo_get_target(painter);
+		const auto width = cairo_image_surface_get_width(img);
+		for (const auto &cmp : this->components)
+		{
+			auto slice_surface = wl_unique_ptr<cairo_surface_t> 
+				{ cairo_image_surface_create(cairo_image_surface_get_format(img), width, this->cmp_height) };
+			auto slice_painter = wl_unique_ptr<cairo_t> {cairo_create(slice_surface.get())};
+			cmp->render(slice_painter.get(), mon);
+			cairo_set_source_surface(painter, slice_surface.get(), 0, y);
+			cairo_rectangle(painter, 0, y, width, this->cmp_height);
+			cairo_fill(painter);
+			y += this->cmp_height;
+		}
+	}
+
+private:
+	std::vector<std::unique_ptr<IBarComponent>> components;
+	int cmp_height;
+	int max_width;
 };

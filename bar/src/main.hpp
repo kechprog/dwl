@@ -7,10 +7,10 @@
 
 struct Monitor {
 	uint32_t                 registryName;
-	std::string              xdgName;
+	std::string              xdg_name;
 	wl_unique_ptr<wl_output> wlOutput;
 	Bar 					 bar;
-	bool 				   	 desiredVisibility {true};
+	bool 				   	 desiredVisibility {false};
 	bool 					 hasData;
 	uint32_t 				 sel_tags;
 	wl_unique_ptr<znet_tapesoftware_dwl_wm_monitor_v1> dwl_mon;

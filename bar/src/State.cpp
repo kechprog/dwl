@@ -53,14 +53,19 @@ void state::init() {
 	state::components.push_back(std::make_unique<TimeComponent<1>>());
 	state::components.push_back(std::make_unique<BatteryComponent<1>>());
 	state::components.push_back(std::make_unique<VolComponent<1>>());
+
+	std::vector<std::unique_ptr<IBarComponent>> brightness_components;
 	for (size_t i = 0; i < display_configs_len; i++)
-		state::components.push_back(std::make_unique<BrightnessComponent<1>>(i));
+		brightness_components.push_back(std::make_unique<BrightnessComponent<1>>(i));
+	state::components.push_back(std::make_unique<HAlignComponent<1>>(std::move(brightness_components)));
 
 	/* left aligned */
 	// state::components.push_back(std::make_unique<TagsComponent<0>>());
 	state::components.push_back(std::make_unique<AllTagsComponent<0>>());
-	state::components.push_back(std::make_unique<LayoutComponent<0>>());
-	state::components.push_back(std::make_unique<TitleComponent<0>>());
+
+	/* second arg - per-monitor or global */
+	state::components.push_back(std::make_unique<LayoutComponent<0, false>>());
+	state::components.push_back(std::make_unique<TitleComponent<0, false>>());
 }
 
 void state::render() {

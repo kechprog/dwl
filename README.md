@@ -14,6 +14,8 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Modular file listeners
 - Dynamic font size(dependant on bar hieght)
 - All screens tags at one Component
+- Horizontal alignment component
+- Configurable components
 ## Planned/Todo
 - Pen/Tablet on/off Component
 - Touchscreen on/off Component

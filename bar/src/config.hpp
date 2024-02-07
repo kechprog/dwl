@@ -6,6 +6,9 @@
 #include <filesystem>
 
 constexpr bool topbar = true;
+const std::string displays_to_show_on[] {
+	std::string("eDP-1"),
+};
 
 /* See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html */
 constexpr const char* font = "Sans";

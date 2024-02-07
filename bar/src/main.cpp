@@ -110,8 +110,15 @@ static const struct zxdg_output_v1_listener xdgOutputListener = {
 	.done             = [](void*, zxdg_output_v1*) { },
 
 	.name = [](void* mp, zxdg_output_v1* xdgOutput, const char* name) {
-		static_cast<Monitor*>
-			(mp)->xdgName = name;
+		Monitor *mon = static_cast<Monitor*>(mp);
+		mon->xdg_name = name;
+		for (auto &to_show_on : displays_to_show_on) {
+			if (to_show_on == name) {
+				mon->desiredVisibility = true;
+				break;
+			}
+		}
+		
 		zxdg_output_v1_destroy(xdgOutput);
 	},
 
@@ -305,7 +312,7 @@ void setupMonitor(uint32_t name, wl_output* output) {
 
 	auto &monitor = state::monitors.emplace_back(Monitor {
 		.registryName = name, 
-		.xdgName = {}, 
+		.xdg_name = {}, 
 		.wlOutput = wl_unique_ptr<wl_output> {output},
 		.tags = std::move(tags)
 	});
