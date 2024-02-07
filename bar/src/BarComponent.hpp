@@ -2,6 +2,7 @@
 #include "src/common.hpp"
 #include "src/config.hpp"
 #include "src/State.hpp"
+#include "Font.hpp"
 #include <pango/pangocairo.h>
 #include <iostream>
 #include <cairo.h>
@@ -20,20 +21,20 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TextComponent------------------------------------*/
 /*****************************************************************************************/
-template <int align>
+template <int align, int padding_x, int padding_y>
 class TextComponent : public IBarComponent {
 public:
 	TextComponent() : pango_layout { wl_unique_ptr<PangoLayout> { pango_layout_new(state::pango_ctx.get()) } }{};
 	std::tuple<int, int> setup(const Monitor *mon, int height) override
 	{
 		this->update_text(mon);
-		const auto *font = Font::get_font(height-2*paddingY);
+		const auto *font = Font::get_font(height-2*padding_y);
 		int w;
 		pango_layout_set_font_description(this->pango_layout.get(), font->description.get());
 		pango_layout_set_text(this->pango_layout.get(), this->content.c_str(), this->content.size());
 		pango_layout_get_size(this->pango_layout.get(), &w, nullptr);
 
-		return std::make_tuple(PANGO_PIXELS(w) + 2*paddingX, align);
+		return std::make_tuple(PANGO_PIXELS(w) + 2*padding_x, align);
 	}
 
 	void render(cairo_t *painter, const Monitor *mon) const override
@@ -48,7 +49,7 @@ public:
 
 		setColor(painter, clr_schm.text);
 		pango_cairo_update_layout(painter, this->pango_layout.get());
-		cairo_move_to(painter, paddingX, paddingY);
+		cairo_move_to(painter, padding_x, padding_y);
 		pango_cairo_show_layout(painter, this->pango_layout.get());
 	}
 
@@ -62,10 +63,10 @@ protected:
 /*****************************************************************************************/
 /*------------------------------------BatteryComponent-----------------------------------*/
 /*****************************************************************************************/
-template<int align>
-class BatteryComponent : public TextComponent<align> {
+template <int align, int padding_x, int padding_y>
+class BatteryComponent : public TextComponent<align, padding_x, padding_y> {
 public:
-	BatteryComponent() noexcept : TextComponent<align>() {}
+	BatteryComponent() noexcept : TextComponent<align, padding_x, padding_y>() {}
 	void update_text(const Monitor *mon) override
 	{
 		const auto status = state::bat_is_charging ? "charging" : "discharging";
@@ -80,10 +81,10 @@ public:
 /*****************************************************************************************/
 /*-----------------------------------BrightnessComponent---------------------------------*/
 /*****************************************************************************************/
-template<int align>
-class BrightnessComponent : public TextComponent<align> {
+template <int align, int padding_x, int padding_y>
+class BrightnessComponent : public TextComponent<align, padding_x, padding_y> {
 public:
-	BrightnessComponent(size_t idx) : TextComponent<align>(), idx { idx } {}
+	BrightnessComponent(size_t idx) : TextComponent<align, padding_x, padding_y>(), idx { idx } {}
 	void update_text(const Monitor *mon) override
 	{
 		std::stringstream ss;
@@ -98,10 +99,10 @@ private:
 /*****************************************************************************************/
 /*---------------------------------------VolComponent------------------------------------*/
 /*****************************************************************************************/
-template<int align>
-class VolComponent : public TextComponent<align> {
+template <int align, int padding_x, int padding_y>
+class VolComponent : public TextComponent<align, padding_x, padding_y> {
 public:
-	VolComponent() : TextComponent<align>() {};
+	VolComponent() : TextComponent<align, padding_x, padding_y>() {};
 	void update_text(const Monitor *) override
 	{
 		std::stringstream ss;
@@ -116,10 +117,10 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TimeComponent------------------------------------*/
 /*****************************************************************************************/
-template<int align>
-class TimeComponent : public TextComponent<align> {
+template <int align, int padding_x, int padding_y>
+class TimeComponent : public TextComponent<align, padding_x, padding_y> {
 public:
-	TimeComponent() : TextComponent<align>() {};
+	TimeComponent() : TextComponent<align, padding_x, padding_y>() {};
 	void update_text(const Monitor *) override
 	{
 		this->content = state::time_txt;
@@ -130,10 +131,10 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------LayoutComponent----------------------------------*/
 /*****************************************************************************************/
-template<int align, bool per_mon>
-class LayoutComponent : public TextComponent<align> {
+template <int align, int padding_x, int padding_y, bool per_mon>
+class LayoutComponent : public TextComponent<align, padding_x, padding_y> {
 public:
-	LayoutComponent() : TextComponent<align>() {};
+	LayoutComponent() : TextComponent<align, padding_x, padding_y>() {};
 	void update_text(const Monitor *mon) override
 	{
 		if constexpr (per_mon)
@@ -146,10 +147,10 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TimeComponent------------------------------------*/
 /*****************************************************************************************/
-template<int align, bool per_mon>
-class TitleComponent : public TextComponent<align> {
+template <int align, int padding_x, int padding_y, bool per_mon>
+class TitleComponent : public TextComponent<align, padding_x, padding_y> {
 public:
-	TitleComponent() : TextComponent<align>() {};
+	TitleComponent() : TextComponent<align, padding_x, padding_y>() {};
 	void update_text(const Monitor *mon) override
 	{
 		if constexpr (per_mon)
@@ -287,7 +288,7 @@ public:
 	HAlignComponent(std::vector<std::unique_ptr<IBarComponent>> components) : components { std::move(components) } {}
 	std::tuple<int, int> setup(const Monitor *mon, int height) override
 	{
-		this->cmp_height = height / this->components.size();
+		this->cmp_height = height / (double) this->components.size();
 		for (auto &cmp : this->components)
 		{
 			auto [w, _align] = cmp->setup(mon, this->cmp_height);

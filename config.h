@@ -60,15 +60,13 @@ static const MonitorRule monrules[] = {
 	/*  name  ,   mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
 	// { NULL ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
 	// /*       touch name        tablet name */
- //    , NULL, NULL},
+ //    , NULL, NULL, "sysfs/backlight/amdgpu_bl0"},
 	{ "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0,
 	/*       touch name        tablet name */
-	"ELAN9008:00 04F3:2D55", NULL},
-
-
+	"ELAN9008:00 04F3:2D55", NULL, "sysfs/backlight/intel_backlight"},
 	{ "DP-1"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080,
 	/*       touch name        tablet name */
-	"ELAN9009:00 04F3:2C1B", "ELAN9009:00 04F3:2C1B Stylus"}
+	"ELAN9009:00 04F3:2C1B", "ELAN9009:00 04F3:2C1B Stylus", "sysfs/leds/asus::screenpad"}
 };
 
 /* keyboard */
@@ -135,13 +133,12 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY, toggletag,       {.ui = 1 << TAG} }
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
-// #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
 static const char *termcmd[]           = { "kitty", NULL };
 static const char *menucmd[]           = { "wofi", NULL };
-static const char *brightnessupcmd[]   = {"light", "-As", "sysfs/backlight/amdgpu_bl0", "10", NULL};
-static const char *brightnessdowncmd[] = {"light", "-Us", "sysfs/backlight/amdgpu_bl0", "10", NULL};
+
 static const char *volupcmd[]          = {"pamixer", "-i", "10"};
 static const char *voldowncmd[]        = {"pamixer", "-d", "10"};
 static const char *volmutetogglecmd[]  = {"pamixer", "-t"};
@@ -179,8 +176,9 @@ static const Key keys[] = {
 	{ 0                        , XF86XK_Launch6,     flipmons,       {0} },
 
 	/* FUNCTION KEYS */
-	{ 0, XF86XK_MonBrightnessUp,   spawn, {.v = brightnessupcmd}   },
-	{ 0, XF86XK_MonBrightnessDown, spawn, {.v = brightnessdowncmd} },
+	{ 0,      XF86XK_MonBrightnessUp,   monitorbrightness,  {.i =  10} },
+	{ 0,      XF86XK_MonBrightnessDown, monitorbrightness,  {.i = -10} },
+
 	{ 0, XF86XK_AudioRaiseVolume,  spawn, {.v = volupcmd}          },
 	{ 0, XF86XK_AudioLowerVolume,  spawn, {.v = voldowncmd}        },
 	{ 0, XF86XK_AudioMute,         spawn, {.v = volmutetogglecmd}  },

@@ -8,11 +8,12 @@
 constexpr bool topbar = true;
 const std::string displays_to_show_on[] {
 	std::string("eDP-1"),
+	// std::string("DP-1"),
 };
 
 /* See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html */
 constexpr const char* font = "Sans";
-constexpr const int fontSize = 24; /* in px, keep it multiple of displays for AllTagsComponent */
+constexpr const int bar_size = 30; /* in px, keep it multiple of displays for AllTagsComponent */
 constexpr int paddingX = 6;
 constexpr int paddingY = 1;
 

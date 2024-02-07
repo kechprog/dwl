@@ -3,7 +3,6 @@
 #include "pango/pango-types.h"
 #include "config.hpp"
 #include "src/main.hpp"
-#include "src/Font.hpp"
 #include <list>
 #include <memory>
 
@@ -26,7 +25,6 @@ namespace state {
 	
 	/* drawing things */
 	extern wl_unique_ptr<PangoContext> pango_ctx;
-	extern Font *barfont;
 	extern std::vector<std::unique_ptr<IBarComponent>> components;
 
 	void init(void);

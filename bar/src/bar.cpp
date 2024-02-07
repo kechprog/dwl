@@ -32,7 +32,7 @@ bool Bar::visible() const
 
 int Bar::height() const
 {
-	return state::barfont->height + paddingY * 2;
+	return bar_size;
 }
 
 void Bar::show(wl_output* output)

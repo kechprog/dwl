@@ -600,6 +600,7 @@ createmon(struct wl_listener *listener, void *data)
 			wlr_output_set_transform(wlr_output, r->rr);
 			m->m.x = r->x;
 			m->m.y = r->y;
+			m->brightness_class = r->brightness_class;
 			
 			/* find related touch device */
 			m->touch_name = r->touch_name;
@@ -1234,6 +1235,8 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
 	 */
 	int handled = 0;
 	const Key *k;
+	if (sym == XF86XK_MonBrightnessUp)
+		printf("Keysym: %d|Mods: %d\n", sym, mods);
 	for (k = keys; k < END(keys); k++) {
 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
 				sym == k->keysym && k->func) {
@@ -1463,6 +1466,16 @@ monocle(Monitor *m)
 		snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "[%d]", n);
 	if ((c = focustop(m)))
 		wlr_scene_node_raise_to_top(&c->scene->node);
+}
+
+void 
+monitorbrightness(const Arg *arg)
+{
+	char val[3];
+	sprintf(val, "%d", abs(arg->i));
+	const char *cmd[] = {"light", arg->i > 0 ? "-As" : "-Us", selmon->brightness_class, val, NULL};
+	const Arg a = {.v = cmd};
+	spawn(&a);
 }
 
 void

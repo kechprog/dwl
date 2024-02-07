@@ -218,6 +218,7 @@ struct Monitor {
 	struct wl_list dwl_wm_monitor_link;
 	char *touch_name; /* null if nothing is asociated, see MonitorRule */
 	char *tablet_name;
+	char *brightness_class;
 };
 
 typedef struct {
@@ -231,6 +232,7 @@ typedef struct {
 
 	char *touch_name;
 	char *tablet_name;
+	char *brightness_class;
 } MonitorRule;
 
 typedef struct {
@@ -372,6 +374,7 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data);
 void mapnotify(struct wl_listener *listener, void *data);
 void maximizenotify(struct wl_listener *listener, void *data);
 void monocle(Monitor *m);
+void monitorbrightness(const Arg *arg);
 void motionabsolute(struct wl_listener *listener, void *data);
 void motionnotify(uint32_t time);
 void motionrelative(struct wl_listener *listener, void *data);
