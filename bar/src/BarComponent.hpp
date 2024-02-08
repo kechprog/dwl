@@ -3,12 +3,39 @@
 #include "src/config.hpp"
 #include "src/State.hpp"
 #include "Font.hpp"
+#include <cassert>
 #include <pango/pangocairo.h>
 #include <iostream>
 #include <cairo.h>
 #include <sys/types.h>
 #include <tuple>
 #include <pango/pango-layout.h>
+
+template<typename T>
+T map_to_index(T *arr, size_t arr_len, uint8_t idx)
+{
+	assert(idx <= 100); /* uint >= 0 - always */
+	if (idx == 0)
+		return arr[0];
+	if (idx == 100)
+		return arr[arr_len - 1];
+
+	const int category_split = 100 / arr_len;
+	return arr[idx / category_split];
+
+}
+
+struct CmpColors {
+	Color text, bg, border;
+};
+
+struct CmpStyle {
+	CmpColors colors[2];
+	int align;
+	int border_px, padding_x, padding_y;
+
+	static const constexpr CmpStyle defualt();
+};
 
 class IBarComponent {
 public:
@@ -21,35 +48,36 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TextComponent------------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y>
+// template <int align, int padding_x, int padding_y>
+template<CmpStyle style = CmpStyle::defualt()>
 class TextComponent : public IBarComponent {
 public:
 	TextComponent() : pango_layout { wl_unique_ptr<PangoLayout> { pango_layout_new(state::pango_ctx.get()) } }{};
 	std::tuple<int, int> setup(const Monitor *mon, int height) override
 	{
 		this->update_text(mon);
-		const auto *font = Font::get_font(height-2*padding_y);
+		const auto *font = Font::get_font(height-2*style.padding_y);
 		int w;
 		pango_layout_set_font_description(this->pango_layout.get(), font->description.get());
 		pango_layout_set_text(this->pango_layout.get(), this->content.c_str(), this->content.size());
 		pango_layout_get_size(this->pango_layout.get(), &w, nullptr);
 
-		return std::make_tuple(PANGO_PIXELS(w) + 2*padding_x, align);
+		return std::make_tuple(PANGO_PIXELS(w) + 2*style.padding_x, style.align);
 	}
 
 	void render(cairo_t *painter, const Monitor *mon) const override
 	{
-		const auto &clr_schm = colors[mon == state::selmon];
+		const auto &clr_schm = style.colors[mon == state::selmon];
 		const auto height = cairo_image_surface_get_height(cairo_get_target(painter));
 		const auto width = cairo_image_surface_get_width(cairo_get_target(painter));
 		
-		setColor(painter, clr_schm.cmp_bg);
+		setColor(painter, clr_schm.bg);
 		cairo_rectangle(painter, 0, 0, width, height);
 		cairo_fill(painter);
 
 		setColor(painter, clr_schm.text);
 		pango_cairo_update_layout(painter, this->pango_layout.get());
-		cairo_move_to(painter, padding_x, padding_y);
+		cairo_move_to(painter, style.padding_x, style.padding_y);
 		pango_cairo_show_layout(painter, this->pango_layout.get());
 	}
 
@@ -63,16 +91,17 @@ protected:
 /*****************************************************************************************/
 /*------------------------------------BatteryComponent-----------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y>
-class BatteryComponent : public TextComponent<align, padding_x, padding_y> {
+template<CmpStyle style>
+class BatteryComponent : public TextComponent<style> {
 public:
-	BatteryComponent() noexcept : TextComponent<align, padding_x, padding_y>() {}
+	BatteryComponent() noexcept : TextComponent<style>() {}
 	void update_text(const Monitor *mon) override
 	{
-		const auto status = state::bat_is_charging ? "charging" : "discharging";
+		const auto &icons = map_to_index(config::battery::icons, config::battery::icons_len, state::bat_percentage);
+		const auto icon = state::bat_is_charging ? icons.first : icons.second;
 		std::stringstream ss;
 
-		ss << status << " " << (int)state::bat_percentage << "%";
+		ss << icon << ": " << (int)state::bat_percentage << "%";
 		this->content = ss.str();
 	}
 };
@@ -81,14 +110,15 @@ public:
 /*****************************************************************************************/
 /*-----------------------------------BrightnessComponent---------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y>
-class BrightnessComponent : public TextComponent<align, padding_x, padding_y> {
+template<CmpStyle style>
+class BrightnessComponent : public TextComponent<style> {
 public:
-	BrightnessComponent(size_t idx) : TextComponent<align, padding_x, padding_y>(), idx { idx } {}
+	BrightnessComponent(size_t idx) : TextComponent<style>(), idx { idx } {}
 	void update_text(const Monitor *mon) override
 	{
 		std::stringstream ss;
-		ss << "Brightness: " << (int)state::brightnesses[this->idx] << "%";
+		const auto icon = map_to_index(config::brightness::icons, config::brightness::icons_len, state::brightnesses[this->idx]);
+		ss << icon << ": " << (int)state::brightnesses[this->idx] << "%";
 		this->content = ss.str();
 	}
 
@@ -99,17 +129,20 @@ private:
 /*****************************************************************************************/
 /*---------------------------------------VolComponent------------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y>
-class VolComponent : public TextComponent<align, padding_x, padding_y> {
+template<CmpStyle style>
+class VolComponent : public TextComponent<style> {
 public:
-	VolComponent() : TextComponent<align, padding_x, padding_y>() {};
+	VolComponent() : TextComponent<style>() {};
 	void update_text(const Monitor *) override
 	{
 		std::stringstream ss;
 		if (state::is_mute)
-			ss << "Muted";
-		else
-			ss << "Volume: " << state::volume << "%";
+			ss << config::volume::icon_mute;
+		else {
+			const auto icon = map_to_index(config::volume::icons, config::volume::icons_len, (uint8_t)state::volume);
+			ss << icon;
+		}
+		ss << ": " << state::volume << "%";
 		this->content = ss.str();
 	}
 };
@@ -117,10 +150,10 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TimeComponent------------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y>
-class TimeComponent : public TextComponent<align, padding_x, padding_y> {
+template<CmpStyle style>
+class TimeComponent : public TextComponent<style> {
 public:
-	TimeComponent() : TextComponent<align, padding_x, padding_y>() {};
+	TimeComponent() : TextComponent<style>() {};
 	void update_text(const Monitor *) override
 	{
 		this->content = state::time_txt;
@@ -131,10 +164,10 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------LayoutComponent----------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y, bool per_mon>
-class LayoutComponent : public TextComponent<align, padding_x, padding_y> {
+template <CmpStyle style, bool per_mon>
+class LayoutComponent : public TextComponent<style> {
 public:
-	LayoutComponent() : TextComponent<align, padding_x, padding_y>() {};
+	LayoutComponent() : TextComponent<style>() {};
 	void update_text(const Monitor *mon) override
 	{
 		if constexpr (per_mon)
@@ -147,10 +180,10 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TimeComponent------------------------------------*/
 /*****************************************************************************************/
-template <int align, int padding_x, int padding_y, bool per_mon>
-class TitleComponent : public TextComponent<align, padding_x, padding_y> {
+template <CmpStyle style, bool per_mon>
+class TitleComponent : public TextComponent<style> {
 public:
-	TitleComponent() : TextComponent<align, padding_x, padding_y>() {};
+	TitleComponent() : TextComponent<style>() {};
 	void update_text(const Monitor *mon) override
 	{
 		if constexpr (per_mon)
@@ -194,7 +227,7 @@ public:
 
 		for (size_t i = 0; i < state::tag_names.size(); i++)
 		{
-			const auto &clr_schm = colors[mon == state::selmon];
+			const auto &clr_schm = config::appearence::colors[mon == state::selmon];
 			int width; 
 			pango_layout_get_size(this->pango_layouts[i].get(), &width, nullptr);
 			width = PANGO_PIXELS(width) + 2*padding_x;

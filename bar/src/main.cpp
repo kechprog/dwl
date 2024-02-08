@@ -112,7 +112,7 @@ static const struct zxdg_output_v1_listener xdgOutputListener = {
 	.name = [](void* mp, zxdg_output_v1* xdgOutput, const char* name) {
 		Monitor *mon = static_cast<Monitor*>(mp);
 		mon->xdg_name = name;
-		for (auto &to_show_on : displays_to_show_on) {
+		for (auto &to_show_on : config::appearence::displays_to_show_on) {
 			if (to_show_on == name) {
 				mon->desiredVisibility = true;
 				break;

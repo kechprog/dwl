@@ -2,15 +2,14 @@
 #include <vector>
 #include <pango/pangocairo.h>
 #include "State.hpp"
-#include "BarComponent.hpp"
-#include "src/config.hpp"
+#include "cmp_conf.hpp"
 
 namespace state {
 	std::list<Monitor> monitors {0};
 	Monitor *selmon = nullptr;
 	std::vector<std::string> tag_names;
 	std::vector<std::string> layout_names;
-	std::array<uint8_t, sizeof(display_configs) / sizeof(display_configs[0])> brightnesses = {0, 0};
+	std::array<uint8_t, config::brightness::display_count> brightnesses = {0, 0};
 	bool bat_is_charging   = {0};
 	uint8_t bat_percentage = {0};
 	std::vector<std::unique_ptr<IBarComponent>> components;
@@ -47,14 +46,17 @@ void state::init() {
 	 * order matters
 	 */
 
+	const auto paddingX = config::appearence::paddingX;
+	const auto paddingY = config::appearence::paddingY;
+
 	/* right aligned */
-	state::components.push_back(std::make_unique<TimeComponent<1, paddingX, paddingY>>());
-	state::components.push_back(std::make_unique<BatteryComponent<1, paddingX, paddingY>>());
-	state::components.push_back(std::make_unique<VolComponent<1, paddingX, paddingY>>());
+	state::components.push_back(std::make_unique<config::components::Time>());
+	state::components.push_back(std::make_unique<config::components::Battery>());
+	state::components.push_back(std::make_unique<config::components::Volume>());
 
 	std::vector<std::unique_ptr<IBarComponent>> brightness_components;
-	for (size_t i = 0; i < display_configs_len; i++)
-		brightness_components.push_back(std::make_unique<BrightnessComponent<0, paddingX, 1>>(i));
+	for (size_t i = 0; i < config::brightness::display_count; i++)
+		brightness_components.push_back(std::make_unique<config::components::Brightness>(i));
 	state::components.push_back(std::make_unique<HAlignComponent<1>>(std::move(brightness_components)));
 
 	/* left aligned */
@@ -62,8 +64,8 @@ void state::init() {
 	state::components.push_back(std::make_unique<AllTagsComponent<0>>());
 
 	/* second arg - per-monitor or global */
-	state::components.push_back(std::make_unique<LayoutComponent<0, paddingX, paddingY, false>>());
-	state::components.push_back(std::make_unique<TitleComponent<0, paddingX, paddingY, false>>());
+	state::components.push_back(std::make_unique<config::components::Layout>());
+	state::components.push_back(std::make_unique<config::components::Title>());
 }
 
 void state::render() {

@@ -19,4 +19,4 @@ class FileListener {
 };
 
 /* the big boy function */
-std::array<FileListener, display_configs_len> setupFileListeners(int notify_fd);
+std::array<FileListener, config::brightness::display_count> setupFileListeners(int notify_fd);

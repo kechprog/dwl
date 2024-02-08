@@ -11,22 +11,21 @@
 static void dbus_query_bat(DBusConnection *conn, const char *property, void *ret)
 {
 	DBusError err;
-	// const char* objPath = "/org/freedesktop/UPower/devices/battery_BATT";
-	const char* objPath = "/org/freedesktop/UPower/devices/battery_BAT0";
-	const char* interfaceName = "org.freedesktop.DBus.Properties";
+	const char* obj_path = config::battery::dbus_obj_path;
+	const char* interface_name = "org.freedesktop.DBus.Properties";
 
 	dbus_error_init(&err);
 
 	DBusMessage* msg = dbus_message_new_method_call(
 		"org.freedesktop.UPower", // service to contact
-		objPath,                  // object path
-		interfaceName,            // interface name
+		obj_path,                  // object path
+		interface_name,            // interface name
 		"Get");                   // method name
 
 	DBusMessageIter args;
 	dbus_message_iter_init_append(msg, &args);
-	const char* propInterface = "org.freedesktop.UPower.Device";
-	if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &propInterface)
+	const char* prop_iface = "org.freedesktop.UPower.Device";
+	if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &prop_iface)
 	||  !dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &property)) {
 	std::cerr << "Out of Memory!" << std::endl;
 	}

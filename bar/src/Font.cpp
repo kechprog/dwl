@@ -15,12 +15,12 @@ Font* Font::get_font(int px) {
     auto fontMap = pango_cairo_font_map_get_default();
     auto tempContext = pango_font_map_create_context(fontMap);
 
-    double points = px * (72.0 / dpi); // Initial conversion from pixels to points
+    double points = px * (72.0 / config::appearence::dpi); // Initial conversion from pixels to points
     int actualHeight = 0;
     double adjustment = 0.5; // Adjustment step for fine-tuning the font size
 
     // Set up initial font description
-    auto fontDesc = pango_font_description_from_string(font); // Use the global font family variable
+    auto fontDesc = pango_font_description_from_string(config::appearence::font); // Use the global font family variable
 
     while (true) {
         pango_font_description_set_size(fontDesc, static_cast<int>((points + adjustment) * PANGO_SCALE));

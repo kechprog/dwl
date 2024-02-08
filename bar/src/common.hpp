@@ -12,7 +12,10 @@
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "net-tapesoftware-dwl-wm-unstable-v1-client-protocol.h"
 
-using Color = std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>;
+// using Color = std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>;
+struct Color {
+	uint8_t r,g,b,a;
+};
 
 struct ColorScheme {
 	Color bar_bg, text, cmp_bg, tag_selected, tag_urgent;

@@ -5,8 +5,8 @@
 #include "cairo.h"
 #include "config.hpp"
 #include "BarComponent.hpp"
-
 const zwlr_layer_surface_v1_listener Bar::_layerSurfaceListener = {
+
 	[](void* owner, zwlr_layer_surface_v1*, uint32_t serial, uint32_t width, uint32_t height)
 	{
 		static_cast<Bar*>(owner)->layerSurfaceConfigure(serial, width, height);
@@ -20,6 +20,21 @@ const wl_callback_listener Bar::_frameListener = {
 	}
 };
 
+constexpr const CmpStyle CmpStyle::defualt()
+{
+	return CmpStyle {
+		.colors = {
+		   /*|------text-------|---------bg----------|----------border----|*/
+			{{36, 39, 58, 255}, {145, 215, 227, 255}, {255, 255, 255, 255}}, /* inactive */
+			{{36, 39, 58, 255}, {139, 213, 202, 255}, {255, 255, 255, 255}}  /*  active  */
+		},
+		.align = 0,
+		.border_px = 0,
+		.padding_x = config::appearence::paddingX,
+		.padding_y = config::appearence::paddingY,
+	};
+}
+
 const wl_surface* Bar::surface() const
 {
 	return _wl_surface.get();
@@ -32,7 +47,7 @@ bool Bar::visible() const
 
 int Bar::height() const
 {
-	return bar_size;
+	return config::appearence::bar_size;
 }
 
 void Bar::show(wl_output* output)
@@ -44,6 +59,7 @@ void Bar::show(wl_output* output)
 	layerSurface.reset(zwlr_layer_shell_v1_get_layer_surface(wlrLayerShell,
 		_wl_surface.get(), output, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "net.tapesoftware.Somebar"));
 	zwlr_layer_surface_v1_add_listener(layerSurface.get(), &_layerSurfaceListener, this);
+	const auto topbar = config::appearence::topbar;
 	auto anchor = topbar ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
 	zwlr_layer_surface_v1_set_anchor(layerSurface.get(),
 		anchor | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
@@ -136,7 +152,7 @@ void Bar::render()
 
 	/* bg of bar */
 	const Monitor *mon = wl_container_of(this, mon, bar);
-	const auto &clr_schm = colors[mon == state::selmon];
+	const auto &clr_schm = config::appearence::colors[mon == state::selmon];
 	setColor(painter, clr_schm.bar_bg);
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
 	cairo_fill(painter);

@@ -13,7 +13,7 @@ namespace state {
 	extern std::vector<std::string> tag_names;
 	extern std::vector<std::string> layout_names;
 	
-	extern std::array<uint8_t, sizeof(display_configs) / sizeof(display_configs[0])> brightnesses;
+	extern std::array<uint8_t, config::brightness::display_count> brightnesses;
 
 	extern bool bat_is_charging;
 	extern uint8_t bat_percentage;

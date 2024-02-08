@@ -33,34 +33,32 @@ void FileListener::operator()(const inotify_event *event) const
 }
 
 /* defenition of some listeners */
-std::array<FileListener, sizeof(display_configs) / sizeof(display_configs[0])> setupFileListeners(int inotify_fd)
+std::array<FileListener, config::brightness::display_count> setupFileListeners(int inotify_fd)
 {
-
-
 	const auto brightnessCallback1 = [&]()
 	{
 		std::string buf;
-		std::ifstream f(display_configs[0].first.c_str());
+		std::ifstream f(config::brightness::per_display_info[0].first.c_str());
 		f >> buf;
 		size_t curBrightness = std::stoull(buf.c_str());
-		state::brightnesses[0] = curBrightness / (double) display_configs[0].second * 100;
+		state::brightnesses[0] = curBrightness / (double) config::brightness::per_display_info[0].second * 100;
 		state::render();
 	};
 
 	const auto brightnessCallback2 = [&]()
 	{
 		std::string buf;
-		std::ifstream f(display_configs[1].first.c_str());
+		std::ifstream f(config::brightness::per_display_info[1].first.c_str());
 		f >> buf;
 		size_t curBrightness = std::stoull(buf.c_str());
 
-		state::brightnesses[1] = curBrightness / (double) display_configs[1].second * 100;
+		state::brightnesses[1] = curBrightness / (double) config::brightness::per_display_info[1].second * 100;
 		state::render();
 	};
 
-	const std::array<FileListener, sizeof(display_configs) / sizeof(display_configs[0])> listeners = {
-		FileListener(display_configs[0].first, brightnessCallback1, inotify_fd),
-		FileListener(display_configs[1].first, brightnessCallback2, inotify_fd),
+	const std::array<FileListener, config::brightness::display_count> listeners = {
+		FileListener(config::brightness::per_display_info[0].first, brightnessCallback1, inotify_fd),
+		FileListener(config::brightness::per_display_info[1].first, brightnessCallback2, inotify_fd),
 	};
 
 	return listeners;
