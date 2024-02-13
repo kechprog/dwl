@@ -88,7 +88,7 @@ enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
 	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
 
-enum {SMTouch, SMTrack, SMOff}; /* screen modes */
+enum {TOUCH_MODE_ENABLED, TOUCH_MODE_DISABLED}; /* screen modes */
 enum {TAMove1, TATap1, TATap2, TAMove2, TADrag, TAPinch}; /* trackpad actions */
 
 
@@ -193,6 +193,8 @@ typedef struct {
 	struct Monitor *monitor;
 } DwlWmMonitor;
 
+typedef struct Touch Touch;
+
 struct Monitor {
 	struct wl_list link;
 	struct wlr_output *wlr_output;
@@ -219,6 +221,8 @@ struct Monitor {
 	char *touch_name; /* null if nothing is asociated, see MonitorRule */
 	char *tablet_name;
 	char *brightness_class;
+
+	struct Touch *touch;
 };
 
 typedef struct {
@@ -266,7 +270,7 @@ typedef struct {
 	uint32_t time_down;
 } TrackPoint;
 
-typedef struct {
+struct Touch {
 	struct wl_list link;
 	struct wl_listener touch_cancel;
 	struct wl_listener touch_motion;
@@ -284,7 +288,7 @@ typedef struct {
 	uint32_t pending_touches;
 	clock_t last_touch;
 	int action;
-} Touch;
+};
 
 typedef struct {
 	struct wl_list link;
@@ -419,6 +423,7 @@ void togglefloating(const Arg *arg);
 void togglefullscreen(const Arg *arg);
 void toggletag(const Arg *arg);
 void toggleview(const Arg *arg);
+void toggletouch(const Arg *arg);
 void touch_cancel(struct wl_listener *listener, void *data);
 void touch_motion(struct wl_listener *listener, void *data);
 void touch_frame(struct wl_listener *listener, void *data); 

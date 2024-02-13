@@ -20,6 +20,8 @@ struct Monitor {
 	uint32_t         layout_idx;
 
 	void set_tag(int tag, int state, int num_clients, int focused_client);
+
+	uint32_t touch_state;
 };
 
 struct SeatPointer {

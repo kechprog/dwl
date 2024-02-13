@@ -28,8 +28,6 @@ namespace config {
 		/* See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html */
 		constexpr const char* font = "FiraCode";
 		constexpr const int bar_size = 30; /* in px, keep it multiple of displays for AllTagsComponent */
-		constexpr int paddingX = 4;
-		constexpr int paddingY = 1;
 		const constexpr ColorScheme colors[2] = {
 			/*---------|--------Bar Bg------|--------Text------|-------Cmp Bg--------|-------Tag Sel-------|-------Tag Urg---------|----Which---*/
 			ColorScheme {{91, 96, 120, 255}, {36, 39, 58, 255}, {145, 215, 227, 255}, {238, 212, 159, 255}, {238, 153, 160, 255} }, /* inactive */
@@ -76,6 +74,14 @@ namespace config {
 		constexpr const char *icons[] = {"󰕿 ", "󰖀 ", "󰕾 "};
 		constexpr const char *icon_mute = "󰝟 ";
 		constexpr const size_t icons_len = sizeof(icons) / sizeof(icons[0]);
+	}
+	
+	namespace TouchState {
+		constexpr const char *icons[] = {
+			"󰟢 ", /* No touch screen support */
+			"󰈷 ", /* Touch screen is enabled */
+			"󰺱 ", /* Touch screen is disabled */
+		};
 	}
 
 

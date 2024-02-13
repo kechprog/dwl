@@ -214,6 +214,13 @@ static const struct znet_tapesoftware_dwl_wm_v1_listener dwlWmListener = {
 /* state update of dwl */
 static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorListener {
 
+	.touchscreen = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t touch_state) {
+		auto mon = static_cast<Monitor*>(mv);
+		mon->touch_state = touch_state;
+		std::cout << "touch_state(" << mon->xdg_name << "): " << touch_state << std::endl;
+		state::render();
+	},
+
 	.selected = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t selected) {
 		auto mon = static_cast<Monitor*>(mv);
 		if (selected) {
@@ -560,7 +567,6 @@ int main(int argc, char* argv[])
 				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
 					uint64_t _x;
 					read(timer_fd, &_x, sizeof(_x));
-					std::cout << "Updating time" << std::endl;
 					state::update_time();
 					state::render();
 					timerfd_settime(timer_fd, 0, &timer_spec, NULL);

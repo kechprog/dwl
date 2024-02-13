@@ -20,21 +20,6 @@ const wl_callback_listener Bar::_frameListener = {
 	}
 };
 
-constexpr const CmpStyle CmpStyle::defualt()
-{
-	return CmpStyle {
-		.colors = {
-		   /*|------text-------|---------bg----------|----------border----|*/
-			{{36, 39, 58, 255}, {145, 215, 227, 255}, {255, 255, 255, 255}}, /* inactive */
-			{{36, 39, 58, 255}, {139, 213, 202, 255}, {255, 255, 255, 255}}  /*  active  */
-		},
-		.align = 0,
-		.border_px = 0,
-		.padding_x = config::appearence::paddingX,
-		.padding_y = config::appearence::paddingY,
-	};
-}
-
 const wl_surface* Bar::surface() const
 {
 	return _wl_surface.get();

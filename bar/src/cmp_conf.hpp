@@ -47,6 +47,17 @@ namespace config::components {
 		.padding_x = PADDING_X_DEF,
 		.padding_y = 0, 
 	}>	Brightness;
+
+	typedef TouchStateComponent<CmpStyle {
+		.colors = {
+		   /*|------text-------|---------bg----------|----------border----|*/
+			{{36, 39, 58, 255}, {238, 212, 159, 255}, {255, 255, 255, 255}}, /* inactive */
+			{{36, 39, 58, 255}, {245, 169, 127, 255}, {255, 255, 255, 255}}  /*  active  */
+		},
+		.align = 1,	
+		.padding_x = PADDING_X_DEF,
+		.padding_y = PADDING_Y_DEF
+	}> TouchState;
 	
 	typedef LayoutComponent<CmpStyle {
 		.colors = {
@@ -69,5 +80,4 @@ namespace config::components {
 		.padding_x = PADDING_X_DEF,
 		.padding_y = PADDING_Y_DEF
 	}, false> Title;
-
 };

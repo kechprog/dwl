@@ -1,4 +1,5 @@
 #include "dwl.h"
+#include "net-tapesoftware-dwl-wm-unstable-v1-protocol.h"
 #include <assert.h>
 #include <wayland-server-core.h>
 #include <wayland-util.h>
@@ -581,6 +582,7 @@ createmon(struct wl_listener *listener, void *data)
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
 	wl_list_init(&m->dwl_wm_monitor_link);
 	m->wlr_output = wlr_output;
+	m->touch = NULL;
 
 	wlr_output_init_render(wlr_output, alloc, drw);
 
@@ -609,6 +611,7 @@ createmon(struct wl_listener *listener, void *data)
 					if (strcmp(m->touch_name, touch->touch_name) != 0)	
 						continue;
 					touch->m = m;
+					m->touch = touch;
 					break;
 				}
 
@@ -777,8 +780,7 @@ createtouch(struct wlr_touch *touch) {
 	t->touch = touch;
 	t->touch_name = ecalloc(strlen(name), sizeof(char));
 	strcpy(t->touch_name, name);
-	// TODO: make me configurable
-	t->mode = SMTouch;
+	t->mode = TOUCH_MODE_ENABLED;
 	t->last_touch = clock();
 	wl_list_init(&t->track_points);
 
@@ -804,6 +806,7 @@ createtouch(struct wlr_touch *touch) {
 	wl_list_for_each(m, &mons, link) {
 		if(strcmp(t->touch_name, m->touch_name) == 0) {
 			t->m = m;
+			m->touch = t;
 			break;
 		}
 	}	
@@ -2610,6 +2613,18 @@ toggleview(const Arg *arg)
 	printstatus();
 }
 
+void
+toggletouch(const Arg *arg)
+{
+	if (!selmon->touch)
+		return;
+	if (selmon->touch->mode == TOUCH_MODE_DISABLED)
+		selmon->touch->mode = TOUCH_MODE_ENABLED;
+	else
+		selmon->touch->mode = TOUCH_MODE_DISABLED;
+	printstatus();
+}
+
 void 
 touch_cancel(struct wl_listener *listener, void *data) 
 {
@@ -2617,7 +2632,7 @@ touch_cancel(struct wl_listener *listener, void *data)
 	struct wlr_touch_point *p = wlr_seat_touch_get_point(seat, event->touch_id);
 	Touch *touch = wl_container_of(listener, touch, touch_cancel);
 
-	if (touch->mode != SMTouch)
+	if (touch->mode != TOUCH_MODE_ENABLED)
 		return;
 
 	wlr_seat_touch_notify_cancel(seat, p->surface);
@@ -2628,7 +2643,7 @@ touch_frame(struct wl_listener *listener, void *data)
 {
 
 	Touch *touch = wl_container_of(listener, touch, touch_frame);
-	if (touch->mode != SMTouch)
+	if (touch->mode != TOUCH_MODE_ENABLED)
 		return;
 
 	wlr_seat_touch_notify_frame(seat);
@@ -2643,36 +2658,36 @@ touch_down(struct wl_listener *listener, void *data)
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
  	switch (touch->mode) {
-		case SMOff:
+		case TOUCH_MODE_DISABLED:
 			return;
 
-		case SMTrack: {
+		// case SMTrack: {
+		//
+		// 	if (touch->pending_touches > 2) 
+		// 		return;
+		//
+		// 	touch->pending_touches++;
+		// 	TrackPoint *p = ecalloc(1, sizeof(TrackPoint));
+		// 	p->touch_id = ev->touch_id;
+		// 	p->cx = p->px = p->ix = ev->x;
+		// 	p->cy = p->py = p->iy = ev->y;
+		// 	wl_list_insert(&touch->track_points, &p->link);
+		//
+		// 	if (touch->pending_touches == 1) { /* assume that we want a simple click, will be changed later if needed */
+		// 		// TODO: a proper support
+		//
+		// 		// uint64_t time_since_last = (clock() - touch->last_touch);
+		// 		// if (touch->action == TATap1 && time_since_last < doubleclicktimems) // HACK: it's in clocks
+		// 		// 	touch->action = TADrag;
+		// 		// else
+		// 			touch->action = TATap1; 
+		// 	}
+		// 	else  /* it is either  TATap2, TAScroll2 */
+		// 		touch->action = TATap2;
+		// 	break;
+		// } // track
 
-			if (touch->pending_touches > 2) 
-				return;
-
-			touch->pending_touches++;
-			TrackPoint *p = ecalloc(1, sizeof(TrackPoint));
-			p->touch_id = ev->touch_id;
-			p->cx = p->px = p->ix = ev->x;
-			p->cy = p->py = p->iy = ev->y;
-			wl_list_insert(&touch->track_points, &p->link);
-
-			if (touch->pending_touches == 1) { /* assume that we want a simple click, will be changed later if needed */
-				// TODO: a proper support
-
-				// uint64_t time_since_last = (clock() - touch->last_touch);
-				// if (touch->action == TATap1 && time_since_last < doubleclicktimems) // HACK: it's in clocks
-				// 	touch->action = TADrag;
-				// else
-					touch->action = TATap1; 
-			}
-			else  /* it is either  TATap2, TAScroll2 */
-				touch->action = TATap2;
-			break;
-		} // track
-
-		case SMTouch: {
+		case TOUCH_MODE_ENABLED: {
 			struct wlr_surface *surface;
 			Monitor *m = NULL;
 			Client *c;
@@ -2714,61 +2729,61 @@ touch_motion(struct wl_listener *listener, void *data)
 	struct wlr_touch_motion_event *ev = data;
 
 	switch (touch->mode) {
-		case SMOff:
+		case TOUCH_MODE_DISABLED:
 			return;
 
-		case SMTrack: {
-			bool found = false;	
-			TrackPoint *p = NULL;
+		// case SMTrack: {
+		// 	bool found = false;	
+		// 	TrackPoint *p = NULL;
+		//
+		// 	wl_list_for_each(p, &touch->track_points, link) {
+		// 		if (p->touch_id == ev->touch_id) {
+		// 			found = true;
+		// 			break;
+		// 		}
+		// 	}
+		//
+		// 	if (!found)
+		// 		return;
+		//
+		// 	p->px = p->cx;
+		// 	p->py = p->cy;
+		// 	p->cx = ev->x;
+		// 	p->cy = ev->y;
+		//
+		// 	double dx   = p->cx - p->px,
+		// 	       dy   = p->cy - p->py,
+		// 		   dist = sqrt(pow(dx, 2) + pow(dy, 2));
+		//
+		// 	switch (touch->action) {
+		// 		case TATap1:
+		// 			if(dist > clickmargin) {
+		// 				touch->action = TAMove1;
+		// 			}
+		// 			break;
+		//
+		// 		case TAMove1: {
+		// 			// NOTE: only moves the cursor, evnts are not forwarded
+		// 			wlr_cursor_move(cursor, NULL, dx * sens_x, dy * sens_y);
+		// 			motionnotify(ev->time_msec);
+		// 			break;
+		// 		}
+		//
+		// 		case TATap2:
+		// 			die("TODO 1\n");
+		// 		case TAMove2:
+		// 			die("TODO 2\n");
+		// 		case TADrag:
+		// 			die("TODO 3\n");
+		// 		case TAPinch:
+		// 			die("TODO 4\n");
+		// 	}
+		//
+		// 	
+		// 	break;
+		// } // track
 
-			wl_list_for_each(p, &touch->track_points, link) {
-				if (p->touch_id == ev->touch_id) {
-					found = true;
-					break;
-				}
-			}
-
-			if (!found)
-				return;
-
-			p->px = p->cx;
-			p->py = p->cy;
-			p->cx = ev->x;
-			p->cy = ev->y;
-
-			double dx   = p->cx - p->px,
-			       dy   = p->cy - p->py,
-				   dist = sqrt(pow(dx, 2) + pow(dy, 2));
-
-			switch (touch->action) {
-				case TATap1:
-					if(dist > clickmargin) {
-						touch->action = TAMove1;
-					}
-					break;
-
-				case TAMove1: {
-					// NOTE: only moves the cursor, evnts are not forwarded
-					wlr_cursor_move(cursor, NULL, dx * sens_x, dy * sens_y);
-					motionnotify(ev->time_msec);
-					break;
-				}
-
-				case TATap2:
-					die("TODO 1\n");
-				case TAMove2:
-					die("TODO 2\n");
-				case TADrag:
-					die("TODO 3\n");
-				case TAPinch:
-					die("TODO 4\n");
-			}
-
-			
-			break;
-		} // track
-
-		case SMTouch: {
+		case TOUCH_MODE_ENABLED: {
 			double lx, ly, sx, sy;
 			if(!wlr_seat_touch_get_point(seat, ev->touch_id))
 				return;
@@ -2792,68 +2807,68 @@ touch_up(struct wl_listener *listener, void *data)
 
 
 	switch (touch->mode) {
-		case SMOff:
+		case TOUCH_MODE_DISABLED:
 			return;
 
-		case SMTrack: {
-			touch->pending_touches--;
-			switch (touch->action) {
-				case TATap1: {
-					TrackPoint *p;
-					bool found = false;
-
-					wl_list_for_each(p, &touch->track_points, link) {
-						if (p->touch_id == event->touch_id) {
-							found = true;
-							break;
-						}	
-					}
-					if (!found) return;
-
-					struct wlr_pointer_button_event ev = { 
-						.pointer   =  NULL,	
-						.time_msec = p->time_down,		
-						.button    = BTN_LEFT,
-						.state     = WLR_BUTTON_PRESSED
-					};
-
-					buttonpress(NULL, &ev);
-					ev.time_msec = ev.time_msec;
-					ev.state     = WLR_BUTTON_PRESSED;
-					goto cleanup;
-				}
-
-				case TATap2:
-					if (touch->pending_touches != 0)
-						return;
-					click(BTN_RIGHT);
-					goto cleanup;
-
-				case TAMove2:
-				case TAMove1:
-					goto cleanup;
-
-				case TADrag:
-					die("Up, not implemented!, drag\n");
-				case TAPinch:
-					die("Up, not implemented!, pinch\n");
-
-
-				cleanup:
-				touch->pending_touches = 0;
-				touch->last_touch = clock();
-				TrackPoint *p, *tmp;
-				wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
-					wl_list_remove(&p->link);
-					free(p);
-				}
-
-			}
-			break;
-		}
+		// case SMTrack: {
+		// 	touch->pending_touches--;
+		// 	switch (touch->action) {
+		// 		case TATap1: {
+		// 			TrackPoint *p;
+		// 			bool found = false;
+		//
+		// 			wl_list_for_each(p, &touch->track_points, link) {
+		// 				if (p->touch_id == event->touch_id) {
+		// 					found = true;
+		// 					break;
+		// 				}	
+		// 			}
+		// 			if (!found) return;
+		//
+		// 			struct wlr_pointer_button_event ev = { 
+		// 				.pointer   =  NULL,	
+		// 				.time_msec = p->time_down,		
+		// 				.button    = BTN_LEFT,
+		// 				.state     = WLR_BUTTON_PRESSED
+		// 			};
+		//
+		// 			buttonpress(NULL, &ev);
+		// 			ev.time_msec = ev.time_msec;
+		// 			ev.state     = WLR_BUTTON_PRESSED;
+		// 			goto cleanup;
+		// 		}
+		//
+		// 		case TATap2:
+		// 			if (touch->pending_touches != 0)
+		// 				return;
+		// 			click(BTN_RIGHT);
+		// 			goto cleanup;
+		//
+		// 		case TAMove2:
+		// 		case TAMove1:
+		// 			goto cleanup;
+		//
+		// 		case TADrag:
+		// 			die("Up, not implemented!, drag\n");
+		// 		case TAPinch:
+		// 			die("Up, not implemented!, pinch\n");
+		//
+		//
+		// 		cleanup:
+		// 		touch->pending_touches = 0;
+		// 		touch->last_touch = clock();
+		// 		TrackPoint *p, *tmp;
+		// 		wl_list_for_each_safe(p, tmp, &touch->track_points, link) {
+		// 			wl_list_remove(&p->link);
+		// 			free(p);
+		// 		}
+		//
+		// 	}
+		// 	break;
+		// }
 						
 
-		case SMTouch:
+		case TOUCH_MODE_ENABLED:
 			if(!wlr_seat_touch_get_point(seat, event->touch_id))
 				return;
 
@@ -3445,6 +3460,10 @@ dwl_wm_printstatus_to(Monitor *m, const DwlWmMonitor *mon)
 	znet_tapesoftware_dwl_wm_monitor_v1_send_title(mon->resource,
 		focused ? client_get_title(focused) : "");
 	znet_tapesoftware_dwl_wm_monitor_v1_send_frame(mon->resource);
+	znet_tapesoftware_dwl_wm_monitor_v1_send_touchscreen(mon->resource, !m->touch ? 0 /* not supported */
+																				  : m->touch->mode == TOUCH_MODE_ENABLED ? 1 /* enabled */
+																				  : 2 /* disabled */);
+
 }
 
 void

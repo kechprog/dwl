@@ -63,8 +63,5 @@ Font* Font::get_font(int px) {
 
     g_object_unref(tempContext);
 
-    // Debug output
-    std::cout << "Requested height: " << px << ", Actual height: " << actualHeight << ", Final Points: " << points + adjustment << std::endl;
-
     return &res;
 }

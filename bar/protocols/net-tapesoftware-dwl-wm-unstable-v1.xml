@@ -84,10 +84,16 @@
 		</description>
 
 		<enum name="tag_state">
-			<entry name="none" value="0" summary="no state"/>
+			<entry name="none"   value="0" summary="no state"/>
 			<entry name="active" value="1" summary="tag is active"/>
 			<entry name="urgent" value="2" summary="tag has at least one urgent client"/>
 		</enum>
+
+        <enum name="touchscreen_state">
+            <entry name="NotSupported" value="0" summary="no touchscreen"/>
+            <entry name="Enabled"      value="1" summary="touchscreen is enabled"/>
+            <entry name="Disabled"     value="2" summary="touchscreen is disabled"/>
+        </enum>
 
 		<request name="release" type="destructor">
 			<description summary="release dwl_monitor">
@@ -95,6 +101,13 @@
 				All further requests are ignored.
 			</description>
 		</request>
+
+        <event name="touchscreen">
+            <description summary="updates the state of the touchscreen">
+                Announces the update of the touchscreen state.
+            </description>
+            <arg name="state" type="uint" enum="touchscreen_state"/>
+        </event>
 
 		<event name="selected">
 			<description summary="updates the selected state of the monitor">

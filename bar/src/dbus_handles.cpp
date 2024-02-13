@@ -85,7 +85,6 @@ void DbusListener::make_initial_battery_state_request()
 
 	state::bat_percentage = bat_perc;
 	state::bat_is_charging = bat_state != 2;
-	std::cout << "Initial battery state: " << bat_perc << " " << bat_state << std::endl;
 	state::render();
 }
 
@@ -146,7 +145,6 @@ DbusListener::parse_msg(DBusMessage *msg) const
 				double val;
 				dbus_message_iter_get_basic(&var, &val);
 				ret_perc = val;
-				std::cout << "Lowest level, battery: " << val << std::endl;
 			}
 
 			if (strcmp("State", key) == 0) {

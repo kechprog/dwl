@@ -33,8 +33,6 @@ struct CmpStyle {
 	CmpColors colors[2];
 	int align;
 	int border_px, padding_x, padding_y;
-
-	static const constexpr CmpStyle defualt();
 };
 
 class IBarComponent {
@@ -48,8 +46,7 @@ public:
 /*****************************************************************************************/
 /*--------------------------------------TextComponent------------------------------------*/
 /*****************************************************************************************/
-// template <int align, int padding_x, int padding_y>
-template<CmpStyle style = CmpStyle::defualt()>
+template<CmpStyle style>
 class TextComponent : public IBarComponent {
 public:
 	TextComponent() : pango_layout { wl_unique_ptr<PangoLayout> { pango_layout_new(state::pango_ctx.get()) } }{};
@@ -85,6 +82,21 @@ public:
 protected:
 	wl_unique_ptr<PangoLayout> pango_layout;
 	std::string content; /* to be updated by update_text */
+};
+
+/*****************************************************************************************/
+/*------------------------------------BatteryComponent-----------------------------------*/
+/*****************************************************************************************/
+template<CmpStyle style>
+class TouchStateComponent : public TextComponent<style> {
+	void update_text(const Monitor *) override
+	{
+		std::stringstream ss;
+		ss << "|";
+		for (auto &mon : state::monitors)
+			ss << config::TouchState::icons[mon.touch_state] << "|";
+		this->content = ss.str();
+	}
 };
 
 

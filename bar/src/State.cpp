@@ -41,13 +41,10 @@ void state::init() {
 
 	state::update_time();
 
-	/* 
-	 * put components here,
+	/**\
+	 * put components here
 	 * order matters
-	 */
-
-	const auto paddingX = config::appearence::paddingX;
-	const auto paddingY = config::appearence::paddingY;
+	\**/
 
 	/* right aligned */
 	state::components.push_back(std::make_unique<config::components::Time>());
@@ -58,6 +55,7 @@ void state::init() {
 	for (size_t i = 0; i < config::brightness::display_count; i++)
 		brightness_components.push_back(std::make_unique<config::components::Brightness>(i));
 	state::components.push_back(std::make_unique<HAlignComponent<1>>(std::move(brightness_components)));
+	state::components.push_back(std::make_unique<config::components::TouchState>());
 
 	/* left aligned */
 	// state::components.push_back(std::make_unique<TagsComponent<0>>());

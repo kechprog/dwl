@@ -176,12 +176,14 @@ static const Key keys[] = {
 	{ 0                        , XF86XK_Launch6,     movenext,       {0} },
 
 	/* FUNCTION KEYS */
-	{ 0,      XF86XK_MonBrightnessUp,   monitorbrightness,  {.i =  10} },
-	{ 0,      XF86XK_MonBrightnessDown, monitorbrightness,  {.i = -10} },
+	{ 0, XF86XK_MonBrightnessUp,   monitorbrightness,  {.i =  10} },
+	{ 0, XF86XK_MonBrightnessDown, monitorbrightness,  {.i = -10} },
 
-	{ 0, XF86XK_AudioRaiseVolume,  spawn, {.v = volupcmd}          },
-	{ 0, XF86XK_AudioLowerVolume,  spawn, {.v = voldowncmd}        },
-	{ 0, XF86XK_AudioMute,         spawn, {.v = volmutetogglecmd}  },
+	{ 0, XF86XK_AudioRaiseVolume,  spawn,              {.v = volupcmd}          },
+	{ 0, XF86XK_AudioLowerVolume,  spawn,              {.v = voldowncmd}        },
+	{ 0, XF86XK_AudioMute,         spawn,              {.v = volmutetogglecmd}  },
+
+	{ 0, XF86XK_Launch7,           toggletouch,        {0} },
 
 	// {MODKEY,                     XKB_KEY_c,            check_tablet, {0}}, /* temporary */
 
