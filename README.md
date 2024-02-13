@@ -17,8 +17,8 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Horizontal alignment component
 - Configurable components
 - Change brightness on multiple screens 
+- Touchscreen on/off Component
 ## Planned/Todo
 - Pen/Tablet on/off Component
-- Touchscreen on/off Component
 - Tweakable tablet width/hieght
 - Trackpad emulation via touchscreen(done partially)
