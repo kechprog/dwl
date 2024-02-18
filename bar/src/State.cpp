@@ -9,7 +9,7 @@ namespace state {
 	Monitor *selmon = nullptr;
 	std::vector<std::string> tag_names;
 	std::vector<std::string> layout_names;
-	std::array<uint8_t, config::brightness::display_count> brightnesses = {0, 0};
+	std::array<uint8_t, config::brightness::display_count> brightnesses = {0};
 	bool bat_is_charging   = {0};
 	uint8_t bat_percentage = {0};
 	std::vector<std::unique_ptr<IBarComponent>> components;
