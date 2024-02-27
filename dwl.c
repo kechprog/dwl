@@ -1176,6 +1176,21 @@ handlesig(int signo)
 	}
 }
 
+
+void
+holdbegin(struct wl_listener *listener, void *data)
+{
+	struct wlr_pointer_hold_begin_event *ev = data; 
+	wlr_pointer_gestures_v1_send_hold_begin(gestures, seat, ev->time_msec, ev->fingers);
+}
+
+void
+holdend(struct wl_listener *listener, void *data)
+{
+	struct wlr_pointer_hold_end_event *ev = data; 
+	wlr_pointer_gestures_v1_send_hold_end(gestures, seat, ev->time_msec, ev->cancelled);
+}
+
 void
 incnmaster(const Arg *arg)
 {
@@ -1220,8 +1235,6 @@ inputdevice(struct wl_listener *listener, void *data)
 		caps |= WL_SEAT_CAPABILITY_KEYBOARD;
 	if (!wl_list_empty(&touches))
 		caps |= WL_SEAT_CAPABILITY_TOUCH;
-	// if(!wl_list_empty(&tablets))
-	// 	caps |= WL_TABLET_TOOL;
 	wlr_seat_set_capabilities(seat, caps);
 }
 
@@ -1749,7 +1762,8 @@ pinchupdate(struct wl_listener *listener, void *data)
 	struct wlr_pointer_pinch_update_event *ev = data;
 	wlr_pointer_gestures_v1_send_pinch_update(
 		gestures, 
-		seat, ev->time_msec, 
+		seat, 
+		ev->time_msec, 
 		ev->dx, 
 		ev->dy,
 		ev->scale,
@@ -2239,11 +2253,11 @@ setup(void)
 	LISTEN_STATIC(&cursor->events.swipe_begin,  swipebegin);
 	LISTEN_STATIC(&cursor->events.swipe_update, swipeupdate);
 	LISTEN_STATIC(&cursor->events.swipe_end,    swipeend);
-
-	/* pinch */
 	LISTEN_STATIC(&cursor->events.pinch_begin,  pinchbegin);
 	LISTEN_STATIC(&cursor->events.pinch_update, pinchupdate);
 	LISTEN_STATIC(&cursor->events.pinch_end,    pinchend);
+	LISTEN_STATIC(&cursor->events.hold_begin,   holdbegin);
+	LISTEN_STATIC(&cursor->events.hold_end,		holdend);
 
 	cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
 	LISTEN_STATIC(&cursor_shape_mgr->events.request_set_shape, setcursorshape);
@@ -2894,6 +2908,9 @@ swipebegin(struct wl_listener *listener, void *data)
 	struct wlr_pointer_swipe_begin_event *ev = data;
 	swipe_fingercount = ev->fingers;
 	swipe_dx = swipe_dy = 0;
+
+	if (swipe_fingercount <= 2)
+		wlr_pointer_gestures_v1_send_swipe_begin(gestures, seat, ev->time_msec, ev->fingers);
 }
 
 
@@ -2901,6 +2918,10 @@ void
 swipeupdate(struct wl_listener *listener, void *data) 
 {
 	struct wlr_pointer_swipe_update_event *ev = data; 
+	if (swipe_fingercount <= 2) {
+		wlr_pointer_gestures_v1_send_swipe_update(gestures, seat, ev->time_msec, ev->dx, ev->dy);
+		return;
+	}
 	swipe_dx += ev->dx;
 	swipe_dy += ev->dy;
 }
@@ -2913,6 +2934,11 @@ swipeend(struct wl_listener *listener, void *data)
 	float swipe_angle;
 
 	struct wlr_pointer_swipe_end_event *ev = data;
+	if (swipe_fingercount <= 2) {
+		wlr_pointer_gestures_v1_send_swipe_end(gestures, seat, ev->time_msec, ev->cancelled);
+		return;
+	}
+
 	if (ev->cancelled)
 		return;
 

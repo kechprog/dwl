@@ -39,9 +39,9 @@ namespace config {
 	namespace brightness {
 		const std::pair<std::filesystem::path, size_t> per_display_info[] = {
 			/*           current brightness(file)             , max brightness */
-			{ "/sys/class/backlight/amdgpu_bl0/brightness",          255       },
-			// { "/sys/class/backlight/intel_backlight/brightness",       19200   },
-			// { "/sys/class/leds/asus::screenpad/brightness",             255    }
+			// { "/sys/class/backlight/amdgpu_bl0/brightness",          255       },
+			{ "/sys/class/backlight/intel_backlight/brightness",       19200   },
+			{ "/sys/class/leds/asus::screenpad/brightness",             255    }
 		};
 		const size_t display_count = sizeof(per_display_info) / sizeof(per_display_info[0]);
 		 
@@ -50,8 +50,8 @@ namespace config {
 	}
 	
 	namespace battery {
-		constexpr const char* dbus_obj_path = "/org/freedesktop/UPower/devices/battery_BATT";
-		// constexpr const char* dbus_obj_path = "/org/freedesktop/UPower/devices/battery_BAT0";
+		// constexpr const char* dbus_obj_path = "/org/freedesktop/UPower/devices/battery_BATT";
+		constexpr const char* dbus_obj_path = "/org/freedesktop/UPower/devices/battery_BAT0";
 		/* { discharging, charging } */
 		constexpr const std::pair<const char*, const char*> icons[] = {
 			{"󰢟 ", "󰂃"},

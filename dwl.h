@@ -366,6 +366,8 @@ Client *focustop(Monitor *m);
 void movenext(const Arg *arg);
 void fullscreennotify(struct wl_listener *listener, void *data);
 void handlesig(int signo);
+void holdbegin(struct wl_listener *listener, void *data);
+void holdend(struct wl_listener *listener, void *data);
 void incnmaster(const Arg *arg);
 void inputdevice(struct wl_listener *listener, void *data);
 int keybinding(uint32_t mods, xkb_keysym_t sym);

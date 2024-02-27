@@ -58,7 +58,7 @@ std::array<FileListener, config::brightness::display_count> setupFileListeners(i
 
 	const std::array<FileListener, config::brightness::display_count> listeners = {
 		FileListener(config::brightness::per_display_info[0].first, brightnessCallback1, inotify_fd),
-		// FileListener(config::brightness::per_display_info[1].first, brightnessCallback2, inotify_fd),
+		FileListener(config::brightness::per_display_info[1].first, brightnessCallback2, inotify_fd),
 	};
 
 	return listeners;
