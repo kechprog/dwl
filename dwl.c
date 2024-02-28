@@ -1510,7 +1510,6 @@ motionnotify(uint32_t time)
 {
 	double sx = 0, sy = 0;
 	Client *c = NULL, *w = NULL;
-	LayerSurface *l = NULL;
 	int type;
 	struct wlr_surface *surface = NULL;
 
@@ -1541,14 +1540,11 @@ motionnotify(uint32_t time)
 	/* Find the client under the pointer and send the event along. */
 	xytonode(cursor->x, cursor->y, &surface, &c, NULL, &sx, &sy);
 
-	if (cursor_mode == CurPressed && !seat->drag) {
-		if ((type = toplevel_from_wlr_surface(
-				 seat->pointer_state.focused_surface, &w, &l)) >= 0) {
-			c = w;
-			surface = seat->pointer_state.focused_surface;
-			sx = cursor->x - (type == LayerShell ? l->geom.x : w->geom.x);
-			sy = cursor->y - (type == LayerShell ? l->geom.y : w->geom.y);
-		}
+	if (cursor_mode == CurPressed && !seat->drag
+	&& (type = toplevel_from_wlr_surface(seat->pointer_state.focused_surface, &w, NULL)) >= 0) 
+	{
+		c = w;
+		surface = seat->pointer_state.focused_surface;
 	}
 
 	/* If there's no client surface under the cursor, set the cursor image to a
@@ -3227,6 +3223,7 @@ xytonode(double x, double y, struct wlr_surface **psurface,
 	Client *c = NULL;
 	LayerSurface *l = NULL;
 	int layer;
+	bool found_any = false;
 
 	for (layer = NUM_LAYERS - 1; !surface && layer >= 0; layer--) {
 		if (!(node = wlr_scene_node_at(&layers[layer]->node, x, y, nx, ny)))
@@ -3238,11 +3235,18 @@ xytonode(double x, double y, struct wlr_surface **psurface,
 		/* Walk the tree to find a node that knows the client */
 		for (pnode = node; pnode && !c; pnode = &pnode->parent->node)
 			c = pnode->data;
+
+		if (c)
+			found_any = true;
+
 		if (c && c->type == LayerShell) {
 			c = NULL;
 			l = pnode->data;
 		}
 	}
+
+	if (!found_any)
+		*nx = *ny = 0;
 
 	if (psurface) *psurface = surface;
 	if (pc) *pc = c;
