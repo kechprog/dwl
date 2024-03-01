@@ -33,6 +33,7 @@ executable('somebar',
     'src/State.cpp',
     'src/Font.cpp',
     'src/pa_vol.cpp',
+    'src/Popup.cpp',
     wayland_sources,
     dependencies: [
         wayland_dep,

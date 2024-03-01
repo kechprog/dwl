@@ -78,31 +78,7 @@ void Bar::invalidate()
 
 void Bar::click(Monitor* mon, int x, int, int btn)
 {
-	// TODO: figure me out
-	
-	// Arg arg = {0};
-	// Arg* argp = nullptr;
-	// int control = ClkNone;
-	// if (x > statusCmp.x) {
-	// 	control = ClkStatusText;
-	// } else if (x > titleCmp.x) {
-	// 	control = ClkWinTitle;
-	// } else if (x > layoutCmp.x) {
-	// 	control = ClkLayoutSymbol;
-	// } else for (int tag = tags.size()-1; tag >= 0; tag--) {
-	// 	if (x > tags[tag].component.x) {
-	// 		control = ClkTagBar;
-	// 		arg.ui = 1<<tag;
-	// 		argp = &arg;
-	// 		break;
-	// 	}
-	// }
-	// for (const auto& button : buttons) {
-	// 	if (button.control == control && button.btn == btn) {
-	// 		button.func(*mon, *(argp ? argp : &button.arg));
-	// 		return;
-	// 	}
-	// }
+	std::cout << "click" << std::endl;
 }
 
 void Bar::layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height)
