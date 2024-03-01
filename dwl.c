@@ -1510,6 +1510,7 @@ motionnotify(uint32_t time)
 {
 	double sx = 0, sy = 0;
 	Client *c = NULL, *w = NULL;
+	LayerSurface *l = NULL;
 	int type;
 	struct wlr_surface *surface = NULL;
 
@@ -1540,9 +1541,14 @@ motionnotify(uint32_t time)
 	/* Find the client under the pointer and send the event along. */
 	xytonode(cursor->x, cursor->y, &surface, &c, NULL, &sx, &sy);
 
+	/* continue selection even if we go out of the window */
 	if (cursor_mode == CurPressed && !seat->drag
-	&& (type = toplevel_from_wlr_surface(seat->pointer_state.focused_surface, &w, NULL)) >= 0) 
+	&& (type = toplevel_from_wlr_surface(seat->pointer_state.focused_surface, &w, &l)) >= 0
+	&& seat->pointer_state.focused_surface != surface) 
 	{
+		/* change sx and sy accordingly */
+		sx = cursor->x - (type == LayerShell ? l->geom.x : w->geom.x + w->bw);
+		sy = cursor->y - (type == LayerShell ? l->geom.y : w->geom.y + w->bw);
 		c = w;
 		surface = seat->pointer_state.focused_surface;
 	}
