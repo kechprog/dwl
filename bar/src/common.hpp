@@ -82,6 +82,7 @@ WL_DELETER(xdg_popup, xdg_popup_destroy);
 WL_DELETER(xdg_surface, xdg_surface_destroy);
 WL_DELETER(znet_tapesoftware_dwl_wm_monitor_v1, znet_tapesoftware_dwl_wm_monitor_v1_release);
 WL_DELETER(zwlr_layer_surface_v1, zwlr_layer_surface_v1_destroy);
+WL_DELETER(xdg_positioner, xdg_positioner_destroy);
 
 WL_DELETER(cairo_t, cairo_destroy);
 WL_DELETER(cairo_surface_t, cairo_surface_destroy);

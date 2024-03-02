@@ -78,7 +78,11 @@ void Bar::invalidate()
 
 void Bar::click(Monitor* mon, int x, int, int btn)
 {
-	std::cout << "click" << std::endl;
+	const auto &red = Color { 0xff, 0, 0, 0xff };
+	if (this->popup)
+		this->popup.reset();
+	else 
+		this->popup.emplace(0, 0, 100, 100, red, layerSurface.get());
 }
 
 void Bar::layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height)
