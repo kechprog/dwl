@@ -19,6 +19,8 @@ A fork of [dwl](https://codeberg.org/dwl/dwl), with much needed features impleme
 - Change brightness on multiple screens 
 - Touchscreen on/off Component
 ## Planned/Todo
+- Cross-Screen moving of clients
+- Cross-screen alt+tab
 - Pen/Tablet on/off Component
 - Tweakable tablet width/hieght
 - Trackpad emulation via touchscreen(done partially)
