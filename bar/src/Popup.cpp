@@ -1,26 +1,40 @@
 #include "Popup.hpp"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
+#include <iostream>
 #include <wayland-client-protocol.h>
 
+void popup_configure_notify(void *data, struct xdg_popup *xdg_popup, int32_t x, int32_t y, int32_t width, int32_t height)
+{
+	auto popup = static_cast<Popup*>(data);
+	popup->configure_popup(0, 0, width, height);
+}
+
+void popup_done_notify(void *data, struct xdg_popup *xdg_popup)
+{
+	auto popup = static_cast<Popup*>(data);
+	popup->_visible = false;
+	popup->_xdg_popup.reset();
+	popup->_xdg_surface.reset();
+	popup->_wl_surface.reset();
+
+	std::cout << "popup done" << std::endl;
+}
+
+void surface_configure_notify(void *data, struct xdg_surface *xdg_surface, uint32_t serial)
+{
+	auto popup = static_cast<Popup*>(data);
+	popup->configure_surface(serial);
+}
+
 static const struct xdg_popup_listener popup_listener = {
-    .configure = [](void *data, struct xdg_popup *xdg_popup, int32_t x,
-		int32_t y, int32_t width, int32_t height) 
-	{
-		static_cast<Popup*>(data)->configure_popup(x, y, width, height);
-	},
-
-
-
-	.popup_done = [](void *data, struct xdg_popup *xdg_popup) { },
-	.repositioned = [](void *data, struct xdg_popup *xdg_popup, uint32_t token) { },
+	.configure    = popup_configure_notify,
+	.popup_done   = nullptr,
+	.repositioned = nullptr,
 };
 
 static const struct xdg_surface_listener surface_listener = {
-	.configure = [](void *data, struct xdg_surface *xdg_surface, uint32_t serial) 
-	{
-		static_cast<Popup*>(data)->configure_surface(serial);
-	}
+	.configure = surface_configure_notify,
 };
 
 void Popup::configure_popup(int32_t _x, int32_t _y, int32_t width, int32_t height)
@@ -55,7 +69,7 @@ void Popup::render()
 }
 
 Popup::Popup(int x, int y, int w, int h, Color bg, zwlr_layer_surface_v1 *parent)
-	: bg { bg }
+	: bg { bg }, _visible { true }
 {
 	wl_unique_ptr<xdg_positioner> positioner = wl_unique_ptr<xdg_positioner> { xdg_wm_base_create_positioner(xdgWmBase) };
 	xdg_positioner_set_anchor_rect(positioner.get(), x, y, w, h);
