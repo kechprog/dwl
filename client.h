@@ -18,6 +18,8 @@ client_is_x11(Client *c)
 static inline struct wlr_surface *
 client_surface(Client *c)
 {
+	if (!c) /* <--> c == NULL */
+		return NULL;
 #ifdef XWAYLAND
 	if (client_is_x11(c))
 		return c->surface.xwayland->surface;

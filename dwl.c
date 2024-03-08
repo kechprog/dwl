@@ -829,7 +829,7 @@ createtablet(struct wlr_tablet *tablet)
 	wl_signal_add(&tablet->events.tip,       &tab->tablet_tool_tip);
 
 	tab->tablet = tablet;
-	tab->tablet_v2 = wlr_tablet_create(tabletmanager, seat, &tab->tablet->base);
+	tab->tabletv2 = wlr_tablet_create(tabletmanager, seat, &tab->tablet->base);
 	wl_list_init(&tab->tools);
 	wl_list_insert(&tablets, &tab->link);
 
@@ -849,9 +849,30 @@ createtool(struct wlr_tablet_tool *tool, struct wlr_tablet_v2_tablet_tool *toolv
 	Tool *t = ecalloc(1, sizeof(Tool));
 	t->tool = tool;
 	t->toolv2 = toolv2;
+	t->tip_up = true; /* when tool is approaching the tablet it is above it, when it touches we get event */
 	wl_list_init(&t->link);	
 
 	return t;
+}
+
+void 
+toolsfocus(struct wlr_surface *s) /* focuses all tools onto surface */
+{
+	Tablet *tab;
+	Tool *t;
+	wl_list_for_each(tab, &tablets, link) {
+		wl_list_for_each(t, &tab->tools, link) {
+			/* clear focus */
+			if (!s || !wlr_surface_accepts_tablet_v2(tab->tabletv2, s)) {
+				wlr_tablet_v2_tablet_tool_notify_proximity_out(t->toolv2);
+				continue;
+			}
+
+			wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, s);
+			t->tip_up ? wlr_tablet_v2_tablet_tool_notify_up  (t->toolv2)
+					  : wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
+		}
+	}
 }
 
 void
@@ -1058,9 +1079,10 @@ focusclient(Client *c, int lift)
 
 	if (!c) {
 		/* With no client, all we have left is to clear focus */
+		toolsfocus(NULL);
 		wlr_seat_keyboard_notify_clear_focus(seat);
 		return;
-	}
+	} 
 
 	/* Change cursor surface */
 	motionnotify(0);
@@ -1070,6 +1092,9 @@ focusclient(Client *c, int lift)
 
 	/* Activate the new client */
 	client_activate_surface(client_surface(c), 1);
+
+	/* focus tools if needed */
+	toolsfocus(client_surface(c));
 }
 
 void
@@ -2352,12 +2377,10 @@ tabletaxis(struct wl_listener *listener, void *data)
 {
 	struct wlr_tablet_tool_axis_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_axis);
-	double sx, sy, lx, ly;
 	Client *c;
+	LayerSurface *l;
 	Tool *t;
-	Monitor *curmon = wl_container_of(tab->m->link.next, curmon, link);
-
-	bool found = false;
+	bool found = false, no_client;
 
 	wl_list_for_each(t, &tab->tools, link) {
 		if (t->tool == ev->tool) {
@@ -2369,22 +2392,33 @@ tabletaxis(struct wl_listener *listener, void *data)
 	if (!found)
 		return;
 
-	if (t->toolv2->focused_surface)
-		c = t->fclient;
+	no_client = !t->toolv2->focused_surface;
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
+	if (no_client
+	&& ((c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c))))
+	{
+		no_client = false;	
+		wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, client_surface(c));
+		if (t->tip_up)
+			wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
+		else
+			wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
+	}
+
+
+    if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
         wlr_tablet_v2_tablet_tool_notify_pressure(t->toolv2, ev->pressure);
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE)
+    if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE)
         wlr_tablet_v2_tablet_tool_notify_distance(t->toolv2, ev->distance);
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION)
+    if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION)
 		wlr_tablet_v2_tablet_tool_notify_rotation(t->toolv2, ev->rotation);
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
+    if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
 		wlr_tablet_v2_tablet_tool_notify_slider(t->toolv2, ev->slider);
 
-	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
+	if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
 		wlr_tablet_v2_tablet_tool_notify_wheel(t->toolv2, ev->wheel_delta, 0);
 
 	if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_X)
@@ -2396,26 +2430,41 @@ tabletaxis(struct wl_listener *listener, void *data)
 	if (ev->updated_axes &
 		(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
 	{
-		sx = (t->x) * (c->geom.width  - 2 * c->bw);
-		sy = (t->y) * (c->geom.height - 2 * c->bw);
-		pointtolocal(curmon, t->x, t->y, &lx, &ly);
+		double lx, ly, sx, sy, top_x, top_y, width, height;
 
-		if (t->toolv2->focused_surface) {
-			wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
-			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-		} else {
-			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-			motionnotify(ev->time_msec);
+		if (!no_client
+		&& (toplevel_from_wlr_surface(t->toolv2->focused_surface, &c, &l) >= 0))
+		{
+			top_x  = (c->type == LayerShell) ? l->geom.x : c->geom.x;
+			top_y  = (c->type == LayerShell) ? l->geom.y : c->geom.y;
+			width  = (c->type == LayerShell) ? l->geom.width : c->geom.width;
+			height = (c->type == LayerShell) ? l->geom.height : c->geom.height;
 		}
+
+		if (no_client) {
+			pointtolocal(selmon, t->x, t->y, &lx, &ly);
+			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
+			motionnotify(0);
+			return;
+		}
+		
+		/* TODO: add option to configure how different aspect ratios are handled */
+		sx = t->x * width;
+		sy = t->y * height;
+		lx = top_x + sx;
+		ly = top_y + sy;
+
+		wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
+		wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 	}
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
+    if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
         t->tilt_x = ev->tilt_x;
 
-    if (ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_Y)
+    if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_Y)
         t->tilt_y = ev->tilt_y;
 
-    if (ev->updated_axes &
+    if (!no_client && ev->updated_axes &
         (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y))
         wlr_tablet_v2_tablet_tool_notify_tilt(t->toolv2, ev->tilt_x, ev->tilt_y);
 	
@@ -2427,10 +2476,9 @@ tabletproximity(struct wl_listener *listener, void *data)
 
 	struct wlr_tablet_tool_proximity_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_proximity);
-	Monitor *curmon = xytomon(cursor->x, cursor->y);
 	Client *c = NULL;
 	Tool *t;
-	double lx, ly;
+	// double sx, sy;
 
 	if (ev->state == WLR_TABLET_TOOL_PROXIMITY_IN) 
 	{
@@ -2439,22 +2487,9 @@ tabletproximity(struct wl_listener *listener, void *data)
 			wlr_tablet_tool_create(tabletmanager, seat, ev->tool));
 		wl_list_insert(&tab->tools, &t->link);
 
-		pointtolocal(curmon, ev->x, ev->y, &lx, &ly);
-		xytonode(lx, ly, NULL, &c, NULL, NULL, NULL);
-
-		if (!c)
-			c = focustop(selmon);
-
-		if (!c || !wlr_surface_accepts_tablet_v2(tab->tablet_v2, client_surface(c))) {
-			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-			return;
-		}
-
-		t->fclient = c;
-		wlr_tablet_v2_tablet_tool_notify_proximity_in(
-			t->toolv2, 
-			tab->tablet_v2, 
-			client_surface(c));
+		if ((c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c)))
+			wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, client_surface(c));
+			
 	}
 	else if (ev->state == WLR_TABLET_TOOL_PROXIMITY_OUT)/* OUT */ 
 	{
@@ -2485,6 +2520,7 @@ tabletbutton(struct wl_listener *listener, void *data)
 	struct wlr_tablet_tool_button_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_button);
 	Tool *t;
+	Client *c;
 	bool found = false;
 
 	wl_list_for_each(t, &tab->tools, link) {
@@ -2497,7 +2533,18 @@ tabletbutton(struct wl_listener *listener, void *data)
 	if (!found)
 		return;
 
-	wlr_tablet_v2_tablet_tool_notify_button(t->toolv2, ev->button, ev->state); /* more readeble code > warnings */
+	if (!t->toolv2->focused_surface) {
+		if (!(c = focustop(selmon)) && !wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c)))
+			return;
+		
+		wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, client_surface(c));
+		if (t->tip_up)
+			wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
+		else
+			 wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
+	}
+
+	wlr_tablet_v2_tablet_tool_notify_button(t->toolv2, ev->button, ev->state); /* readable code > warnings */
 }
 
 void
@@ -2506,12 +2553,7 @@ tablettip(struct wl_listener *listener, void *data)
 	struct wlr_tablet_tool_tip_event *ev = data;
 	Tablet *tab = wl_container_of(listener, tab, tablet_tool_tip);
 	Tool *t;
-	Client *c;
-	double lx, ly;
-
 	bool found = false;
-	Monitor *other = xytomon(cursor->x, cursor->y);
-	pointtolocal(other, ev->x, ev->y, &lx, &ly);
 
 	wl_list_for_each(t, &tab->tools, link) {
 		if (t->tool == ev->tool) {
@@ -2523,21 +2565,12 @@ tablettip(struct wl_listener *listener, void *data)
 	if (!found)
 		return;
 
-	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN) {
-		xytonode(lx, ly, NULL, &c, NULL, NULL, NULL);
+	if (ev->state == WLR_TABLET_TOOL_TIP_DOWN)
+		t->tip_up = false;
+	else if (ev->state == WLR_TABLET_TOOL_TIP_UP)
+		t->tip_up = true;
 
-		/* update focused client */
-		if (t->fclient != c) {
-			wlr_tablet_v2_tablet_tool_notify_proximity_out(t->toolv2);
-			wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tablet_v2, client_surface(c));
-			t->fclient = c;
-		}
-
-		wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
-	}
-	else if (t->toolv2->focused_surface) {
-		wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
-	}
+	toolsfocus(client_surface(focustop(selmon)));
 }
 
 void

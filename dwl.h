@@ -296,7 +296,7 @@ typedef struct {
 	Monitor *m;
 
 	struct wlr_tablet			*tablet;
-	struct wlr_tablet_v2_tablet *tablet_v2;
+	struct wlr_tablet_v2_tablet *tabletv2;
 	struct wl_list tools; /* current tools */
 
 	struct wl_listener tablet_tool_axis;
@@ -309,9 +309,9 @@ typedef struct {
 typedef struct {
 	struct wl_list link;
 
-	Client *fclient;
 	struct wlr_tablet_tool           *tool;
 	struct wlr_tablet_v2_tablet_tool *toolv2;
+	bool tip_up; /* true = tipup; false = tipdown */
 	double x,y;
 	double tilt_x, tilt_y;
 } Tool;
