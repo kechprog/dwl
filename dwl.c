@@ -621,6 +621,7 @@ createmon(struct wl_listener *listener, void *data)
 					if (strcmp(m->tablet_name, tab->tablet->base.name) != 0)	
 						continue;
 					tab->m = m;
+					tab->aspect_ratio = (double)m->m.width / (double)m->m.height;
 					break;
 				}
 
@@ -838,6 +839,7 @@ createtablet(struct wlr_tablet *tablet)
 	wl_list_for_each(m, &mons, link) {
 		if (strcmp(tab->tablet->base.name, m->tablet_name) == 0) {
 			tab->m = m;
+			tab->aspect_ratio = (double)m->m.width / (double)m->m.height;
 			break;
 		}
 	}
@@ -2448,11 +2450,12 @@ tabletaxis(struct wl_listener *listener, void *data)
 			return;
 		}
 		
-		/* TODO: add option to configure how different aspect ratios are handled */
 		sx = t->x * width;
 		sy = t->y * height;
 		lx = top_x + sx;
 		ly = top_y + sy;
+
+		double client_aspect_ratio = (double)width / (double)height;
 
 		wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
 		wlr_cursor_warp_closest(cursor, NULL, lx, ly);

@@ -294,6 +294,7 @@ typedef struct {
 	struct wl_list link;
 	bool on;
 	Monitor *m;
+	double aspect_ratio; /* width/height */
 
 	struct wlr_tablet			*tablet;
 	struct wlr_tablet_v2_tablet *tabletv2;
