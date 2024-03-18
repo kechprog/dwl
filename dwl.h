@@ -86,7 +86,7 @@ enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 	NetWMWindowTypeUtility, NetLast }; /* EWMH atoms */
 #endif
 enum { SwipeUp, SwipeDown, SwipeLeft, SwipeRight,
-	   SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft };
+				SwipeUpRight, SwipeUpLeft, SwipeDownRight, SwipeDownLeft }; /* touchpad swipe directions */
 
 enum {TOUCH_MODE_ENABLED, TOUCH_MODE_DISABLED}; /* screen modes */
 enum {TAMove1, TATap1, TATap2, TAMove2, TADrag, TAPinch}; /* trackpad actions */
@@ -281,7 +281,7 @@ struct Touch {
 
 	Monitor *m;
 	char *touch_name;
-	int mode;
+	int mode, prev_mode;
 
 	/* track mode specific */
 	struct wl_list track_points;
@@ -294,7 +294,6 @@ typedef struct {
 	struct wl_list link;
 	bool on;
 	Monitor *m;
-	double aspect_ratio; /* width/height */
 
 	struct wlr_tablet			*tablet;
 	struct wlr_tablet_v2_tablet *tabletv2;

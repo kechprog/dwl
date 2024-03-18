@@ -621,7 +621,6 @@ createmon(struct wl_listener *listener, void *data)
 					if (strcmp(m->tablet_name, tab->tablet->base.name) != 0)	
 						continue;
 					tab->m = m;
-					tab->aspect_ratio = (double)m->m.width / (double)m->m.height;
 					break;
 				}
 
@@ -782,6 +781,7 @@ createtouch(struct wlr_touch *touch) {
 	t->touch_name = ecalloc(strlen(name), sizeof(char));
 	strcpy(t->touch_name, name);
 	t->mode = TOUCH_MODE_ENABLED;
+	t->prev_mode = TOUCH_MODE_ENABLED;
 	t->last_touch = clock();
 	wl_list_init(&t->track_points);
 
@@ -836,10 +836,10 @@ createtablet(struct wlr_tablet *tablet)
 
 	if (wl_list_empty(&mons))
 		return;
+
 	wl_list_for_each(m, &mons, link) {
 		if (strcmp(tab->tablet->base.name, m->tablet_name) == 0) {
 			tab->m = m;
-			tab->aspect_ratio = (double)m->m.width / (double)m->m.height;
 			break;
 		}
 	}
@@ -1275,8 +1275,6 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
 	 */
 	int handled = 0;
 	const Key *k;
-	if (sym == XF86XK_MonBrightnessUp)
-		printf("Keysym: %d|Mods: %d\n", sym, mods);
 	for (k = keys; k < END(keys); k++) {
 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
 				sym == k->keysym && k->func) {
@@ -1776,7 +1774,6 @@ void
 pinchbegin(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_pinch_begin_event *ev = data;
-	printf("Forwarding pinch begin!\n");
 	wlr_pointer_gestures_v1_send_pinch_begin(
 		gestures,
 		seat,
@@ -2432,7 +2429,7 @@ tabletaxis(struct wl_listener *listener, void *data)
 	if (ev->updated_axes &
 		(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
 	{
-		double lx, ly, sx, sy, top_x, top_y, width, height;
+		double lx, ly, sx = t->x, sy = t->y, top_x, top_y, width, height, client_ar, tablet_ar, r;
 
 		if (!no_client
 		&& (toplevel_from_wlr_surface(t->toolv2->focused_surface, &c, &l) >= 0))
@@ -2450,12 +2447,23 @@ tabletaxis(struct wl_listener *listener, void *data)
 			return;
 		}
 		
-		sx = t->x * width;
-		sy = t->y * height;
+		client_ar = (double)width / (double)height;
+		tablet_ar = (double)tab->m->m.width / (double)tab->m->m.height;
+
+		if (tablet_ar > client_ar) {
+			r = client_ar / tablet_ar;
+			sx = t->x < r ? t->x : r;
+			sx /= r;
+		} else if (client_ar > tablet_ar) {
+			r = tablet_ar / client_ar;
+			sy = t->y < r ? t->y : r;
+			sy /= r;
+		}
+
+		sx *= width;
+		sy *= height;
 		lx = top_x + sx;
 		ly = top_y + sy;
-
-		double client_aspect_ratio = (double)width / (double)height;
 
 		wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
 		wlr_cursor_warp_closest(cursor, NULL, lx, ly);
@@ -2481,7 +2489,6 @@ tabletproximity(struct wl_listener *listener, void *data)
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_proximity);
 	Client *c = NULL;
 	Tool *t;
-	// double sx, sy;
 
 	if (ev->state == WLR_TABLET_TOOL_PROXIMITY_IN) 
 	{
@@ -2518,8 +2525,6 @@ tabletproximity(struct wl_listener *listener, void *data)
 void
 tabletbutton(struct wl_listener *listener, void *data)
 {
-	printf("Button\n");
-
 	struct wlr_tablet_tool_button_event *ev = data;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_button);
 	Tool *t;
@@ -2668,7 +2673,9 @@ toggleview(const Arg *arg)
 void
 toggletouch(const Arg *arg)
 {
-	if (!selmon->touch)
+	const Monitor *m = arg->v ? arg->v : selmon;
+
+	if (!m->touch)
 		return;
 	if (selmon->touch->mode == TOUCH_MODE_DISABLED)
 		selmon->touch->mode = TOUCH_MODE_ENABLED;
@@ -3458,7 +3465,6 @@ main(int argc, char *argv[])
 {
 	char *startup_cmd = NULL;
 	int c;
-	printf("I can print here!!!\n");
 
 	while ((c = getopt(argc, argv, "s:hv")) != -1) {
 		if (c == 's')
