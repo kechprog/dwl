@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <wayland-server-core.h>
 #include <wayland-util.h>
+#include <wlr/util/box.h>
 
 /* variables */
 static const char broken[] = "broken";
@@ -576,7 +577,6 @@ createmon(struct wl_listener *listener, void *data)
 	 * monitor) becomes available. */
 	struct wlr_output *wlr_output = data;
 	Touch *touch = NULL;
-	Tablet *tab = NULL;
 	const MonitorRule *r;
 	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
@@ -612,15 +612,6 @@ createmon(struct wl_listener *listener, void *data)
 						continue;
 					touch->m = m;
 					m->touch = touch;
-					break;
-				}
-
-			m->tablet_name = r->tablet_name;
-			if (m->tablet_name && !wl_list_empty(&tablets))
-				wl_list_for_each(tab, &tablets, link) {
-					if (strcmp(m->tablet_name, tab->tablet->base.name) != 0)	
-						continue;
-					tab->m = m;
 					break;
 				}
 
@@ -817,7 +808,6 @@ void
 createtablet(struct wlr_tablet *tablet)
 {
 	Tablet *tab = ecalloc(1, sizeof(Tablet));
-	Monitor *m;
 	
 	tab->tablet_tool_button    .notify = tabletbutton;
 	tab->tablet_tool_proximity .notify = tabletproximity;
@@ -833,16 +823,6 @@ createtablet(struct wlr_tablet *tablet)
 	tab->tabletv2 = wlr_tablet_create(tabletmanager, seat, &tab->tablet->base);
 	wl_list_init(&tab->tools);
 	wl_list_insert(&tablets, &tab->link);
-
-	if (wl_list_empty(&mons))
-		return;
-
-	wl_list_for_each(m, &mons, link) {
-		if (strcmp(tab->tablet->base.name, m->tablet_name) == 0) {
-			tab->m = m;
-			break;
-		}
-	}
 }
 
 Tool*
@@ -2375,6 +2355,7 @@ void
 tabletaxis(struct wl_listener *listener, void *data)
 {
 	struct wlr_tablet_tool_axis_event *ev = data;
+	struct wlr_surface *surface;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_axis);
 	Client *c;
 	LayerSurface *l;
@@ -2429,44 +2410,53 @@ tabletaxis(struct wl_listener *listener, void *data)
 	if (ev->updated_axes &
 		(WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y))
 	{
-		double lx, ly, sx = t->x, sy = t->y, top_x, top_y, width, height, client_ar, tablet_ar, r;
+		double lx, ly, sx = t->x, sy = t->y, client_ar, tablet_ar, r;
+		struct wlr_box *surface_box;
 
-		if (!no_client
-		&& (toplevel_from_wlr_surface(t->toolv2->focused_surface, &c, &l) >= 0))
-		{
-			top_x  = (c->type == LayerShell) ? l->geom.x : c->geom.x;
-			top_y  = (c->type == LayerShell) ? l->geom.y : c->geom.y;
-			width  = (c->type == LayerShell) ? l->geom.width : c->geom.width;
-			height = (c->type == LayerShell) ? l->geom.height : c->geom.height;
-		}
+		pointtolocal(selmon, t->x, t->y, &lx, &ly);
 
 		if (no_client) {
-			pointtolocal(selmon, t->x, t->y, &lx, &ly);
 			wlr_cursor_warp_closest(cursor, NULL, lx, ly);
-			motionnotify(0);
+			motionnotify(ev->time_msec);
 			return;
 		}
-		
-		client_ar = (double)width / (double)height;
-		tablet_ar = (double)tab->m->m.width / (double)tab->m->m.height;
 
-		if (tablet_ar > client_ar) {
-			r = client_ar / tablet_ar;
-			sx = t->x < r ? t->x : r;
-			sx /= r;
-		} else if (client_ar > tablet_ar) {
-			r = tablet_ar / client_ar;
-			sy = t->y < r ? t->y : r;
-			sy /= r;
+		if (toplevel_from_wlr_surface(t->toolv2->focused_surface, &c, &l) >= 0)
+			surface_box = c->type == LayerShell ? &l->geom : &c->geom;
+		
+		tablet_ar = tab->aspect_ratio;
+		bool should_refocus = false;
+		/* map 1 to 1 */
+		if (tablet_ar <= 0) {
+			xytonode(lx, ly, NULL, &c, &l, &sx, &sy);
+			surface = c->type == LayerShell ? l->layer_surface->surface : client_surface(c);
+			should_refocus = t->tip_up && t->toolv2->focused_surface != surface && wlr_surface_accepts_tablet_v2(tab->tabletv2, surface);
+			if (should_refocus && c->type == LayerShell)
+				toolsfocus(surface);
+		} else {
+			client_ar = (double)surface_box->width / (double)surface_box->height;
+
+			if (tablet_ar > client_ar) {
+				r = client_ar / tablet_ar;
+				sx = t->x < r ? t->x : r;
+				sx /= r;
+			} else if (client_ar > tablet_ar) {
+				r = tablet_ar / client_ar;
+				sy = t->y < r ? t->y : r;
+				sy /= r;
+			}
+
+			sx *= surface_box->width;
+			sy *= surface_box->height;
+			lx = surface_box->x + sx;
+			ly = surface_box->y + sy;
 		}
 
-		sx *= width;
-		sy *= height;
-		lx = top_x + sx;
-		ly = top_y + sy;
+		wlr_cursor_warp_closest(cursor, NULL, lx, ly);
+		if (should_refocus)
+			motionnotify(ev->time_msec);
 
 		wlr_tablet_v2_tablet_tool_notify_motion(t->toolv2, sx, sy);
-		wlr_cursor_warp_closest(cursor, NULL, lx, ly);
 	}
 
     if (!no_client && ev->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)

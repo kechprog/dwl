@@ -7,6 +7,7 @@
 
 class FileListener {
 	public:
+		FileListener() = default;
 		FileListener(const std::filesystem::path file, std::function<void(void)> callback, int inotify_fd, int flags = IN_MODIFY);
 		~FileListener();
 		void operator()(const inotify_event *event) const;

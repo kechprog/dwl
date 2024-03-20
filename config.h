@@ -42,9 +42,14 @@ static const Rule rules[] = {
 
 /* tablets which are to be enabled */
 /* if tablet name is not presented it won't be added */
+/* -1 means map one to one on curent monitor */
 static const TabletRule tebletRules[] = {
 	// {.name = "ELAN9008:00 04F3:2D55 Stylus"}, /*  top  */
-	{.name = "ELAN9009:00 04F3:2C1B Stylus"}, /* botom */
+	// {.name = "ELAN9009:00 04F3:2C1B Stylus"}, /* botom */
+	{ 
+	  .name = NULL,      /* matches everything(keep it last) */
+	  .aspect_ratio = -1 /* map 1 to 1 on selected monitor */
+	}
 };
 
 /* layout(s) */
@@ -57,16 +62,26 @@ static const Layout layouts[] = {
 
 /* monitors */
 static const MonitorRule monrules[] = {
+	/* lenovo thinkpad x1 yoga g6 */
 	/*  name  ,   mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
+	{ NULL ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
+	/* | touch_name |            brightness_name         | */
+	   ,     NULL   , "sysfs/backlight/intel_backlight"  }  ,
+
+
+	/* asus zenbook(ux435) */
 	// { NULL ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
 	// /*       touch name        tablet name */
 	//     , NULL, NULL, "sysfs/backlight/amdgpu_bl0"},
-	{ "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0,
-	/*       touch name        tablet name */
-	"ELAN9008:00 04F3:2D55", NULL, "sysfs/backlight/intel_backlight"},
-	{ "DP-1"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080,
-	/*       touch name        tablet name */
-	"ELAN9009:00 04F3:2C1B", "ELAN9009:00 04F3:2C1B Stylus", "sysfs/leds/asus::screenpad"}
+	
+	
+	/* asus zenbook duo(ux482) */
+	// { "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0,
+	// /*       touch name        tablet name */
+	// "ELAN9008:00 04F3:2D55", NULL, "sysfs/backlight/intel_backlight"},
+	// { "DP-1"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080,
+	// /*       touch name        tablet name */
+	// "ELAN9009:00 04F3:2C1B", "ELAN9009:00 04F3:2C1B Stylus", "sysfs/leds/asus::screenpad"}
 };
 
 /* keyboard */

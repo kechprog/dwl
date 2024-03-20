@@ -108,7 +108,7 @@ typedef struct {
 
 typedef struct Monitor Monitor;
 typedef struct {
-	/* Must keep these three elements in this order */
+	/* Must keep these four elements in this order */
 	unsigned int type; /* XDGShell or X11* */
 	struct wlr_box geom; /* layout-relative, includes border */
 	Monitor *mon;
@@ -165,7 +165,7 @@ typedef struct {
 } Keyboard;
 
 typedef struct {
-	/* Must keep these three elements in this order */
+	/* Must keep these four elements in this order */
 	unsigned int type; /* LayerShell */
 	struct wlr_box geom;
 	Monitor *mon;
@@ -235,7 +235,6 @@ typedef struct {
 	int x, y;
 
 	char *touch_name;
-	char *tablet_name;
 	char *brightness_class;
 } MonitorRule;
 
@@ -292,8 +291,8 @@ struct Touch {
 
 typedef struct {
 	struct wl_list link;
+	double aspect_ratio;
 	bool on;
-	Monitor *m;
 
 	struct wlr_tablet			*tablet;
 	struct wlr_tablet_v2_tablet *tabletv2;
@@ -318,6 +317,7 @@ typedef struct {
 
 typedef struct {
 	char *name;
+	double aspect_ratio; 
 } TabletRule;
 
 /* function declarations */
