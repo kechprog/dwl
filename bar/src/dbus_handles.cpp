@@ -32,7 +32,7 @@ static void dbus_query_bat(DBusConnection *conn, const char *property, void *ret
 
 	DBusMessage* reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
 	if (!reply) {
-	std::cerr << "Failed to send message: " << (err.message ? err.message : "unknown error") << std::endl;
+		std::cerr << "Failed to send message: " << (err.message ? err.message : "unknown error") << std::endl;
 	}
 
 	DBusMessageIter replyIter;

@@ -45,7 +45,7 @@ static struct wlr_session_lock_v1 *cur_lock;
 static struct wlr_pointer_gestures_v1 *gestures;
 static struct wlr_tablet_manager_v2 *tabletmanager;
 
-static struct wlr_seat *seat;
+struct wlr_seat *seat;
 static struct wl_list keyboards;
 static unsigned int cursor_mode;
 static Client *grabc;
@@ -77,7 +77,7 @@ static void sethints(struct wl_listener *listener, void *data);
 static void xwaylandready(struct wl_listener *listener, void *data);
 
 static struct wlr_xwayland *xwayland;
-static xcb_atom_t netatom[NetLast];
+xcb_atom_t netatom[NetLast];
 #endif
 
 /* configuration, allows nested code to access above variables */
@@ -576,6 +576,7 @@ createmon(struct wl_listener *listener, void *data)
 	/* This event is raised by the backend when a new output (aka a display or
 	 * monitor) becomes available. */
 	struct wlr_output *wlr_output = data;
+	printf("Creating Monitor: %s\n", wlr_output->name);
 	Touch *touch = NULL;
 	const MonitorRule *r;
 	size_t i;
@@ -761,7 +762,9 @@ createpointer(struct wlr_pointer *pointer)
 }
 
 void
-createtouch(struct wlr_touch *touch) {
+createtouch(struct wlr_touch *touch) 
+{
+	printf("Creating touch with name: %s\n",touch->base.name);
 	const char *name = touch->base.name;
 	Monitor *m = NULL;
 	Touch   *t = ecalloc(1, sizeof(Touch));
@@ -808,6 +811,7 @@ void
 createtablet(struct wlr_tablet *tablet)
 {
 	Tablet *tab = ecalloc(1, sizeof(Tablet));
+	tab->aspect_ratio = -1;
 	
 	tab->tablet_tool_button    .notify = tabletbutton;
 	tab->tablet_tool_proximity .notify = tabletproximity;
@@ -2355,7 +2359,6 @@ void
 tabletaxis(struct wl_listener *listener, void *data)
 {
 	struct wlr_tablet_tool_axis_event *ev = data;
-	struct wlr_surface *surface;
 	Tablet *tab  = wl_container_of(listener, tab, tablet_tool_axis);
 	Client *c;
 	LayerSurface *l;
@@ -2375,14 +2378,10 @@ tabletaxis(struct wl_listener *listener, void *data)
 	no_client = !t->toolv2->focused_surface;
 
 	if (no_client
-	&& ((c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c))))
+	&& (c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c)))
 	{
 		no_client = false;	
-		wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, client_surface(c));
-		if (t->tip_up)
-			wlr_tablet_v2_tablet_tool_notify_up(t->toolv2);
-		else
-			wlr_tablet_v2_tablet_tool_notify_down(t->toolv2);
+		toolsfocus(client_surface(c));
 	}
 
 
@@ -2426,13 +2425,19 @@ tabletaxis(struct wl_listener *listener, void *data)
 		
 		tablet_ar = tab->aspect_ratio;
 		bool should_refocus = false;
+
 		/* map 1 to 1 */
 		if (tablet_ar <= 0) {
-			xytonode(lx, ly, NULL, &c, &l, &sx, &sy);
-			surface = c->type == LayerShell ? l->layer_surface->surface : client_surface(c);
-			should_refocus = t->tip_up && t->toolv2->focused_surface != surface && wlr_surface_accepts_tablet_v2(tab->tabletv2, surface);
-			if (should_refocus && c->type == LayerShell)
-				toolsfocus(surface);
+			double wlr_sx, wlr_sy;
+			wlr_scene_node_at(&c->scene->node, lx, ly, &wlr_sx, &wlr_sy);
+
+			struct wlr_box s_clip;
+			client_get_clip(c, &s_clip);
+
+			sx = lx - surface_box->x - c->bw + s_clip.x;
+			sy = ly - surface_box->y - c->bw + s_clip.y;
+
+			should_refocus = t->tip_up && !wlr_box_contains_point(&c->geom, lx, ly);
 		} else {
 			client_ar = (double)surface_box->width / (double)surface_box->height;
 
@@ -2574,7 +2579,9 @@ tablettip(struct wl_listener *listener, void *data)
 void
 tile(Monitor *m)
 {
-	unsigned int i, n = 0, mw, my, ty;
+	unsigned int i, n = 0, nm;
+	unsigned int mw, mh, my;
+	unsigned int tw, th, ty;
 	Client *c;
 
 	wl_list_for_each(c, &clients, link)
@@ -2584,28 +2591,38 @@ tile(Monitor *m)
 		return;
 
 	if (n > m->nmaster)
-		mw = m->nmaster ? m->w.width * m->mfact : 0;
+		mw = m->nmaster ? (m->w.width - 2*gappx) * m->mfact : 0;
 	else
-		mw = m->w.width;
+		mw = m->w.width - 2*gappx;
+ 
+	nm = MIN(n, m->nmaster); /* num masters */
+
 	i = my = ty = 0;
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
-		if (i < m->nmaster) {
-			resize(c, (struct wlr_box){
-				.x = m->w.x + gappx, 
-				.y = m->w.y + my + gappx, 
-				.width = mw - 2*gappx,
-				.height = (m->w.height - my - 2*gappx) / (MIN(n, m->nmaster) - i)
-			},0);
-			my += c->geom.height;
-		} else {
-			resize(c, (struct wlr_box){
-				.x = m->w.x + mw,
+
+		if (i < m->nmaster) { /* master side */
+			/* if there is x masters, then there is x+1 gaps */
+			mh = ( m->w.height - (nm + 1)*gappx ) / nm;
+			struct wlr_box b = {
+				.x = m->w.x + gappx,
+				.width = mw,
+				.y = m->w.y + my + gappx,
+				.height = mh,
+			};
+			resize(c, b, 0);
+			my += c->geom.height + gappx;
+		} else { /* slaves */
+			tw = ( m->w.width - mw - 3*gappx );
+			th = ( m->w.height - (n - nm + 1)*gappx ) / (n - nm);
+			struct wlr_box b = {
+				.x = m->w.x + 2*gappx + mw,
+				.width = tw,
 				.y = m->w.y + ty + gappx,
-				.width = m->w.width - mw - gappx, 
-				.height = (m->w.height - ty - 2*gappx) / (n - i)
-			},0);
+				.height = th,
+			};
+			resize(c, b, 0);
 			ty += c->geom.height + gappx;
 		}
 		i++;
@@ -2930,8 +2947,8 @@ touch_up(struct wl_listener *listener, void *data)
 
 void pointtolocal(Monitor *m, double sx, double sy, double *lx, double *ly) 
 {
-	double glb_x = sx * m->w.width  + m->w.x,
-	       glb_y = sy * m->w.height + m->w.y;
+	double glb_x = sx * m->m.width  + m->m.x,
+	       glb_y = sy * m->m.height + m->m.y;
 
 	if(lx) *lx = glb_x;
 	if(ly) *ly = glb_y;

@@ -10,7 +10,7 @@
 /* appearance */
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
-static const unsigned int borderpx         = 2;  /* border pixel of windows */
+static const unsigned int borderpx         = 1;  /* border pixel of windows */
 static const unsigned int gappx            = 8;  /* gap in pixels between windows */
 static const float bordercolor[]           = COLOR(0xb8c0e0ff);
 static const float focuscolor[]            = COLOR(0xed8796ff);
@@ -63,10 +63,10 @@ static const Layout layouts[] = {
 /* monitors */
 static const MonitorRule monrules[] = {
 	/* lenovo thinkpad x1 yoga g6 */
-	/*  name  ,   mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
-	{ NULL ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
-	/* | touch_name |            brightness_name         | */
-	   ,     NULL   , "sysfs/backlight/intel_backlight"  }  ,
+	/*  name  ,  mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
+	{ "eDP-1",   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
+	/* |	    touch_name	     |            brightness_name         | */
+	   , "Wacom HID 5276 Finger" , "sysfs/backlight/intel_backlight"  }  ,
 
 
 	/* asus zenbook(ux435) */

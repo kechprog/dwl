@@ -454,3 +454,10 @@ void zoom(const Arg *arg);
 void dwl_wm_bind(struct wl_client *client, void *data,
  uint32_t version, uint32_t id);
 void dwl_wm_printstatus(Monitor *monitor);
+
+
+
+extern struct wlr_seat *seat;
+#ifdef XWAYLAND
+extern xcb_atom_t netatom[NetLast];
+#endif

@@ -1,13 +1,11 @@
 #pragma once
-#include "config.hpp"
+#include <filesystem>
 #include <functional>
 #include <sys/inotify.h>
-#include <array>
 
 
 class FileListener {
 	public:
-		FileListener() = default;
 		FileListener(const std::filesystem::path file, std::function<void(void)> callback, int inotify_fd, int flags = IN_MODIFY);
 		~FileListener();
 		void operator()(const inotify_event *event) const;
@@ -20,4 +18,4 @@ class FileListener {
 };
 
 /* the big boy function */
-std::array<FileListener, config::brightness::display_count> setupFileListeners(int notify_fd);
+std::vector<FileListener> setupFileListeners(int notify_fd);

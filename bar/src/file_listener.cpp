@@ -32,17 +32,20 @@ void FileListener::operator()(const inotify_event *event) const
 
 }
 
+
 /* defenition of some listeners */
-std::array<FileListener, config::brightness::display_count> setupFileListeners(int inotify_fd)
+std::vector<FileListener> setupFileListeners(int inotify_fd)
 {
-	std::array<FileListener, config::brightness::display_count> listeners = {};
+	std::vector<FileListener> listeners {};
 	for (size_t i = 0; i < config::brightness::display_count; i++) {
-		listeners[i] = FileListener(config::brightness::per_display_info[i].first, [i]() {
+		const auto &name  = config::brightness::per_display_info[i].first;
+		const auto &max_b = config::brightness::per_display_info[i].second; 
+		listeners.emplace_back(name, [=](){
 			std::string buf;
-			std::ifstream f(config::brightness::per_display_info[i].first.c_str());
+			std::ifstream f(name.c_str());
 			f >> buf;
-			size_t curBrightness = std::stoull(buf.c_str());
-			state::brightnesses[0] = curBrightness / (double) config::brightness::per_display_info[i].second * 100;
+			size_t cur = std::stoull(buf);
+			state::brightnesses[i] = cur / (double)max_b * 100;
 			state::render();
 		}, inotify_fd);
 	}
