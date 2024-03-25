@@ -1490,6 +1490,19 @@ monocle(Monitor *m)
 		wlr_scene_node_raise_to_top(&c->scene->node);
 }
 
+void
+monrotate(const Arg *arg)
+{
+	if (!selmon)
+		return;
+
+	enum wl_output_transform t = (selmon->wlr_output->transform + 1) % 4;
+	wlr_output_set_transform(selmon->wlr_output, t);
+	wlr_output_commit(selmon->wlr_output);
+	arrange(selmon);
+}
+
+
 void 
 monitorbrightness(const Arg *arg)
 {

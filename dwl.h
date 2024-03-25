@@ -380,6 +380,7 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data);
 void mapnotify(struct wl_listener *listener, void *data);
 void maximizenotify(struct wl_listener *listener, void *data);
 void monocle(Monitor *m);
+void monrotate(const Arg *arg);
 void monitorbrightness(const Arg *arg);
 void motionabsolute(struct wl_listener *listener, void *data);
 void motionnotify(uint32_t time);
