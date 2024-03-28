@@ -11,3 +11,4 @@ bar/.builds
 bar/.cache/clangd/index
 bar/gmon.out
 gmon.out
+debug.log
