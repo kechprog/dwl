@@ -433,7 +433,7 @@ void touch_frame(struct wl_listener *listener, void *data);
 void touch_up(struct wl_listener *listener, void *data); 
 void touch_down(struct wl_listener *listener, void *data); 
 void pointtolocal(Monitor *m, double scrnx, double scrny, double *lx, double *ly);
-
+void debug(const Arg *arg);
 void swipebegin(struct wl_listener *listener, void *data);
 void swipeend(struct wl_listener *listener, void *data);
 void swipeupdate(struct wl_listener *listener, void *data);

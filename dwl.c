@@ -105,6 +105,18 @@ applybounds(Client *c, struct wlr_box *bbox)
 }
 
 void
+debug(const Arg *arg)
+{
+	Client *c;
+	if (!(c = focustop(selmon)))
+		return;
+
+	FILE *f = fopen("/home/ed/projects/dwl/debug.log", "a");
+	fprintf(f, "TL: (%d, %d)\n", c->geom.x, c->geom.y);
+	fclose(f);
+}
+
+void
 applyrules(Client *c)
 {
 	/* rule matching */
@@ -2960,6 +2972,28 @@ touch_up(struct wl_listener *listener, void *data)
 
 void pointtolocal(Monitor *m, double sx, double sy, double *lx, double *ly) 
 {
+	double tmp;
+
+	switch (m->wlr_output->transform) {
+		case WL_OUTPUT_TRANSFORM_90:
+			tmp = sx;
+			sx = (1 - sy);
+			sy = tmp;
+		break;
+		case WL_OUTPUT_TRANSFORM_180:
+			sx = (1 - sx);
+			sy = (1 - sy);
+		break;
+		case WL_OUTPUT_TRANSFORM_270:
+			tmp = sx;
+			sx = sy;
+			sy = (1 - tmp);
+		break;
+		default:
+			// TODO:
+		break;
+	}
+
 	double glb_x = sx * m->m.width  + m->m.x,
 	       glb_y = sy * m->m.height + m->m.y;
 
