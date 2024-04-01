@@ -7,8 +7,7 @@ PKG_CONFIG = pkg-config
 PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
-XWAYLAND =
-XLIBS =
-# Uncomment to build XWayland support
-# XWAYLAND = -DXWAYLAND
-# XLIBS = xcb xcb-icccm
+# XWAYLAND =
+# XLIBS =
+XWAYLAND = -DXWAYLAND
+XLIBS = xcb xcb-icccm

@@ -64,7 +64,8 @@ static const Layout layouts[] = {
 static const MonitorRule monrules[] = {
 	/* lenovo thinkpad x1 yoga g6 */
 	/*  name  ,  mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
-	{ "eDP-1",   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
+	{"HDMI-A-1", 0.6, 1, 1, &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 0, NULL, NULL},
+	{ "eDP-1",   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   1080  
 	/* |	    touch_name	     |            brightness_name         | */
 	   , "Wacom HID 5276 Finger" , "sysfs/backlight/intel_backlight"  }  ,
 
