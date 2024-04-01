@@ -35,8 +35,6 @@ static int log_level = WLR_ERROR;
 
 static const Rule rules[] = {
 	/* app_id     title       tags mask     isfloating   monitor */
-	/* examples:
-	*/
 	{ "Gimp",     NULL,       1 << 3,            1,           -1 },
 };
 
@@ -149,7 +147,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY, toggletag,       {.ui = 1 << TAG} }
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
-// #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
 static const char *termcmd[]           = { "kitty", NULL };
@@ -202,6 +200,7 @@ static const Key keys[] = {
 	{ 0, XF86XK_AudioMute,         spawn,              {.v = volmutetogglecmd}  },
 
 	{ 0, XF86XK_Launch7,           toggletouch,        {0} },
+	{ 0, XKB_KEY_Print,            spawn,		   SHCMD("grim -g \"$(slurp -d)\" - | swappy -f -") },
 
 	// {MODKEY,                     XKB_KEY_c,            check_tablet, {0}}, /* temporary */
 
