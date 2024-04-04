@@ -1,7 +1,6 @@
 #include "Font.hpp"
 #include "pango/pangocairo.h"
 #include "src/config.hpp"
-#include <iostream>
 
 std::list<Font> Font::fonts;
 
