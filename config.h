@@ -92,6 +92,11 @@ static const struct xkb_rule_names xkb_rules = {
 	.options = NULL,
 };
 
+static const char *kbd_layouts[] = {
+	"us", /* on start up defualt */
+	"ru",
+};
+
 static const int repeat_rate = 40;
 static const int repeat_delay = 400;
 
@@ -140,11 +145,11 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 /* If you want to use the windows key for MODKEY, use WLR_MODIFIER_LOGO */
 #define MODKEY WLR_MODIFIER_ALT
 
-#define TAGKEYS(KEY,SKEY,TAG) \
+#define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                    KEY,                   view,            {.ui = 1 << TAG} }, \
 	{ MODKEY|WLR_MODIFIER_CTRL,  KEY,                   toggleview,      {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_SHIFT, SKEY,                  tag,             {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY, toggletag,       {.ui = 1 << TAG} }
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY,                  tag,             {.ui = 1 << TAG} }, \
+	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, KEY, toggletag,       {.ui = 1 << TAG} }
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
@@ -153,9 +158,9 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 static const char *termcmd[]           = { "kitty", NULL };
 static const char *menucmd[]           = { "wofi", NULL };
 
-static const char *volupcmd[]          = {"pamixer", "-i", "10"};
-static const char *voldowncmd[]        = {"pamixer", "-d", "10"};
-static const char *volmutetogglecmd[]  = {"pamixer", "-t"};
+static const char *volupcmd[]          = {"pamixer", "-i", "10", NULL};
+static const char *voldowncmd[]        = {"pamixer", "-d", "10", NULL};
+static const char *volmutetogglecmd[]  = {"pamixer", "-t", NULL};
 
 /* want to know a name of specific key, as they are defined in xf86 keysym ?
  * - https://github.com/jwrdegoede/wev
@@ -163,32 +168,33 @@ static const char *volmutetogglecmd[]  = {"pamixer", "-t"};
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
 	/* modifier                  key                 function        argument */
-	{ MODKEY,                    XKB_KEY_space,      spawn,          {.v = menucmd} },
-	{ MODKEY,                    XKB_KEY_Return,     spawn,          {.v = termcmd} },
-	{ MODKEY,                    XKB_KEY_j,          focusstack,     {.i = +1} },
-	{ MODKEY,                    XKB_KEY_d,          debug,		 {0} },
-	{ MODKEY,                    XKB_KEY_k,          focusstack,     {.i = -1} },
+	{ MODKEY,                    KEY_SPACE,      spawn,          {.v = menucmd} },
+	{ MODKEY,                    KEY_ENTER,     spawn,          {.v = termcmd} },
+	{ MODKEY,                    KEY_J,          focusstack,     {.i = +1} },
+	{ MODKEY,                    KEY_D,          debug,		 {0} },
+	{ MODKEY,                    KEY_K,          focusstack,     {.i = -1} },
 	// { MODKEY,                    XKB_KEY_i,          incnmaster,     {.i = +1} },
 	// { MODKEY,                    XKB_KEY_d,          incnmaster,     {.i = -1} },
-	{ MODKEY,                    XKB_KEY_h,          setmfact,       {.f = -0.05} },
-	{ MODKEY,                    XKB_KEY_l,          setmfact,       {.f = +0.05} },
-	{ MODKEY,                    XKB_KEY_Return,     zoom,           {0} },
-	{ MODKEY,                    XKB_KEY_Tab,        view,           {0} },
-	{ MODKEY,                    XKB_KEY_q,          killclient,     {0} },
-	{ MODKEY,                    XKB_KEY_r,          monrotate,      {0} },
+	{ MODKEY,                    KEY_H,          setmfact,       {.f = -0.05} },
+	{ MODKEY,                    KEY_L,          setmfact,       {.f = +0.05} },
+	{ MODKEY,                    KEY_TAB,        view,           {0} },
+	{ MODKEY,                    KEY_Q,          killclient,     {0} },
+	{ MODKEY,                    KEY_R,          monrotate,      {0} },
+	{ MODKEY,                    KEY_C,          cycle_focused_kbd, {0} },
 	// { MODKEY,                    XKB_KEY_t,          setlayout,      {.v = &layouts[0]} },
 	// { MODKEY,                    XKB_KEY_f,          setlayout,      {.v = &layouts[1]} },
 	// { MODKEY,                    XKB_KEY_m,          setlayout,      {.v = &layouts[2]} },
-	{ MODKEY,                    XKB_KEY_t,          setlayout,      {0} }, // cycle
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_F,          togglefloating, {0} },
-	{ MODKEY,                    XKB_KEY_f,          togglefullscreen, {0} },
-	{ MODKEY,                    XKB_KEY_0,          view,           {.ui = ~0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright, tag,            {.ui = ~0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_comma,      focusmon,       {.i = WLR_DIRECTION_UP} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_period,     focusmon,       {.i = WLR_DIRECTION_DOWN} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_less,       tagmon,         {.i = WLR_DIRECTION_UP} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_greater,    tagmon,         {.i = WLR_DIRECTION_DOWN} },
-	{ MODKEY|WLR_MODIFIER_CTRL,  XKB_KEY_q,          quit,           {0} },
+	{ MODKEY,                    KEY_T,          setlayout,      {0} }, // cycle
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY_F,          togglefloating, {0} },
+	{ MODKEY,                    KEY_F,          togglefullscreen, {0} },
+	{ MODKEY,                    KEY_0,          view,           {.ui = ~0} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY_KPRIGHTPAREN, tag,            {.ui = ~0} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY_COMMA,      focusmon,       {.i = WLR_DIRECTION_UP} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY_DOT,     focusmon,       {.i = WLR_DIRECTION_DOWN} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY_COMMA,       tagmon,         {.i = WLR_DIRECTION_UP} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY_DOT,    tagmon,         {.i = WLR_DIRECTION_DOWN} },
+	{ MODKEY|WLR_MODIFIER_CTRL,  KEY_Q,          quit,           {0} },
+
 	{ 0                        , XF86XK_Launch6,     movenext,       {0} },
 
 	/* FUNCTION KEYS */
@@ -204,15 +210,15 @@ static const Key keys[] = {
 
 	// {MODKEY,                     XKB_KEY_c,            check_tablet, {0}}, /* temporary */
 
-	TAGKEYS(          XKB_KEY_1, XKB_KEY_exclam,                     0),
-	TAGKEYS(          XKB_KEY_2, XKB_KEY_at,                         1),
-	TAGKEYS(          XKB_KEY_3, XKB_KEY_numbersign,                 2),
-	TAGKEYS(          XKB_KEY_4, XKB_KEY_dollar,                     3),
-	TAGKEYS(          XKB_KEY_5, XKB_KEY_percent,                    4),
-	TAGKEYS(          XKB_KEY_6, XKB_KEY_asciicircum,                5),
-	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                  6),
-	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                   7),
-	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                  8),
+	TAGKEYS(          KEY_1,                 0),
+	TAGKEYS(          KEY_2,                 1),
+	TAGKEYS(          KEY_3,                 2),
+	TAGKEYS(          KEY_4,                 3),
+	TAGKEYS(          KEY_5,                 4),
+	TAGKEYS(          KEY_6,                 5),
+	TAGKEYS(          KEY_7,                 6),
+	TAGKEYS(          KEY_8,                 7),
+	TAGKEYS(          KEY_9,                 8),
 
 	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
 #define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }

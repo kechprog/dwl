@@ -4,6 +4,7 @@
 #include <wayland-server-core.h>
 #include <wayland-util.h>
 #include <wlr/util/box.h>
+#include <xkbcommon/xkbcommon.h>
 
 /* variables */
 static const char broken[] = "broken";
@@ -62,6 +63,8 @@ static uint32_t swipe_fingercount=0;
 
 static struct wl_list touches;
 static struct wl_list tablets;
+
+static int sel_kbd_lt = 0;
 
 
 /* global event handlers */
@@ -1263,7 +1266,7 @@ inputdevice(struct wl_listener *listener, void *data)
 }
 
 int
-keybinding(uint32_t mods, xkb_keysym_t sym)
+keybinding(uint32_t mods, uint32_t keycode)
 {
 	/*
 	 * Here we handle compositor keybindings. This is when the compositor is
@@ -1274,7 +1277,7 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
 	const Key *k;
 	for (k = keys; k < END(keys); k++) {
 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
-				sym == k->keysym && k->func) {
+				(keycode == k->keysym) && k->func) {
 			k->func(&k->arg);
 			handled = 1;
 		}
@@ -1285,17 +1288,9 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
 void
 keypress(struct wl_listener *listener, void *data)
 {
-	int i;
 	/* This event is raised when a key is pressed or released. */
 	Keyboard *kb = wl_container_of(listener, kb, key);
-	struct wlr_keyboard_key_event *event = data;
-
-	/* Translate libinput keycode -> xkbcommon */
-	uint32_t keycode = event->keycode + 8;
-	/* Get a list of keysyms based on the keymap for this keyboard */
-	const xkb_keysym_t *syms;
-	int nsyms = xkb_state_key_get_syms(
-			kb->wlr_keyboard->xkb_state, keycode, &syms);
+	struct wlr_keyboard_key_event *ev = data;
 
 	int handled = 0;
 	uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr_keyboard);
@@ -1304,18 +1299,17 @@ keypress(struct wl_listener *listener, void *data)
 
 	/* On _press_ if there is no active screen locker,
 	 * attempt to process a compositor keybinding. */
-	if (!locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
-		for (i = 0; i < nsyms; i++)
-			handled = keybinding(mods, syms[i]) || handled;
+
+	if (!locked && ev->state == WL_KEYBOARD_KEY_STATE_PRESSED)
+		handled = keybinding(mods, ev->keycode) || handled;
 
 	if (handled && kb->wlr_keyboard->repeat_info.delay > 0) {
 		kb->mods = mods;
-		kb->keysyms = syms;
-		kb->nsyms = nsyms;
+		kb->keycode = ev->keycode;
 		wl_event_source_timer_update(kb->key_repeat_source,
 				kb->wlr_keyboard->repeat_info.delay);
 	} else {
-		kb->nsyms = 0;
+		kb->keycode = 0;
 		wl_event_source_timer_update(kb->key_repeat_source, 0);
 	}
 
@@ -1324,8 +1318,8 @@ keypress(struct wl_listener *listener, void *data)
 
 	/* Pass unhandled keycodes along to the client. */
 	wlr_seat_set_keyboard(seat, kb->wlr_keyboard);
-	wlr_seat_keyboard_notify_key(seat, event->time_msec,
-		event->keycode, event->state);
+	wlr_seat_keyboard_notify_key(seat, ev->time_msec,
+		ev->keycode, ev->state);
 }
 
 void
@@ -1350,15 +1344,13 @@ int
 keyrepeat(void *data)
 {
 	Keyboard *kb = data;
-	int i;
-	if (!kb->nsyms || kb->wlr_keyboard->repeat_info.rate <= 0)
+	if (!kb->keycode || kb->wlr_keyboard->repeat_info.rate <= 0)
 		return 0;
 
 	wl_event_source_timer_update(kb->key_repeat_source,
 			1000 / kb->wlr_keyboard->repeat_info.rate);
 
-	for (i = 0; i < kb->nsyms; i++)
-		keybinding(kb->mods, kb->keysyms[i]);
+	keybinding(kb->mods, kb->keycode);
 
 	return 0;
 }
@@ -1972,6 +1964,27 @@ run(char *startup_cmd)
 	 * loop configuration to listen to libinput events, DRM events, generate
 	 * frame events at the refresh rate, and so on. */
 	wl_display_run(dpy);
+}
+
+void 
+cycle_focused_kbd(const Arg* arg)
+{
+	Keyboard *kbd;
+	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	int next_lt = (sel_kbd_lt + 1) % LENGTH(kbd_layouts);
+
+	struct xkb_rule_names kbd_rules = xkb_rules;
+	kbd_rules.layout = kbd_layouts[next_lt];
+
+	wl_list_for_each(kbd, &keyboards, link) {
+		wlr_keyboard_set_keymap(kbd->wlr_keyboard, 
+			xkb_keymap_new_from_names(context, &kbd_rules, XKB_KEYMAP_COMPILE_NO_FLAGS));
+
+	}
+
+	printf("current layout: %d|lt name: %s\n", next_lt, kbd_layouts[next_lt]);
+	xkb_context_unref(context);
+	sel_kbd_lt++;
 }
 
 void

@@ -154,8 +154,7 @@ typedef struct {
 	struct wl_list link;
 	struct wlr_keyboard *wlr_keyboard;
 
-	int nsyms;
-	const xkb_keysym_t *keysyms; /* invalid if nsyms == 0 */
+	uint32_t keycode;
 	uint32_t mods; /* invalid if nsyms == 0 */
 	struct wl_event_source *key_repeat_source;
 
@@ -401,6 +400,8 @@ void requeststartdrag(struct wl_listener *listener, void *data);
 void requestmonstate(struct wl_listener *listener, void *data);
 void resize(Client *c, struct wlr_box geo, int interact);
 void run(char *startup_cmd);
+void cycle_kbd_layout(Keyboard *kbd);
+void cycle_focused_kbd(const Arg* arg);
 void setcursor(struct wl_listener *listener, void *data);
 void setcursorshape(struct wl_listener *listener, void *data);
 void setfloating(Client *c, int floating);
