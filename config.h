@@ -158,9 +158,10 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 static const char *termcmd[]           = { "kitty", NULL };
 static const char *menucmd[]           = { "wofi", NULL };
 
-static const char *volupcmd[]          = {"pamixer", "-i", "10", NULL};
-static const char *voldowncmd[]        = {"pamixer", "-d", "10", NULL};
+static const char *volupcmd[]          = {"pamixer", "-i", "5", NULL};
+static const char *voldowncmd[]        = {"pamixer", "-d", "5", NULL};
 static const char *volmutetogglecmd[]  = {"pamixer", "-t", NULL};
+static const char *togglemicmute[]     = {"pamixer", "--default-source", "--toggle-mute", NULL};
 
 /* want to know a name of specific key, as they are defined in xf86 keysym ?
  * - https://github.com/jwrdegoede/wev
@@ -198,17 +199,16 @@ static const Key keys[] = {
 	{ 0                        , XF86XK_Launch6,     movenext,       {0} },
 
 	/* FUNCTION KEYS */
-	{ 0, XF86XK_MonBrightnessUp,   monitorbrightness,  {.i =  10} },
-	{ 0, XF86XK_MonBrightnessDown, monitorbrightness,  {.i = -10} },
+	{ 0, KEY_BRIGHTNESSUP,   monitorbrightness,  {.i =  5} },
+	{ 0, KEY_BRIGHTNESSDOWN, monitorbrightness,  {.i = -5} },
 
-	{ 0, XF86XK_AudioRaiseVolume,  spawn,              {.v = volupcmd}          },
-	{ 0, XF86XK_AudioLowerVolume,  spawn,              {.v = voldowncmd}        },
-	{ 0, XF86XK_AudioMute,         spawn,              {.v = volmutetogglecmd}  },
+	{ 0, KEY_VOLUMEUP,	spawn,              {.v = volupcmd}          },
+	{ 0, KEY_VOLUMEDOWN,	spawn,              {.v = voldowncmd}        },
+	{ 0, KEY_MUTE,		spawn,              {.v = volmutetogglecmd}  },
+	{ 0, KEY_F20,		spawn,              {.v = togglemicmute}     }, /* mic mute on x1 yoga gen 6 */
 
-	{ 0, XF86XK_Launch7,           toggletouch,        {0} },
-	{ 0, XKB_KEY_Print,            spawn,		   SHCMD("grim -g \"$(slurp -d)\" - | swappy -f -") },
-
-	// {MODKEY,                     XKB_KEY_c,            check_tablet, {0}}, /* temporary */
+	{ 0, XF86XK_Launch7,		toggletouch,        {0} },
+	{ 0, KEY_SYSRQ,			spawn,		   SHCMD("grim -g \"$(slurp -d)\" - | swappy -f -") }, /* print screen */
 
 	TAGKEYS(          KEY_1,                 0),
 	TAGKEYS(          KEY_2,                 1),
@@ -221,7 +221,7 @@ static const Key keys[] = {
 	TAGKEYS(          KEY_9,                 8),
 
 	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
-#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
+#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,KEY_F##n, chvt, {.ui = (n)} }
 	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
 	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
 };

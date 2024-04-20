@@ -21,7 +21,8 @@ namespace state {
 	extern std::string time_txt;
 	
 	extern uint32_t volume;
-	extern bool is_mute;
+	extern bool vol_is_mute;
+	extern bool mic_is_mute;
 	
 	/* drawing things */
 	extern wl_unique_ptr<PangoContext> pango_ctx;

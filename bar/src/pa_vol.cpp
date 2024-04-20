@@ -12,25 +12,57 @@ void PaListener::worker_state_cb(pa_context* context, void* userdata)
     pa_mainloop_api* mainloop_api = reinterpret_cast<pa_mainloop_api*>(userdata);
 
     switch (pa_context_get_state(context)) {
-        case PA_CONTEXT_READY: {
-			pa_operation* op_subscribe = pa_context_subscribe(context, PA_SUBSCRIPTION_MASK_SINK, nullptr, nullptr);
-            if (op_subscribe) pa_operation_unref(op_subscribe);
+	case PA_CONTEXT_READY: {
+		pa_operation* op_subscribe = pa_context_subscribe(
+			context, 
+			(pa_subscription_mask_t)(PA_SUBSCRIPTION_MASK_SINK|PA_SUBSCRIPTION_MASK_SOURCE), /* c++ ... */
+			nullptr, nullptr
+		);
+		if (op_subscribe) 
+			pa_operation_unref(op_subscribe);
 
-            // Query initial state of all sinks
-            pa_operation* op_query = pa_context_get_sink_info_list(context, [](pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
-                if (eol < 0 || !i) return;
+		// Query initial state of all sinks
+		pa_operation* op_query_sink = pa_context_get_sink_info_list(
+			context, 
+			[](pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
+				if (eol < 0 || !i) 
+					return;
 
-                VolEvent ev = {
-                    .is_mute = i->mute == 1, 
-                    .volume  = i->volume.values[0] * 100 / PA_VOLUME_NORM,
-                };
+				PaEvent ev = {
+					.type = PaEventType::Audio,
+					.data = {
+						.vol = {
+						    .is_mute = i->mute == 1, 
+						    .volume  = i->volume.values[0] * 100 / PA_VOLUME_NORM,
+						},
+					}
+				};
 
-                write(self_pipe[1], &ev, sizeof(ev));
+				write(self_pipe[1], &ev, sizeof(ev));
+			}, 
+			nullptr
+		);
 
-            }, nullptr);
-            if (op_query) pa_operation_unref(op_query);
+		pa_operation *op_query_source = pa_context_get_source_info_list(
+			context,
+			[](pa_context *c, const pa_source_info *i, int eol, void *userdata) {
+				if (eol < 0 || !i) 
+					return;
+				PaEvent ev = {.type = PaEventType::Mic};
+				ev.data.mic_is_mute = (i->mute == 1);
+				write(self_pipe[1], &ev, sizeof(ev));
+			},
+			nullptr
+		);
 
-            break;
+
+		if (op_query_source) 
+			pa_operation_unref(op_query_source);
+
+		if (op_query_sink) 
+			pa_operation_unref(op_query_sink);
+
+		break;
         }
         case PA_CONTEXT_FAILED:
         case PA_CONTEXT_TERMINATED:
@@ -44,19 +76,50 @@ void PaListener::worker_state_cb(pa_context* context, void* userdata)
 void PaListener::worker_sub_cb(pa_context* context, pa_subscription_event_type_t t, uint32_t index, void* userdata)
 {
     if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_SINK) {
-        pa_operation* op = pa_context_get_sink_info_by_index(context, index, [](pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
-            if (eol < 0 || !i)
-                return;
+        pa_operation* op = pa_context_get_sink_info_by_index(
+		context, 
+		index,
+		[](pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
+			if (eol < 0 || !i)
+				return;
+			PaEvent ev = {
+				.type = PaEventType::Audio,
+				.data = {
+					.vol = {
+					    .is_mute = i->mute == 1, 
+					    .volume  = i->volume.values[0] * 100 / PA_VOLUME_NORM,
+					},
+				}
+			};
 
-            VolEvent ev = {
-                .is_mute = i->mute == 1, 
-                .volume  = i->volume.values[0] * 100 / PA_VOLUME_NORM,
-            };
+			write(self_pipe[1], &ev, sizeof(ev));
+		}, 
+		nullptr
+	);
 
-            write(self_pipe[1], &ev, sizeof(ev));
 
-        }, nullptr);
-        if (op) pa_operation_unref(op);
+        if (op) 
+	    pa_operation_unref(op);
+    }
+
+    if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_SOURCE) {
+	pa_operation *op_query_source = pa_context_get_source_info_by_index(
+		context,
+		index,
+		[](pa_context *c, const pa_source_info *i, int eol, void *userdata) {
+			if (eol < 0 || !i)
+				return;
+			PaEvent ev = {.type = PaEventType::Mic};
+			ev.data.mic_is_mute = (i->mute == 1);
+
+			write(self_pipe[1], &ev, sizeof(ev));
+		},
+		nullptr
+	);
+
+
+	if (op_query_source) 
+		pa_operation_unref(op_query_source);
     }
 }
 
@@ -98,9 +161,19 @@ int PaListener::get_fd() const
 
 void PaListener::operator() () const
 {
-	VolEvent ev;
+	PaEvent ev;
 	read(self_pipe[0], &ev, sizeof(ev));
-	state::volume = ev.volume;
-	state::is_mute = ev.is_mute;
+	switch (ev.type) {
+		case PaEventType::Audio: 	
+			state::volume = ev.data.vol.volume;
+			state::vol_is_mute = ev.data.vol.is_mute;
+			// std::cout << "vol: " << state::volume << "|is mute: " << state::vol_is_mute << std::endl;
+			break;
+
+		case PaEventType::Mic: 	
+			state::mic_is_mute = ev.data.mic_is_mute;
+			std::cout << "Microphone is " << (state::mic_is_mute ? "muted" : "not muted") << std::endl;
+			break;
+	}
 	state::render();
 }

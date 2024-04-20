@@ -26,7 +26,7 @@ namespace config::components {
 		.padding_y = PADDING_Y_DEF
 	}> Battery;
 
-	typedef VolComponent<CmpStyle {
+	typedef PulseComponent<CmpStyle {
 		.colors = {
 		   /*|------text-------|---------bg----------|----------border----|*/
 			{{36, 39, 58, 255}, {139, 213, 202, 255}, {255, 255, 255, 255}}, /* inactive */

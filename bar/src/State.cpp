@@ -16,7 +16,8 @@ namespace state {
 	std::string time_txt;
 	wl_unique_ptr<PangoContext> pango_ctx;
 	uint32_t volume = 0;
-	bool is_mute = 0;
+	bool vol_is_mute = 0;
+	bool mic_is_mute = 0;
 }
 
 

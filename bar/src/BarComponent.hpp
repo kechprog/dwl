@@ -142,19 +142,20 @@ private:
 /*---------------------------------------VolComponent------------------------------------*/
 /*****************************************************************************************/
 template<CmpStyle style>
-class VolComponent : public TextComponent<style> {
+class PulseComponent : public TextComponent<style> {
 public:
-	VolComponent() : TextComponent<style>() {};
+	PulseComponent() : TextComponent<style>() {};
 	void update_text(const Monitor *) override
 	{
 		std::stringstream ss;
-		if (state::is_mute)
+		ss << config::volume::mic_icons[state::mic_is_mute] << "|";
+		if (state::vol_is_mute)
 			ss << config::volume::icon_mute;
 		else {
 			const auto icon = map_to_index(config::volume::icons, config::volume::icons_len, (uint8_t)state::volume);
 			ss << icon;
 		}
-		ss << ": " << state::volume << "%";
+		ss << ":" << state::volume << "%";
 		this->content = ss.str();
 	}
 };

@@ -82,6 +82,7 @@ namespace config {
 	
 
 	namespace volume {
+		constexpr const char *mic_icons[] = {"󰍬", "󰍭"};
 		constexpr const char *icons[] = {"󰕿", "󰖀", "󰕾"};
 		constexpr const char *icon_mute = "󰝟";
 		constexpr const size_t icons_len = sizeof(icons) / sizeof(icons[0]);

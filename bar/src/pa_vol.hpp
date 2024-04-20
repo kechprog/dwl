@@ -9,6 +9,19 @@ struct VolEvent {
 	uint32_t volume;
 };
 
+enum class PaEventType {
+	Mic,
+	Audio,
+};
+
+struct PaEvent {
+	PaEventType type;
+	union {
+		VolEvent vol;
+		bool mic_is_mute; /* mic state */
+	} data;
+};
+
 class PaListener 
 {
 	static int self_pipe[2];
