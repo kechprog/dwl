@@ -7,6 +7,7 @@
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
 #include "shm_buffer.hpp"
+#include "Popup.hpp"
 
 /* avoid cicling dependancy of header */
 class IBarComponent;
@@ -25,6 +26,7 @@ class Bar {
 	wl_unique_ptr<wl_surface>            _wl_surface;
 	wl_unique_ptr<zwlr_layer_surface_v1> layerSurface;
 	std::optional<ShmBuffer>             bufs;
+	std::optional<Popup>                 popup;
 	bool invalid {false};
 
 	/* valid during invalidate/render */

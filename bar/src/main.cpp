@@ -67,7 +67,7 @@ zwlr_layer_shell_v1 *wlrLayerShell;
 znet_tapesoftware_dwl_wm_v1 *dwlWm;
 
 /* statics */
-static xdg_wm_base* xdgWmBase;
+xdg_wm_base* xdgWmBase;
 static zxdg_output_manager_v1* xdgOutputManager;
 static wl_surface* cursorSurface;
 static wl_cursor_image* cursorImage;
