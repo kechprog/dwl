@@ -34,6 +34,7 @@ executable('somebar',
     'src/Font.cpp',
     'src/pa_vol.cpp',
     'src/Popup.cpp',
+    'src/Event.cpp',
     wayland_sources,
     dependencies: [
         wayland_dep,

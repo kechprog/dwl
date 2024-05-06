@@ -40,6 +40,13 @@ public:
 	/* width, align(0-left, 1-right) */
 	virtual std::tuple<int, int> setup(const Monitor *, int desired_height) = 0;
 	virtual void render(cairo_t *, const Monitor *) const = 0;
+
+	virtual void on_pointer_enter() const {};
+	virtual void on_pointer_leave() const {};
+	/* in cordinates(0-1) relative to top right of the widget */
+	virtual void on_pointer_move(float x, float y) const {};
+	/* true <=> pressed, false <=> unpressed */
+	virtual void on_pointer_click(bool pressed) const {};
 };
 
 
