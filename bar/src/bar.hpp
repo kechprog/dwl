@@ -3,6 +3,7 @@
 
 #pragma once
 #include <optional>
+#include <vector>
 #include <wayland-client.h>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "common.hpp"
@@ -11,6 +12,13 @@
 
 /* avoid cicling dependancy of header */
 class IBarComponent;
+
+struct ComponentRenderInfo {
+	int x; /* top left */
+	int width;
+	IBarComponent *cmp;
+};
+
 
 struct Tag {
 	int state;
@@ -34,13 +42,14 @@ class Bar {
 	cairo_surface_t *cairo_surface {nullptr};
 	int x_left, x_right;
 	ColorScheme colorScheme;
+	std::vector<ComponentRenderInfo> cmp_render_info;
 
 	void layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height);
-	void renderComponent(IBarComponent *component);
+	void renderComponent(size_t idx);
 	void render();
 
 public:
-	Bar() = default;
+	Bar();
 	const struct wl_surface* surface() const;
 	bool visible() const;
 	int height() const;

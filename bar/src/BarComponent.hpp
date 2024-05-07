@@ -41,12 +41,9 @@ public:
 	virtual std::tuple<int, int> setup(const Monitor *, int desired_height) = 0;
 	virtual void render(cairo_t *, const Monitor *) const = 0;
 
-	virtual void on_pointer_enter() const {};
-	virtual void on_pointer_leave() const {};
 	/* in cordinates(0-1) relative to top right of the widget */
-	virtual void on_pointer_move(float x, float y) const {};
 	/* true <=> pressed, false <=> unpressed */
-	virtual void on_pointer_click(bool pressed) const {};
+	virtual void on_pointer_move(float x, float y, bool pressed, Monitor *mon) const {};
 };
 
 
@@ -84,6 +81,10 @@ public:
 		cairo_move_to(painter, style.padding_x, style.padding_y);
 		pango_cairo_show_layout(painter, this->pango_layout.get());
 	}
+
+	void on_pointer_move(float x, float y, bool pressed, Monitor *mon) const override {
+		std::cout << "Clicked: " << this->content << std::endl;
+	};
 
 	virtual void update_text(const Monitor *mon) = 0;
 protected:
@@ -137,7 +138,7 @@ public:
 	{
 		std::stringstream ss;
 		const auto icon = map_to_index(config::brightness::icons, config::brightness::icons_len, state::brightnesses[this->idx]);
-		ss << icon << ": " << (int)state::brightnesses[this->idx] << "%";
+		ss << icon << ":" << (int)state::brightnesses[this->idx] << "%";
 		this->content = ss.str();
 	}
 
@@ -276,6 +277,14 @@ public:
 		}
 		// assert(this->w == x);
 	}
+
+	void on_pointer_move(float x, float y, bool pressed, Monitor *mon) const override {
+		size_t tag_num = x * pango_layouts.size();
+		view(*mon, Arg {
+			.ui = static_cast<unsigned int>(1 << tag_num),
+		});
+	}
+
 private:
 	std::vector<wl_unique_ptr<PangoLayout>> pango_layouts;
 	int w; // since we assume tags do not change after startup
@@ -328,6 +337,15 @@ public:
 		}
 	}
 
+
+	void on_pointer_move(float x, float y, bool pressed, Monitor *mon) const override {
+		size_t cmp_idx = y * all_tags.size();
+		float cmp_h = (mon_height / (float)mon->bar.height());
+		float cmp_y = (y - cmp_idx * cmp_h) / cmp_h;
+
+		all_tags[cmp_idx].on_pointer_move(x, cmp_y, pressed, mon);
+	}
+
 private:
 	std::vector<TagsComponent<0,5,0>> all_tags;
 	int mon_height;
@@ -367,6 +385,13 @@ public:
 			cairo_fill(painter);
 			y += this->cmp_height;
 		}
+	}
+
+	void on_pointer_move(float x, float y, bool pressed, Monitor *mon) const override {
+		size_t cmp_idx = y / cmp_height;
+		float cmp_y = (y - cmp_idx*cmp_height) / (cmp_height / (float)mon->bar.height());
+
+		components[cmp_idx]->on_pointer_move(x, cmp_y, pressed, mon);
 	}
 
 private:

@@ -56,7 +56,7 @@ void state::init() {
 	for (size_t i = 0; i < config::brightness::display_count; i++)
 		brightness_components.push_back(std::make_unique<config::components::Brightness>(i));
 	state::components.push_back(std::make_unique<HAlignComponent<1>>(std::move(brightness_components)));
-	state::components.push_back(std::make_unique<config::components::TouchState>());
+	// state::components.push_back(std::make_unique<config::components::TouchState>());
 
 	/* left aligned */
 	// state::components.push_back(std::make_unique<TagsComponent<0>>());

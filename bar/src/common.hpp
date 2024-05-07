@@ -46,7 +46,7 @@ extern xdg_wm_base* xdgWmBase;
 extern std::vector<std::string> tagNames;
 extern std::vector<std::string> layout_names;
 
-void view(Monitor& m, const Arg& arg);
+void view(Monitor &m, const Arg& arg);
 void toggleview(Monitor& m, const Arg& arg);
 void setlayout(Monitor& m, const Arg& arg);
 void tag(Monitor& m, const Arg& arg);

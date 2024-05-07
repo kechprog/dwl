@@ -25,6 +25,11 @@ const wl_surface* Bar::surface() const
 	return _wl_surface.get();
 }
 
+Bar::Bar() {
+	this->cmp_render_info = std::vector<ComponentRenderInfo>(state::components.size());
+}
+
+
 bool Bar::visible() const
 {
 	return _wl_surface.get();
@@ -76,13 +81,31 @@ void Bar::invalidate()
 	wl_surface_commit(_wl_surface.get());
 }
 
-void Bar::click(Monitor* mon, int x, int, int btn)
+void Bar::click(Monitor* mon, int x, int y, int btn)
 {
-	const auto &red = Color { 0xff, 0, 0, 0xff };
-	if (this->popup)
-		this->popup.reset();
-	else 
-		this->popup.emplace(0, 0, 100, 100, red, layerSurface.get());
+
+	IBarComponent *cmp = nullptr;
+	float cx, cy;
+	for (const auto &render_info : this->cmp_render_info) {
+		if (x >= render_info.x && x <= render_info.x + render_info.width) {
+			cmp = render_info.cmp;
+			cx = (x - render_info.x) / (float)render_info.width;
+			cy = y / (float)this->height();
+			break;
+		}
+	}
+
+	if (!cmp)
+		return;
+
+	std::cout << "X: " << x << " Y: " << y << std::endl;
+	cmp->on_pointer_move(cx, cy, true, mon);
+
+	// const auto &red = Color { 0xff, 0, 0, 0xff };
+	// if (this->popup)
+	// 	this->popup.reset();
+	// else 
+	// 	this->popup.emplace(0, 0, 100, 100, red, layerSurface.get());
 }
 
 void Bar::layerSurfaceConfigure(uint32_t serial, uint32_t width, uint32_t height)
@@ -122,8 +145,8 @@ void Bar::render()
 	cairo_rectangle(painter, 0, 0, bufs->width, bufs->height);
 	cairo_fill(painter);
 
-	for (auto &cmp : state::components)
-		renderComponent(cmp.get());
+	for (size_t i = 0; i < state::components.size(); i++)
+		renderComponent(i);
 
 	painter = nullptr;
 	wl_surface_attach(_wl_surface.get(), bufs->buffer(), 0, 0);
@@ -133,8 +156,9 @@ void Bar::render()
 	invalid = false;
 }
 
-void Bar::renderComponent(IBarComponent *cmp)
+void Bar::renderComponent(size_t idx)
 {
+	auto *cmp = state::components[idx].get();
 	const Monitor *mon = wl_container_of(this, mon, bar);
 	auto [w, align] = cmp->setup(mon, bufs->height);
 
@@ -159,4 +183,11 @@ void Bar::renderComponent(IBarComponent *cmp)
 	cairo_set_source_surface(painter, slice_surface.get(), x_position, 0);
 	cairo_rectangle(painter, x_position, 0, w, bufs->height);
 	cairo_fill(painter);
+
+	/* usefull for dispatching pointer events */
+	this->cmp_render_info[idx] = ComponentRenderInfo {
+		.x = x_position,
+		.width = w,
+		.cmp = cmp
+	};
 }
