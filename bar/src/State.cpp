@@ -49,7 +49,7 @@ void state::init() {
 
 	/* right aligned */
 	state::components.push_back(std::make_unique<config::components::Time>());
-	state::components.push_back(std::make_unique<config::components::Battery>());
+	// state::components.push_back(std::make_unique<config::components::Battery>());
 	state::components.push_back(std::make_unique<config::components::Volume>());
 
 	std::vector<std::unique_ptr<IBarComponent>> brightness_components;

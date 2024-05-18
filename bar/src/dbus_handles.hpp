@@ -1,32 +1,52 @@
 #pragma once
 
+#include <cstdint>
 #include <dbus-1.0/dbus/dbus.h>
-#include <optional>
-#include <utility>
+#include <list>
+#include <string>
 
-// /* returns fd */
-// int dbus_setup(DBusConnection **conn);
-//
-// /* on POLLIN on fd */
-// void dbus_on_poll(std::list<Monitor> &mons);
+enum class BatteryType {
+	Regular,
+	Pen,
+	Headphones,
+};
 
-class DbusListener 
-{
-	public:
-		DbusListener(void);
-		~DbusListener();
-		int get_fd(void) const;
-		/* to be called on any poll event */
-		void operator()(short int revents) const;
+enum class BatteryStatus {
+	Discharging,
+	Charging,
+};
 
-	private:
-		std::pair<std::optional<double>, std::optional<bool>> parse_msg(DBusMessage *msg) const;
-		void make_initial_battery_state_request();
+class BatteryDevice {
+public:
+	BatteryDevice(const char *path, BatteryType type, DBusConnection *conn);
+	void dbg_print() const;
+	// ~BatteryDevice();
+	bool operator==(const char *device_path) const;
+	void operator()(DBusMessage *msg);
 
-		int fd;
-		DBusConnection *conn;
-		DBusError err;
-		static constexpr char rule[] = "type='signal',interface='org.freedesktop.DBus.Properties',"
-									   "member='PropertiesChanged',"
-									   "arg0namespace='org.freedesktop.UPower.Device'";
+private:
+
+	std::string device_path;
+	DBusConnection *conn;
+
+	BatteryType device_type;
+	BatteryStatus status;
+	int64_t time_till; /* either till fully charged or till empty */
+	double percentage; /* till 2 decimal places */
+};
+
+class DbusListener {
+public:
+	DbusListener(void);
+	~DbusListener();
+	int get_fd(void) const;
+	/* to be called on any poll event */
+	void operator()(short int revents);
+
+private:
+	void on_add(DBusMessage *msg);
+	void on_remove(DBusMessage *msg);
+	std::list<BatteryDevice> devices;
+	int dbus_fd;
+	DBusConnection *conn;
 };

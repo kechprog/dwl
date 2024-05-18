@@ -528,7 +528,7 @@ int main(int argc, char* argv[])
 	});
 
 	/* dbus */
-	const DbusListener dbus_listener{};
+	DbusListener dbus_listener{};
 	pollfds.push_back({
 		.fd = dbus_listener.get_fd(),
 		.events = POLLIN,
