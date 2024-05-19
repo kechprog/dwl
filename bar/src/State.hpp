@@ -2,6 +2,7 @@
 
 #include "pango/pango-types.h"
 #include "config.hpp"
+#include "src/dbus_handles.hpp"
 #include "src/main.hpp"
 #include <list>
 #include <memory>
@@ -15,8 +16,7 @@ namespace state {
 	
 	extern std::array<uint8_t, config::brightness::display_count> brightnesses;
 
-	extern bool bat_is_charging;
-	extern uint8_t bat_percentage;
+	extern DbusListener dbus_listener;
 
 	extern std::string time_txt;
 	

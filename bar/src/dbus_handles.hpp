@@ -2,10 +2,10 @@
 
 #include <cstdint>
 #include <dbus-1.0/dbus/dbus.h>
-#include <list>
 #include <string>
+#include <vector>
 
-enum class BatteryType {
+enum class BatteryType : int {
 	Regular,
 	Pen,
 	Headphones,
@@ -20,9 +20,12 @@ class BatteryDevice {
 public:
 	BatteryDevice(const char *path, BatteryType type, DBusConnection *conn);
 	void dbg_print() const;
-	// ~BatteryDevice();
 	bool operator==(const char *device_path) const;
 	void operator()(DBusMessage *msg);
+
+	const BatteryType get_type() const;
+	const std::pair<BatteryStatus, int64_t> get_status() const;
+	const double get_percentage() const;
 
 private:
 
@@ -43,10 +46,12 @@ public:
 	/* to be called on any poll event */
 	void operator()(short int revents);
 
+	const std::vector<BatteryDevice>& get_bat_devs() const;
+
 private:
 	void on_add(DBusMessage *msg);
 	void on_remove(DBusMessage *msg);
-	std::list<BatteryDevice> devices;
+	std::vector<BatteryDevice> devices;
 	int dbus_fd;
 	DBusConnection *conn;
 };

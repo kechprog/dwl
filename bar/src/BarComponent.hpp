@@ -117,11 +117,21 @@ public:
 	BatteryComponent() noexcept : TextComponent<style>() {}
 	void update_text(const Monitor *mon) override
 	{
-		const auto &icons = map_to_index(config::battery::icons, config::battery::icons_len, state::bat_percentage);
-		const auto icon = state::bat_is_charging ? icons.first : icons.second;
 		std::stringstream ss;
 
-		ss << icon << ": " << (int)state::bat_percentage << "%";
+		for (const auto &dev : state::dbus_listener.get_bat_devs()) {
+			std::cout << "Rendering device" << std::endl;
+			const auto dev_icon = config::battery::bat_type_icons[static_cast<int>(dev.get_type())];
+			const uint8_t bat_perc = dev.get_percentage();
+			const auto [bat_status, time_till] = dev.get_status();
+			const auto bat_icon = map_to_index(config::battery::icons, config::battery::icons_len, bat_perc);
+
+			ss << (int)bat_perc << (bat_status == BatteryStatus::Charging
+				? bat_icon.first
+				: bat_icon.second
+			) << dev_icon << "|";
+		}
+
 		this->content = ss.str();
 	}
 };

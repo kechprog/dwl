@@ -1,9 +1,10 @@
 #include "dbus_handles.hpp"
-#include "State.hpp"
 #include "dbus/dbus-protocol.h"
 #include "dbus/dbus-shared.h"
 #include "dbus/dbus.h"
+#include "src/State.hpp"
 #include "src/common.hpp"
+#include "src/config.hpp"
 #include <algorithm>
 #include <cassert>
 #include <format>
@@ -112,19 +113,13 @@ std::optional<DBusMessageIter> vardict_get(const std::unordered_map<std::string,
 }
 
 /* matches substrings */
-static const auto batteries = std::to_array({
-	std::make_pair(std::string("/org/freedesktop/UPower/devices/battery_BAT0"), BatteryType::Regular),
-	std::make_pair(std::string("/org/freedesktop/UPower/devices/battery_wacom_battery_"), BatteryType::Pen),
-	std::make_pair(std::string("/org/freedesktop/UPower/devices/headset_dev_"), BatteryType::Headphones),
-	
-});
 
 static inline std::optional<BatteryType> get_type_from_path(std::string_view path) {
-	const auto &res = std::find_if(batteries.begin(), batteries.end(), [&path](auto e) {
+	const auto &res = std::find_if(config::battery::batteries.begin(), config::battery::batteries.end(), [&path](auto e) {
 		return path.compare(0, e.first.size(), e.first) == 0;
 	});
 
-	if (res == batteries.end()) {
+	if (res == config::battery::batteries.end()) {
 		return std::nullopt;
 	} else {
 		return std::make_optional(res->second);
@@ -199,6 +194,8 @@ DbusListener::DbusListener() {
 	dbus_error_free(&err);
 	dbus_message_unref(msg);
 	dbus_message_unref(reply);
+
+	state::render();
 }
 
 void BatteryDevice::dbg_print() const {
@@ -241,6 +238,8 @@ BatteryDevice::BatteryDevice(const char *path, BatteryType type, DBusConnection 
 		std::format("type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='{}'", this->device_path).c_str(), 
 		&err
 	);	
+
+	this->dbg_print();
 }
 
 void BatteryDevice::operator()(DBusMessage *msg) {
@@ -269,6 +268,18 @@ void BatteryDevice::operator()(DBusMessage *msg) {
 	}
 
 	this->dbg_print();
+}
+
+const BatteryType BatteryDevice::get_type() const {
+	return this->device_type;
+}
+
+const std::pair<BatteryStatus, int64_t> BatteryDevice::get_status() const {
+	return std::make_pair(this->status, this->time_till);
+}
+
+const double BatteryDevice::get_percentage() const {
+	return this->percentage;
 }
 
 bool BatteryDevice::operator==(const char *device_path) const {
@@ -310,6 +321,13 @@ void DbusListener::operator()(short int revents) {
 
 		dbus_message_unref(msg);
 	}
+
+	state::render();
+}
+
+
+const std::vector<BatteryDevice>& DbusListener::get_bat_devs() const {
+	return this->devices;
 }
 
 void DbusListener::on_add(DBusMessage *msg) {

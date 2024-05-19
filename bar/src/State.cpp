@@ -10,8 +10,7 @@ namespace state {
 	std::vector<std::string> tag_names;
 	std::vector<std::string> layout_names;
 	std::array<uint8_t, config::brightness::display_count> brightnesses = {0};
-	bool bat_is_charging   = {0};
-	uint8_t bat_percentage = {0};
+	DbusListener dbus_listener {};
 	std::vector<std::unique_ptr<IBarComponent>> components;
 	std::string time_txt;
 	wl_unique_ptr<PangoContext> pango_ctx;
@@ -49,7 +48,7 @@ void state::init() {
 
 	/* right aligned */
 	state::components.push_back(std::make_unique<config::components::Time>());
-	// state::components.push_back(std::make_unique<config::components::Battery>());
+	state::components.push_back(std::make_unique<config::components::Battery>());
 	state::components.push_back(std::make_unique<config::components::Volume>());
 
 	std::vector<std::unique_ptr<IBarComponent>> brightness_components;

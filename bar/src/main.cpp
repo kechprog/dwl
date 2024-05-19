@@ -82,12 +82,12 @@ static int statusFifoWriter {-1};
 static bool quitting {false};
 static int inotify_fd {-1};
 
-const std::string prefixStatus = "status ";
-const std::string prefixShow   = "show ";
-const std::string prefixHide   = "hide ";
-const std::string prefixToggle = "toggle ";
-const std::string argAll       = "all";
-const std::string argSelected  = "selected";
+// const std::string prefixStatus = "status ";
+// const std::string prefixShow   = "show ";
+// const std::string prefixHide   = "hide ";
+// const std::string prefixToggle = "toggle ";
+// const std::string argAll       = "all";
+// const std::string argSelected  = "selected";
 
 void Monitor::set_tag(int tag, int state, int num_clients, int focused_client)
 {
@@ -528,9 +528,8 @@ int main(int argc, char* argv[])
 	});
 
 	/* dbus */
-	DbusListener dbus_listener{};
 	pollfds.push_back({
-		.fd = dbus_listener.get_fd(),
+		.fd = state::dbus_listener.get_fd(),
 		.events = POLLIN,
 	});
 
@@ -562,8 +561,8 @@ int main(int argc, char* argv[])
 					}
 				} else if (ev.fd == signalSelfPipe[0] && (ev.revents & POLLIN)) {
 					quitting = true;
-				} else if (ev.fd == dbus_listener.get_fd()) {
-					dbus_listener(ev.revents);
+				} else if (ev.fd == state::dbus_listener.get_fd()) {
+					state::dbus_listener(ev.revents);
 				} else if (ev.fd == timer_fd && (ev.revents & POLLIN)) {
 					uint64_t _x;
 					read(timer_fd, &_x, sizeof(_x));

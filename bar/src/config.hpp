@@ -3,6 +3,7 @@
 
 #pragma once
 #include "common.hpp"
+#include "src/dbus_handles.hpp"
 #include <filesystem>
 
 namespace config {
@@ -26,7 +27,7 @@ namespace config {
 		/* ask ChatGpt if not sure what to put here */
 		constexpr const double dpi = 157; 
 		/* See https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html */
-		constexpr const char* font = "BigBlueTerm437 Nerd Font Mono";
+		constexpr const char* font = "FiraCode Nerd Font Mono";
 		constexpr const int bar_size = 25; /* in px, keep it multiple of displays for AllTagsComponent */
 		const constexpr ColorScheme colors[2] = {
 			/*---------|--------Bar Bg------|--------Text------|-------Cmp Bg--------|-------Tag Sel-------|-------Tag Urg---------|----Which---*/
@@ -61,7 +62,17 @@ namespace config {
 		// constexpr const char* dbus_obj_path = "/org/freedesktop/UPower/devices/battery_BATT";
 
 		/* asus zenbook duo(ux482) || lenovo thinkpad x1 yoga g6 */
-		constexpr const char* dbus_obj_path = "/org/freedesktop/UPower/devices/battery_BAT0";
+		static const auto batteries = std::to_array({
+			std::make_pair(std::string("/org/freedesktop/UPower/devices/battery_BAT0"), BatteryType::Regular),
+			std::make_pair(std::string("/org/freedesktop/UPower/devices/battery_wacom_battery_"), BatteryType::Pen),
+			std::make_pair(std::string("/org/freedesktop/UPower/devices/headset_dev_"), BatteryType::Headphones),
+		});
+
+		constexpr static const char* bat_type_icons[] = {
+			"", /* BatteryType::Regular */
+			" ", /* BatteryType::Pen */
+			" ", /* BatteryType::Headphones */
+		};
 
 		/* { discharging, charging } */
 		constexpr const std::pair<const char*, const char*> icons[] = {
