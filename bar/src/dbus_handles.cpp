@@ -80,39 +80,67 @@ static inline T dbus_get(DBusConnection *conn, const char *path, const char *pro
 	return dbus_arg_variant_read<T>(&iter);
 }
 
-static inline std::unordered_map<std::string, DBusMessageIter> vardict_to_map(DBusMessageIter *iter) {
-    std::unordered_map<std::string, DBusMessageIter> result;
+using VardictValue = std::variant<uint32_t, double, int64_t>;
+
+static inline std::unordered_map<std::string, VardictValue> 
+vardict_to_map(DBusMessageIter *iter) {
+    std::unordered_map<std::string, VardictValue> result;
     DBusMessageIter dict_entry;
-    
+
     dbus_message_iter_recurse(iter, &dict_entry);
     while (dbus_message_iter_get_arg_type(&dict_entry) != DBUS_TYPE_INVALID) {
         if (dbus_message_iter_get_arg_type(&dict_entry) == DBUS_TYPE_DICT_ENTRY) {
             DBusMessageIter entry_iter;
             dbus_message_iter_recurse(&dict_entry, &entry_iter);
 
-            char *key;
-            dbus_message_iter_get_basic(&entry_iter, &key);
+            if (dbus_message_iter_get_arg_type(&entry_iter) == DBUS_TYPE_STRING) {
+                char *key;
+                dbus_message_iter_get_basic(&entry_iter, &key);
+                dbus_message_iter_next(&entry_iter);
 
-            dbus_message_iter_next(&entry_iter);
-            DBusMessageIter value_iter = entry_iter; // Directly use the iterator for value
+                DBusMessageIter value_iter;
+                dbus_message_iter_recurse(&entry_iter, &value_iter);
+                int value_type = dbus_message_iter_get_arg_type(&value_iter);
 
-            result[key] = value_iter;
+                switch (value_type) {
+                    case DBUS_TYPE_UINT32: {
+                        uint32_t int_val;
+                        dbus_message_iter_get_basic(&value_iter, &int_val);
+                        result[key] = int_val;
+                        break;
+                    }
+                    case DBUS_TYPE_DOUBLE: {
+                        double double_val;
+                        dbus_message_iter_get_basic(&value_iter, &double_val);
+                        result[key] = double_val;
+                        break;
+                    }
+		case DBUS_TYPE_INT64: {
+			int64_t val;	
+			dbus_message_iter_get_basic(&value_iter, &val);
+			result[key] = val;
+		}
+                    default:
+			std::cerr << "Unknown type for VardictValue" << std::endl;
+                        break;
+                }
+            }
         }
         dbus_message_iter_next(&dict_entry);
     }
     return result;
 }
 
-std::optional<DBusMessageIter> vardict_get(const std::unordered_map<std::string, DBusMessageIter> &vardict_map, const std::string &key) {
+template<typename T>
+static inline std::optional<T> 
+vardict_get(const std::unordered_map<std::string, VardictValue> &vardict_map, const std::string &key) {
     auto it = vardict_map.find(key);
     if (it != vardict_map.end()) {
-        return it->second;
+        return std::get<T>(it->second);
     } else {
         return std::nullopt;
     }
 }
-
-/* matches substrings */
 
 static inline std::optional<BatteryType> get_type_from_path(std::string_view path) {
 	const auto &res = std::find_if(config::battery::batteries.begin(), config::battery::batteries.end(), [&path](auto e) {
@@ -238,8 +266,6 @@ BatteryDevice::BatteryDevice(const char *path, BatteryType type, DBusConnection 
 		std::format("type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='{}'", this->device_path).c_str(), 
 		&err
 	);	
-
-	this->dbg_print();
 }
 
 void BatteryDevice::operator()(DBusMessage *msg) {
@@ -251,23 +277,23 @@ void BatteryDevice::operator()(DBusMessage *msg) {
 
 	auto changed_props = vardict_to_map(&iter);
 	
-	auto percentage = vardict_get(changed_props, "Percentage");
+	auto percentage = vardict_get<double>(changed_props, "Percentage");
 	if (percentage.has_value())
-		this->percentage = dbus_arg_variant_read<double>(&percentage.value());
+		this->percentage = percentage.value();
 
-	auto status = vardict_get(changed_props, "State");
+	auto status = vardict_get<uint32_t>(changed_props, "State");
 	if (status.has_value()) {
-		this->status = dbus_arg_variant_read<double>(&status.value()) == 2 /* same as discharging */
+		this->status = status.value() == 2 /* same as discharging */
 			? BatteryStatus::Discharging
 			: BatteryStatus::Charging;
 
 		const auto time_till_prop_name = this->status == BatteryStatus::Discharging 
 			? "TimeTillEmpty"
 			: "TimeToFull";
-		this->time_till = dbus_arg_variant_read<int64_t>(&changed_props[time_till_prop_name]);
-	}
 
-	this->dbg_print();
+		this->time_till = vardict_get<int64_t>(changed_props, time_till_prop_name)
+			.value_or(0);
+	}
 }
 
 const BatteryType BatteryDevice::get_type() const {
@@ -317,7 +343,7 @@ void DbusListener::operator()(short int revents) {
 				dev(msg);
 			}
 		else
-			std::cout << "Unhandled message" << std::endl;
+			std::cerr << "Unhandled message" << std::endl;
 
 		dbus_message_unref(msg);
 	}

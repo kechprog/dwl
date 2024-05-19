@@ -2,7 +2,6 @@
 #include <ctime>
 #include <cstdlib>
 #include <cstdio>
-#include <iostream>
 #include <list>
 #include <sys/inotify.h>
 #include <sys/poll.h>
@@ -217,7 +216,6 @@ static const struct znet_tapesoftware_dwl_wm_monitor_v1_listener dwlWmMonitorLis
 	.touchscreen = [](void* mv, znet_tapesoftware_dwl_wm_monitor_v1*, uint32_t touch_state) {
 		auto mon = static_cast<Monitor*>(mv);
 		mon->touch_state = touch_state;
-		std::cout << "touch_state(" << mon->xdg_name << "): " << touch_state << std::endl;
 		state::render();
 	},
 

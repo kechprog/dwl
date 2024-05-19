@@ -12,17 +12,19 @@
 #include <pango/pango-layout.h>
 
 template<typename T>
-T map_to_index(T *arr, size_t arr_len, uint8_t idx)
+T map_to_index(T *arr, int arr_len, uint8_t idx)
 {
-	assert(idx <= 100); /* uint >= 0 - always */
-	if (idx == 0)
-		return arr[0];
-	if (idx == 100)
-		return arr[arr_len - 1];
+    assert(idx <= 100);
+    assert(arr_len > 0);
 
-	const int category_split = 100 / arr_len;
-	return arr[idx / category_split];
+    if (idx == 0)
+        return arr[0];
+    if (idx == 100)
+        return arr[arr_len - 1];
 
+    const int category_split = 100 / arr_len;
+    const int index = (idx / category_split) < arr_len ? (idx / category_split) : arr_len - 1;
+    return arr[index];
 }
 
 struct CmpColors {
@@ -120,7 +122,6 @@ public:
 		std::stringstream ss;
 
 		for (const auto &dev : state::dbus_listener.get_bat_devs()) {
-			std::cout << "Rendering device" << std::endl;
 			const auto dev_icon = config::battery::bat_type_icons[static_cast<int>(dev.get_type())];
 			const uint8_t bat_perc = dev.get_percentage();
 			const auto [bat_status, time_till] = dev.get_status();

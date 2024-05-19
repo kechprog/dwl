@@ -167,12 +167,10 @@ void PaListener::operator() () const
 		case PaEventType::Audio: 	
 			state::volume = ev.data.vol.volume;
 			state::vol_is_mute = ev.data.vol.is_mute;
-			// std::cout << "vol: " << state::volume << "|is mute: " << state::vol_is_mute << std::endl;
 			break;
 
 		case PaEventType::Mic: 	
 			state::mic_is_mute = ev.data.mic_is_mute;
-			std::cout << "Microphone is " << (state::mic_is_mute ? "muted" : "not muted") << std::endl;
 			break;
 	}
 	state::render();
