@@ -12,3 +12,5 @@ bar/.cache/clangd/index
 bar/gmon.out
 gmon.out
 debug.log
+qdb/.cache/clangd/index
+qdb/build
