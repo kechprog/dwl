@@ -41,7 +41,7 @@ namespace config {
 		const std::pair<std::filesystem::path, size_t> per_display_info[] = {
 			/*                 current brightness(file)           ,  maxBright  */
 			/* lenovo thinkpad x1 yoga g6 */
-			{ "/sys/class/backlight/intel_backlight/brightness"   ,   19393     },
+			{ "/sys/class/backlight/intel_backlight/brightness"   ,   38787     },
 
 			/* asus zenbook(us435) */
 			// { "/sys/class/backlight/amdgpu_bl0/brightness"     ,     255     },

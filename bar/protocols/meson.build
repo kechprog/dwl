@@ -1,7 +1,7 @@
-# adapted from https://github.com/swaywm/swayidle/blob/0467c1e03a5780ed8e3ba611f099a838822ab550/meson.build
 wayland_scanner = find_program('wayland-scanner')
 wayland_protos_dep = dependency('wayland-protocols')
 wl_protocol_dir = wayland_protos_dep.get_pkgconfig_variable('pkgdatadir')
+
 wayland_scanner_code = generator(
 	wayland_scanner,
 	output: '@BASENAME@-protocol.c',
