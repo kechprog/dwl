@@ -186,11 +186,6 @@ typedef struct {
 	void (*arrange)(Monitor *);
 } Layout;
 
-typedef struct {
-	struct wl_list link;
-	struct wl_resource *resource;
-	struct Monitor *monitor;
-} DwlWmMonitor;
 
 typedef struct Touch Touch;
 
@@ -450,16 +445,17 @@ void viewprev(const Arg *arg);
 void virtualkeyboard(struct wl_listener *listener, void *data);
 Monitor *xytomon(double x, double y);
 void xytonode(double x, double y, struct wlr_surface **psurface,
- Client **pc, LayerSurface **pl, double *nx, double *ny);
+Client **pc, LayerSurface **pl, double *nx, double *ny);
 void zoom(const Arg *arg);
 
-void dwl_wm_bind(struct wl_client *client, void *data,
- uint32_t version, uint32_t id);
-void dwl_wm_printstatus(Monitor *monitor);
 
-
-
-extern struct wlr_seat *seat;
 #ifdef XWAYLAND
-extern xcb_atom_t netatom[NetLast];
+static void activatex11(struct wl_listener *listener, void *data);
+static void associatex11(struct wl_listener *listener, void *data);
+static void configurex11(struct wl_listener *listener, void *data);
+static void createnotifyx11(struct wl_listener *listener, void *data);
+static void dissociatex11(struct wl_listener *listener, void *data);
+static xcb_atom_t getatom(xcb_connection_t *xc, const char *name);
+static void sethints(struct wl_listener *listener, void *data);
+static void xwaylandready(struct wl_listener *listener, void *data);
 #endif

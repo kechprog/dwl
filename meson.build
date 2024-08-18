@@ -40,8 +40,11 @@ executable(
   'dwl', 
   './src/dwl.c', 
   './src/util.c',
+  './src/globals.c',
+  './src/tapesoftware.c',
   wayland_sources,
   dependencies: pkg_deps,
+  include_directories: './src',
   c_args: cflags,
   install: true
 )
