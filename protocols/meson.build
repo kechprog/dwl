@@ -14,9 +14,10 @@ wayland_scanner_server = generator(
 wayland_xmls = [
     'net-tapesoftware-dwl-wm-unstable-v1.xml',
     'wlr-layer-shell-unstable-v1.xml',
+    'wlr-input-inhibitor-unstable-v1.xml',
     '/usr/share/wayland-protocols/staging/cursor-shape/cursor-shape-v1.xml',
     '/usr/share/wayland-protocols/unstable/pointer-gestures/pointer-gestures-unstable-v1.xml',
-    '/usr/share/wayland-protocols/unstable/tablet/tablet-unstable-v2.xml',
+    '/usr/share/wayland-protocols/stable/tablet/tablet-v2.xml',
     '/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml'
 ]
 

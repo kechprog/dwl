@@ -158,7 +158,7 @@ DbusListener::DbusListener() {
 	DBusError err;
 	dbus_error_init(&err);
 
-    this->conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+	this->conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
 	dbus_error_assert(&err);
 	assert(this->conn);
 	dbus_connection_get_unix_fd(this->conn, &this->dbus_fd);

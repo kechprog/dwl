@@ -31,7 +31,7 @@ static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 static const int tagcount = sizeof(tags) / sizeof(tags[0]);
 
 /* logging */
-static int log_level = WLR_ERROR;
+static int log_level = WLR_INFO;
 
 static const Rule rules[] = {
 	/* app_id     title       tags mask     isfloating   monitor */
@@ -60,35 +60,26 @@ static const Layout layouts[] = {
 
 /* monitors */
 static const MonitorRule monrules[] = {
-	/* lenovo thinkpad x1 yoga g6 */
-	/*  name  ,  mfact ,  nmaster , scale , layout      ,   rotate/reflect             ,  x  ,   y  */
-	{"HDMI-A-1", 0.6, 1, 1, &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 0, NULL, NULL},
-	{ "eDP-1",   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   1080  
-	/* |	    touch_name	     |            brightness_name         | */
-	   , "Wacom HID 53AF Finger" , "sysfs/backlight/intel_backlight"  }  ,
+	// {"HDMI-A-1", 0.6, 1, 1, &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 0, NULL, NULL},
+	/* lenovo thinkpad x13 yoga g5 */
+	{ NULL,       0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1, NULL, NULL, false},
+	{
+		.name = "eDP-1",
+		.mfact = 0.6,
+		.nmaster = 1,
+		.scale = 1,
+		.lt = &layouts[0],
+		.rr = WL_OUTPUT_TRANSFORM_NORMAL,
+		.x = 0,
+		.y = 1080,
+		.touch_name = "Wacom HID 53AF Finger",
+		.brightness_class = "sysfs/backlight/intel_backlight",
+	},
 
-
-	/* asus zenbook(ux435) */
-	// { NULL ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0  
-	// /*       touch name        tablet name */
-	//     , NULL, NULL, "sysfs/backlight/amdgpu_bl0"},
-	
-	
-	/* asus zenbook duo(ux482) */
-	// { "eDP-1" ,   0.6   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,   0,
-	// /*       touch name        tablet name */
-	// "ELAN9008:00 04F3:2D55", NULL, "sysfs/backlight/intel_backlight"},
-	// { "DP-1"  ,   0.5   ,     1    ,   1   , &layouts[0] ,   WL_OUTPUT_TRANSFORM_NORMAL ,  0  ,  1080,
-	// /*       touch name        tablet name */
-	// "ELAN9009:00 04F3:2C1B", "ELAN9009:00 04F3:2C1B Stylus", "sysfs/leds/asus::screenpad"}
 };
 
 /* keyboard */
 static const struct xkb_rule_names xkb_rules = {
-	/* can specify fields: rules, model, layout, variant, options */
-	/* example:
-	.options = "ctrl:nocaps",
-	*/
 	.options = NULL,
 };
 
@@ -172,7 +163,6 @@ static const Key keys[] = {
 	{ MODKEY,                    KEY_SPACE,      spawn,          {.v = menucmd} },
 	{ MODKEY,                    KEY_ENTER,     spawn,          {.v = termcmd} },
 	{ MODKEY,                    KEY_J,          focusstack,     {.i = +1} },
-	{ MODKEY,                    KEY_D,          debug,		 {0} },
 	{ MODKEY,                    KEY_K,          focusstack,     {.i = -1} },
 	// { MODKEY,                    XKB_KEY_i,          incnmaster,     {.i = +1} },
 	// { MODKEY,                    XKB_KEY_d,          incnmaster,     {.i = -1} },

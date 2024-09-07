@@ -27,7 +27,7 @@
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
 #include <wlr/types/wlr_input_device.h>
-#include <wlr/types/wlr_input_inhibitor.h>
+// #include <wlr/types/wlr_input_inhibitor.h>
 #include <wlr/types/wlr_keyboard.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
@@ -54,9 +54,9 @@
 #include <wlr/types/wlr_tablet_pad.h>
 #include <wlr/types/wlr_tablet_tool.h>
 #include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/util/box.h>
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
-#include "net-tapesoftware-dwl-wm-unstable-v1-protocol.h"
 #ifdef XWAYLAND
 #include <wlr/xwayland.h>
 #include <X11/Xlib.h>
@@ -212,6 +212,7 @@ struct Monitor {
 	char ltsymbol[16];
 
 	struct wl_list dwl_wm_monitor_link;
+	bool is_main;
 	char *touch_name; /* null if nothing is asociated, see MonitorRule */
 	char *tablet_name;
 	char *brightness_class;
@@ -230,6 +231,7 @@ typedef struct {
 
 	char *touch_name;
 	char *brightness_class;
+	bool is_main; /* true only laptops, used for rotation */
 } MonitorRule;
 
 typedef struct {
@@ -329,7 +331,6 @@ void cleanup(void);
 void cleanupkeyboard(struct wl_listener *listener, void *data);
 void cleanupmon(struct wl_listener *listener, void *data);
 void closemon(Monitor *m);
-void click(int btn);
 void commitlayersurfacenotify(struct wl_listener *listener, void *data);
 void commitnotify(struct wl_listener *listener, void *data);
 void createdecoration(struct wl_listener *listener, void *data);
@@ -429,7 +430,6 @@ void touch_frame(struct wl_listener *listener, void *data);
 void touch_up(struct wl_listener *listener, void *data); 
 void touch_down(struct wl_listener *listener, void *data); 
 void pointtolocal(Monitor *m, double scrnx, double scrny, double *lx, double *ly);
-void debug(const Arg *arg);
 void swipebegin(struct wl_listener *listener, void *data);
 void swipeend(struct wl_listener *listener, void *data);
 void swipeupdate(struct wl_listener *listener, void *data);

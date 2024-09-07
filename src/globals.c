@@ -1,4 +1,5 @@
 #include "globals.h"
+#include <wlr/util/box.h>
 
 
 const int layermap[] = { LyrBg, LyrBottom, LyrTop, LyrOverlay };

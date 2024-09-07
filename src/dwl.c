@@ -2,6 +2,7 @@
 #include <wayland-server-core.h>
 #include <wayland-util.h>
 #include <wlr/util/box.h>
+#include <wlr/types/wlr_linux_drm_syncobj_v1.h>
 #include <xkbcommon/xkbcommon.h>
 
 #include "net-tapesoftware-dwl-wm-unstable-v1-protocol.h"
@@ -11,6 +12,7 @@
 #include "dwl.h"
 #include "client.h"
 #include "config.h"
+#include "dbus.h"
 
 static const char broken[] = "broken";
 static struct wl_listener lock_listener = {.notify = locksession};
@@ -66,6 +68,9 @@ applyrules(Client *c)
 void
 arrange(Monitor *m)
 {
+	if (!m)
+		die("Should not call arrange with NULL\n");
+
 	Client *c;
 	wl_list_for_each(c, &clients, link) {
 		if (c->mon == m) {
@@ -81,6 +86,7 @@ arrange(Monitor *m)
 
 	if (m->lt[m->sellt]->arrange)
 		m->lt[m->sellt]->arrange(m);
+
 	motionnotify(0);
 	checkidleinhibitor(NULL);
 }
@@ -156,12 +162,15 @@ axisnotify(struct wl_listener *listener, void *data)
 	struct wlr_pointer_axis_event *event = data;
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
-	/* TODO: allow usage of scroll whell for mousebindings, it can be implemented
-	 * checking the event's orientation and the delta of the event */
-	/* Notify the client with pointer focus of the axis event. */
-	wlr_seat_pointer_notify_axis(seat,
-			event->time_msec, event->orientation, event->delta,
-			event->delta_discrete, event->source);
+	wlr_seat_pointer_notify_axis(
+		/*seat=*/ seat,
+		/*time_msec=*/ event->time_msec, 
+		/*orientation=*/ event->orientation, 
+		/*value=*/ event->delta,
+		/*value_discrete=*/ event->delta_discrete,
+		/*source=*/ event->source,
+		event->relative_direction
+	);
 }
 
 void
@@ -244,6 +253,7 @@ checkidleinhibitor(struct wlr_surface *exclude)
 void
 cleanup(void)
 {
+	dbus_cleanup();
 #ifdef XWAYLAND
 	wlr_xwayland_destroy(xwayland);
 	xwayland = NULL;
@@ -321,23 +331,6 @@ closemon(Monitor *m)
 	}
 	focusclient(focustop(selmon), 1);
 	printstatus();
-}
-
-void 
-click(int btn) {
-    struct timespec ts;
-    uint32_t timems;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    timems = (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-
-    ts.tv_nsec = 2 * 1000000; // 2 milliseconds
-    ts.tv_sec = 0;
-
-    wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_PRESSED);
-    nanosleep(&ts, NULL);
-    
-    timems += 2; // increment timestamp by 2 milliseconds
-    wlr_seat_pointer_notify_button(seat, timems, btn, WLR_BUTTON_RELEASED);
 }
 
 void
@@ -505,31 +498,32 @@ createmon(struct wl_listener *listener, void *data)
 	/* This event is raised by the backend when a new output (aka a display or
 	 * monitor) becomes available. */
 	struct wlr_output *wlr_output = data;
-	printf("Creating Monitor: %s\n", wlr_output->name);
+	struct wlr_output_state wlr_output_state;
+	wlr_output_state_init(&wlr_output_state);
+
 	Touch *touch = NULL;
-	const MonitorRule *r;
-	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
 	wl_list_init(&m->dwl_wm_monitor_link);
+
 	m->wlr_output = wlr_output;
 	m->touch = NULL;
 
 	wlr_output_init_render(wlr_output, alloc, drw);
 
 	/* Initialize monitor state using configured rules */
-	for (i = 0; i < LENGTH(m->layers); i++)
+	for (size_t i = 0; i < LENGTH(m->layers); i++)
 		wl_list_init(&m->layers[i]);
 
 	m->tagset[0] = m->tagset[1] = 1;
 
-	for (r = monrules; r < END(monrules); r++) {
+	for (const MonitorRule *r = monrules; r < END(monrules); r++) {
 		if (!r->name || strstr(wlr_output->name, r->name)) {
 			m->mfact = r->mfact;
 			m->nmaster = r->nmaster;
-			wlr_output_set_scale(wlr_output, r->scale);
+			wlr_output_state_set_scale(&wlr_output_state, r->scale);
 			wlr_xcursor_manager_load(cursor_mgr, r->scale);
 			m->lt[0] = m->lt[1] = r->lt;
-			wlr_output_set_transform(wlr_output, r->rr);
+			wlr_output_state_set_transform(&wlr_output_state, r->rr);
 			m->m.x = r->x;
 			m->m.y = r->y;
 			m->brightness_class = r->brightness_class;
@@ -544,8 +538,7 @@ createmon(struct wl_listener *listener, void *data)
 					m->touch = touch;
 					break;
 				}
-
-			break;
+			m->is_main = r->is_main;
 		}
 	}
 
@@ -553,21 +546,21 @@ createmon(struct wl_listener *listener, void *data)
 	 * monitor supports only a specific set of modes. We just pick the
 	 * monitor's preferred mode; a more sophisticated compositor would let
 	 * the user configure it. */
-	wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
+	wlr_output_state_set_mode(&wlr_output_state, wlr_output_preferred_mode(wlr_output));
 
 	/* Set up event listeners */
 	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
 	LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);
 	LISTEN(&wlr_output->events.request_state, &m->request_state, requestmonstate);
 
-	wlr_output_enable(wlr_output, 1);
-	if (!wlr_output_commit(wlr_output))
-		return;
+	wlr_output_state_set_enabled(&wlr_output_state, 1);
+	// wlr_output_state_set_adaptive_sync_enabled(&wlr_output_state, 1);
 
-	/* Try to enable adaptive sync, note that not all monitors support it.
-	 * wlr_output_commit() will deactivate it in case it cannot be enabled */
-	wlr_output_enable_adaptive_sync(wlr_output, 1);
-	wlr_output_commit(wlr_output);
+	if (!wlr_output_test_state(wlr_output, &wlr_output_state)) {
+		die("Unable to verify state\n");	
+	}
+	wlr_output_commit_state(wlr_output, &wlr_output_state);
+	wlr_output_state_finish(&wlr_output_state);
 
 	wl_list_insert(&mons, &m->link);
 	printstatus();
@@ -778,7 +771,7 @@ toolsfocus(struct wlr_surface *s) /* focuses all tools onto surface */
 	wl_list_for_each(tab, &tablets, link) {
 		wl_list_for_each(t, &tab->tools, link) {
 			/* clear focus */
-			if (!s || !wlr_surface_accepts_tablet_v2(tab->tabletv2, s)) {
+			if (!s || !wlr_surface_accepts_tablet_v2(s, tab->tabletv2)) {
 				wlr_tablet_v2_tablet_tool_notify_proximity_out(t->toolv2);
 				continue;
 			}
@@ -1158,8 +1151,12 @@ inputdevice(struct wl_listener *listener, void *data)
 	case WLR_INPUT_DEVICE_TOUCH:
 		createtouch(wlr_touch_from_input_device(device));
 		break;
-	case WLR_INPUT_DEVICE_TABLET_TOOL:
+	case WLR_INPUT_DEVICE_TABLET_PAD:
 		createtablet(wlr_tablet_from_input_device(device));
+		break;
+	case WLR_INPUT_DEVICE_TABLET:
+		createtablet(wlr_tablet_from_input_device(device));
+		break;
 	default:
 		/* TODO: handle other input device types */
 		break;
@@ -1415,8 +1412,11 @@ monrotate(const Arg *arg)
 		return;
 
 	enum wl_output_transform t = (selmon->wlr_output->transform + 1) % 4;
-	wlr_output_set_transform(selmon->wlr_output, t);
-	wlr_output_commit(selmon->wlr_output);
+	struct wlr_output_state st;
+	wlr_output_state_init(&st);
+	wlr_output_state_set_transform(&st, t);
+	wlr_output_commit_state(selmon->wlr_output, &st);
+	wlr_output_state_finish(&st);
 	arrange(selmon);
 }
 
@@ -1566,15 +1566,17 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
 
 	wl_list_for_each(config_head, &config->heads, link) {
 		struct wlr_output *wlr_output = config_head->state.output;
+		struct wlr_output_state state;
+		wlr_output_state_init(&state);
 		Monitor *m = wlr_output->data;
 
-		wlr_output_enable(wlr_output, config_head->state.enabled);
+		wlr_output_state_set_enabled(&state, config_head->state.enabled);
 		if (!config_head->state.enabled)
 			goto apply_or_test;
 		if (config_head->state.mode)
-			wlr_output_set_mode(wlr_output, config_head->state.mode);
+			wlr_output_state_set_mode(&state, config_head->state.mode);
 		else
-			wlr_output_set_custom_mode(wlr_output,
+			wlr_output_state_set_custom_mode(&state,
 					config_head->state.custom_mode.width,
 					config_head->state.custom_mode.height,
 					config_head->state.custom_mode.refresh);
@@ -1584,17 +1586,16 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
 		if (m->m.x != config_head->state.x || m->m.y != config_head->state.y)
 			wlr_output_layout_add(output_layout, wlr_output,
 					config_head->state.x, config_head->state.y);
-		wlr_output_set_transform(wlr_output, config_head->state.transform);
-		wlr_output_set_scale(wlr_output, config_head->state.scale);
-		wlr_output_enable_adaptive_sync(wlr_output,
+		wlr_output_state_set_transform(&state, config_head->state.transform);
+		wlr_output_state_set_scale(&state, config_head->state.scale);
+		wlr_output_state_set_adaptive_sync_enabled(&state,
 				config_head->state.adaptive_sync_enabled);
 
 apply_or_test:
 		if (test) {
-			ok &= wlr_output_test(wlr_output);
-			wlr_output_rollback(wlr_output);
+			ok &= wlr_output_test_state(wlr_output, &state);
 		} else {
-			ok &= wlr_output_commit(wlr_output);
+			ok &= wlr_output_commit_state(wlr_output, &state);
 		}
 	}
 
@@ -2063,12 +2064,15 @@ setup(void)
 	/* The Wayland display is managed by libwayland. It handles accepting
 	 * clients from the Unix socket, manging Wayland globals, and so on. */
 	dpy = wl_display_create();
+	struct wl_event_loop *ev_loop = wl_display_get_event_loop(dpy);
+
+	dbus_init(ev_loop);
 
 	/* The backend is a wlroots feature which abstracts the underlying input and
 	 * output hardware. The autocreate option will choose the most suitable
 	 * backend based on the current environment, such as opening an X11 window
 	 * if an X11 server is running. */
-	if (!(backend = wlr_backend_autocreate(dpy, &session)))
+	if (!(backend = wlr_backend_autocreate(ev_loop, &session)))
 		die("couldn't create backend");
 
 	/* Initialize the scene graph used to lay out windows */
@@ -2092,11 +2096,16 @@ setup(void)
 	 * with wlr_scene. */
 	wlr_renderer_init_wl_shm(drw, dpy);
 
-	if (wlr_renderer_get_dmabuf_texture_formats(drw)) {
+	if (wlr_renderer_get_texture_formats(drw, WLR_BUFFER_CAP_DMABUF)) {
 		wlr_drm_create(dpy, drw);
 		wlr_scene_set_linux_dmabuf_v1(scene,
-				wlr_linux_dmabuf_v1_create_with_renderer(dpy, 4, drw));
+				wlr_linux_dmabuf_v1_create_with_renderer(dpy, 5, drw));
 	}
+
+
+	int drm_fd;
+	if ((drm_fd = wlr_renderer_get_drm_fd(drw)) >= 0 && drw->features.timeline)
+		wlr_linux_drm_syncobj_manager_v1_create(dpy, 1, drm_fd);
 
 	/* Autocreates an allocator for us.
 	 * The allocator is the bridge between the renderer and the backend. It
@@ -2121,6 +2130,7 @@ setup(void)
 	wlr_viewporter_create(dpy);
 	wlr_single_pixel_buffer_manager_v1_create(dpy);
 	wlr_fractional_scale_manager_v1_create(dpy, 1);
+	wlr_presentation_create(dpy, backend);
 
 	/* Initializes the interface used to implement urgency hints */
 	activation = wlr_xdg_activation_v1_create(dpy);
@@ -2131,7 +2141,7 @@ setup(void)
 
 	/* Creates an output layout, which a wlroots utility for working with an
 	 * arrangement of screens in a physical layout. */
-	output_layout = wlr_output_layout_create();
+	output_layout = wlr_output_layout_create(dpy);
 	LISTEN_STATIC(&output_layout->events.change, updatemons);
 	wlr_xdg_output_manager_v1_create(dpy, output_layout);
 
@@ -2245,7 +2255,6 @@ setup(void)
 	LISTEN_STATIC(&output_mgr->events.apply, outputmgrapply);
 	LISTEN_STATIC(&output_mgr->events.test, outputmgrtest);
 
-	wlr_scene_set_presentation(scene, wlr_presentation_create(dpy, backend));
 	wl_global_create(dpy, &znet_tapesoftware_dwl_wm_v1_interface, 1, NULL, dwl_wm_bind);
 #ifdef XWAYLAND
 	/*
@@ -2330,7 +2339,7 @@ tabletaxis(struct wl_listener *listener, void *data)
 	no_client = !t->toolv2->focused_surface;
 
 	if (no_client
-	&& (c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c)))
+	&& (c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(client_surface(c), tab->tabletv2))
 	{
 		no_client = false;	
 		toolsfocus(client_surface(c));
@@ -2444,7 +2453,7 @@ tabletproximity(struct wl_listener *listener, void *data)
 			wlr_tablet_tool_create(tabletmanager, seat, ev->tool));
 		wl_list_insert(&tab->tools, &t->link);
 
-		if ((c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c)))
+		if ((c = focustop(selmon)) && wlr_surface_accepts_tablet_v2(client_surface(c), tab->tabletv2))
 			wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, client_surface(c));
 			
 	}
@@ -2489,7 +2498,7 @@ tabletbutton(struct wl_listener *listener, void *data)
 		return;
 
 	if (!t->toolv2->focused_surface) {
-		if (!(c = focustop(selmon)) && !wlr_surface_accepts_tablet_v2(tab->tabletv2, client_surface(c)))
+		if (!(c = focustop(selmon)) && !wlr_surface_accepts_tablet_v2(client_surface(c), tab->tabletv2))
 			return;
 		
 		wlr_tablet_v2_tablet_tool_notify_proximity_in(t->toolv2, tab->tabletv2, client_surface(c));
@@ -2653,7 +2662,7 @@ touch_cancel(struct wl_listener *listener, void *data)
 	if (touch->mode != TOUCH_MODE_ENABLED)
 		return;
 
-	wlr_seat_touch_notify_cancel(seat, p->surface);
+	wlr_seat_touch_notify_cancel(seat, p->client);
 }
 
 void 
@@ -3077,8 +3086,8 @@ updatemons(struct wl_listener *listener, void *data)
 	 * positions, focus, and the stored configuration in wlroots'
 	 * output-manager implementation.
 	 */
-	struct wlr_output_configuration_v1 *config =
-		wlr_output_configuration_v1_create();
+	struct wlr_output_configuration_v1 *config
+			= wlr_output_configuration_v1_create();
 	Client *c;
 	struct wlr_output_configuration_head_v1 *config_head;
 	Monitor *m;
@@ -3092,14 +3101,15 @@ updatemons(struct wl_listener *listener, void *data)
 		/* Remove this output from the layout to avoid cursor enter inside it */
 		wlr_output_layout_remove(output_layout, m->wlr_output);
 		closemon(m);
-		memset(&m->m, 0, sizeof(m->m));
-		memset(&m->w, 0, sizeof(m->w));
+		m->m = m->w = (struct wlr_box){0};
 	}
 	/* Insert outputs that need to */
-	wl_list_for_each(m, &mons, link)
+	wl_list_for_each(m, &mons, link) {
 		if (m->wlr_output->enabled
 				&& !wlr_output_layout_get(output_layout, m->wlr_output))
 			wlr_output_layout_add_auto(output_layout, m->wlr_output);
+	}
+
 	/* Now that we update the output layout we can get its box */
 	wlr_output_layout_get_box(output_layout, NULL, &sgeom);
 
@@ -3123,8 +3133,7 @@ updatemons(struct wl_listener *listener, void *data)
 		if (m->lock_surface) {
 			struct wlr_scene_tree *scene_tree = m->lock_surface->surface->data;
 			wlr_scene_node_set_position(&scene_tree->node, m->m.x, m->m.y);
-			wlr_session_lock_surface_v1_configure(m->lock_surface, m->m.width,
-					m->m.height);
+			wlr_session_lock_surface_v1_configure(m->lock_surface, m->m.width, m->m.height);
 		}
 
 		/* Calculate the effective monitor geometry to use for clients */
@@ -3135,17 +3144,23 @@ updatemons(struct wl_listener *listener, void *data)
 		if ((c = focustop(m)) && c->isfullscreen)
 			resize(c, m->m, 0);
 
+		/* Try to re-set the gamma LUT when updating monitors,
+		 * it's only really needed when enabling a disabled output, but meh. */
 		m->gamma_lut_changed = 1;
-		config_head->state.enabled = 1;
-		config_head->state.mode = m->wlr_output->current_mode;
+
 		config_head->state.x = m->m.x;
 		config_head->state.y = m->m.y;
+
+		if (!selmon) {
+			selmon = m;
+		}
 	}
 
 	if (selmon && selmon->wlr_output->enabled) {
-		wl_list_for_each(c, &clients, link)
+		wl_list_for_each(c, &clients, link) {
 			if (!c->mon && client_surface(c)->mapped)
 				setmon(c, selmon, c->tags);
+		}
 		focusclient(focustop(selmon), 1);
 		if (selmon->lock_surface) {
 			client_notify_enter(selmon->lock_surface->surface,

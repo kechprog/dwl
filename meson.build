@@ -9,7 +9,7 @@ config_h.set('VERSION', meson.project_version())
 # Dependencies
 wayland_dep = dependency('wayland-server')
 wayland_cursor_dep = dependency('wayland-cursor')
-wlroots_dep = dependency('wlroots')
+wlroots_dep = dependency('wlroots-0.19')
 xkbcommon_dep = dependency('xkbcommon')
 libinput_dep = dependency('libinput')
 xcb_dep = dependency('xcb')
@@ -29,12 +29,24 @@ pkg_deps = [
 ]
 
 cflags = [
-  '-I.', '-O3', '-DWLR_USE_UNSTABLE', '-std=c11', '-D_POSIX_C_SOURCE=200809L',
-  '-DVERSION="@0@"'.format(meson.project_version()), '-DXWAYLAND', '-pedantic',
-  '-Wall', '-Wextra', '-Wno-unused-parameter', '-Wno-sign-compare', '-Wshadow',
+  '-DWLR_USE_UNSTABLE',
+  '-DVERSION="@0@"'.format(meson.project_version()), 
+  '-D_POSIX_C_SOURCE=200809L',
+
+  '-pedantic', '-Wall', '-Wextra', '-Wno-unused-parameter', '-Wno-sign-compare', '-Wshadow',
   '-Wunused-macros', '-Werror=strict-prototypes', '-Werror=implicit',
   '-Werror=return-type'
 ]
+
+if get_option('buildtype') == 'debug'
+  cflags += ['-g', '-O0']
+else
+  cflags += ['-O3', '-lto']
+endif
+
+if get_option('xwayland')
+  cflags += ['-DXWAYLAND']
+endif
 
 executable(
   'dwl', 
@@ -42,6 +54,7 @@ executable(
   './src/util.c',
   './src/globals.c',
   './src/tapesoftware.c',
+  './src/dbus.c',
   wayland_sources,
   dependencies: pkg_deps,
   include_directories: './src',
